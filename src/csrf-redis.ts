@@ -1,0 +1,115 @@
+/**
+ * Redis-backed CSRF token store, for multi-instance deployments.
+ *
+ * Wraps any [ioredis](https://github.com/redis/ioredis)-compatible client
+ * (anything implementing `get`, `set`, `del`, `scan`) in the
+ * `CsrfTokenStore` interface from `@goobits/security/csrf`.
+ *
+ * @module @goobits/security/csrf-redis
+ */
+
+import type { CsrfTokenStore } from './csrf.js'
+import { type Logger, resolveLogger } from './logger.js'
+
+/** Minimal subset of ioredis we depend on. */
+export interface RedisLike {
+	get(key: string): Promise<string | null>
+	set(key: string, value: string, mode: 'PX', ttlMs: number): Promise<unknown>
+	del(key: string): Promise<unknown>
+	scan(
+		cursor: string,
+		matchMode: 'MATCH',
+		pattern: string,
+		countMode: 'COUNT',
+		count: number
+	): Promise<[string, string[]]>
+}
+
+export interface RedisCsrfStoreOptions {
+	client: RedisLike
+	keyPrefix?: string
+	logger?: Logger
+	clearScanCount?: number
+	clearBatchSize?: number
+}
+
+/**
+ * Build a Redis-backed `CsrfTokenStore`. Pass it to `createCsrf({ tokenStore })`.
+ *
+ * @example
+ * ```ts
+ * import Redis from 'ioredis'
+ * import { createCsrf } from '@goobits/security/csrf'
+ * import { createRedisCsrfStore } from '@goobits/security/csrf-redis'
+ *
+ * const client = new Redis(process.env.REDIS_URL!)
+ * const csrf = createCsrf({
+ *   tokenStore: createRedisCsrfStore({ client })
+ * })
+ * ```
+ */
+export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenStore {
+	const { client } = options
+	const keyPrefix = options.keyPrefix ?? 'csrf'
+	const clearScanCount = options.clearScanCount ?? 500
+	const clearBatchSize = options.clearBatchSize ?? 100
+	const log = resolveLogger(options.logger)
+
+	const key = (token: string): string => `${ keyPrefix }:${ token }`
+
+	return {
+		async get(token: string): Promise<number | undefined> {
+			try {
+				const raw = await client.get(key(token))
+				if (raw === null) return undefined
+				const parsed = Number(raw)
+				return Number.isFinite(parsed) ? parsed : undefined
+			} catch(err) {
+				log.error('Redis CSRF store: get failed', { error: String(err) })
+				throw err
+			}
+		},
+
+		async set(token: string, expiresAt: number, ttlMs?: number): Promise<void> {
+			const effectiveTtl = ttlMs ?? Math.max(1, expiresAt - Date.now())
+			try {
+				await client.set(key(token), String(expiresAt), 'PX', effectiveTtl)
+			} catch(err) {
+				log.error('Redis CSRF store: set failed', { error: String(err) })
+				throw err
+			}
+		},
+
+		async delete(token: string): Promise<void> {
+			try {
+				await client.del(key(token))
+			} catch(err) {
+				log.error('Redis CSRF store: delete failed', { error: String(err) })
+				throw err
+			}
+		},
+
+		async clear(): Promise<void> {
+			try {
+				let cursor = '0'
+				do {
+					const [ nextCursor, keys ] = await client.scan(
+						cursor,
+						'MATCH',
+						`${ keyPrefix }:*`,
+						'COUNT',
+						clearScanCount
+					)
+					cursor = nextCursor
+					for (let i = 0; i < keys.length; i += clearBatchSize) {
+						const batch = keys.slice(i, i + clearBatchSize)
+						await Promise.all(batch.map(k => client.del(k)))
+					}
+				} while (cursor !== '0')
+			} catch(err) {
+				log.error('Redis CSRF store: clear failed', { error: String(err) })
+				throw err
+			}
+		}
+	}
+}

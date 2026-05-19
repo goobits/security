@@ -1,0 +1,88 @@
+{
+	"name": "@goobits/security",
+	"version": "2.0.0",
+	"description": "Server-side security primitives for modern JavaScript runtimes: CSRF, rate limiting, reCAPTCHA, CSP, validation, admin auth, audit logging, and alerting",
+	"type": "module",
+	"main": "./src/index.ts",
+	"types": "./src/index.ts",
+	"sideEffects": false,
+	"exports": {
+		".": "./src/index.ts",
+		"./csrf": "./src/csrf.ts",
+		"./csrf-redis": "./src/csrf-redis.ts",
+		"./csp": "./src/csp.ts",
+		"./recaptcha": "./src/recaptcha.ts",
+		"./validation": "./src/validation.ts",
+		"./validation/sveltekit": "./src/validation/sveltekit.ts",
+		"./rate-limit": "./src/rate-limit/index.ts",
+		"./rate-limit/sveltekit": "./src/rate-limit/sveltekit.ts",
+		"./rate-limit/auth": "./src/rate-limit/auth.ts",
+		"./admin-auth": "./src/admin-auth.ts",
+		"./audit": "./src/audit.ts",
+		"./audit/sveltekit": "./src/audit/sveltekit.ts",
+		"./alerting": "./src/alerting.ts",
+		"./logger": "./src/logger.ts"
+	},
+	"keywords": [
+		"security",
+		"csrf",
+		"recaptcha",
+		"validation",
+		"rate-limiting",
+		"admin-auth",
+		"audit-logging",
+		"csp",
+		"jwt",
+		"web-crypto",
+		"esm",
+		"sveltekit",
+		"zod"
+	],
+	"author": "Goobits",
+	"license": "MIT",
+	"homepage": "https://github.com/goobits/security#readme",
+	"bugs": "https://github.com/goobits/security/issues",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/goobits/security.git"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"packageManager": "pnpm@10.13.1",
+	"dependencies": {
+		"jose": "^5.9.6"
+	},
+	"peerDependencies": {
+		"@sveltejs/kit": "^2.0.0",
+		"ioredis": "^5.0.0",
+		"zod": "^4.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@sveltejs/kit": {
+			"optional": true
+		},
+		"ioredis": {
+			"optional": true
+		},
+		"zod": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@sveltejs/kit": "^2.59.0",
+		"@types/node": "^22.10.0",
+		"@vitest/coverage-v8": "^4.0.0",
+		"ioredis": "^5.8.2",
+		"typescript": "^5.9.0",
+		"vitest": "^4.0.0",
+		"zod": "^4.0.0"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"clean": "rm -rf dist node_modules .turbo"
+	}
+}
