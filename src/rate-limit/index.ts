@@ -55,6 +55,17 @@ export type RateLimitResult =
 
 export interface RateLimiter {
 	check(identifier: string): Promise<RateLimitResult>
+	/**
+	 * Non-incrementing read of the current rate-limit verdict — useful for
+	 * response headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`) where
+	 * you want to surface quota without consuming one. Returns the same
+	 * `RateLimitResult` shape as `check()` based on the current stored
+	 * timestamps, but does NOT call `incrementEntry`.
+	 *
+	 * If no entry exists for the identifier yet, returns
+	 * `{ allowed: true, remaining: <tightest window maxEvents>, resetAtMs: now + <tightest window> }`.
+	 */
+	peek(identifier: string): Promise<RateLimitResult>
 	reset(identifier: string): Promise<void>
 	readonly config: Readonly<RateLimitConfig>
 }
@@ -167,18 +178,28 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 		return `${ keyPrefix }:${ identifier }`
 	}
 
-	async function check(identifier: string): Promise<RateLimitResult> {
-		const key = buildKey(identifier)
-		const now = Date.now()
-		const entry = await store.incrementEntry(key, now, maxWindowMs, maxStoredEvents)
-
+	/**
+	 * Evaluate the rate-limit verdict for an entry. Pure compute over the
+	 * timestamps list — no store access. Used by both `check()` (which
+	 * increments first) and `peek()` (which reads only).
+	 *
+	 * When `logOnHit` is true, emits a warning on limit-exceeded — `check()`
+	 * sets this; `peek()` does not (peeks happen during response-header
+	 * builds where a warning per request would be noisy).
+	 */
+	function evaluateWindows(
+		identifier: string,
+		timestamps: number[],
+		now: number,
+		logOnHit: boolean
+	): RateLimitResult {
 		let tightestRemaining = Number.POSITIVE_INFINITY
 		let tightestResetAt = 0
 		let tightestWindowName: string | null = null
 
 		for (const window of config.windows) {
 			const cutoff = now - window.windowMs
-			const inWindow = entry.timestamps
+			const inWindow = timestamps
 				.filter(t => t > cutoff)
 				.slice(-(window.maxEvents + 1))
 			const remaining = window.maxEvents - inWindow.length
@@ -188,11 +209,13 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 				// timestamp will roll out.
 				const oldest = inWindow[0] ?? now
 				const resetAt = oldest + window.windowMs
-				log.warn(`Rate limit hit (window=${ window.name })`, {
-					identifier,
-					events: inWindow.length,
-					maxEvents: window.maxEvents
-				})
+				if (logOnHit) {
+					log.warn(`Rate limit hit (window=${ window.name })`, {
+						identifier,
+						events: inWindow.length,
+						maxEvents: window.maxEvents
+					})
+				}
 				return {
 					allowed: false,
 					retryAfterSec: Math.max(1, Math.ceil((resetAt - now) / 1000)),
@@ -218,11 +241,25 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 		return result
 	}
 
+	async function check(identifier: string): Promise<RateLimitResult> {
+		const key = buildKey(identifier)
+		const now = Date.now()
+		const entry = await store.incrementEntry(key, now, maxWindowMs, maxStoredEvents)
+		return evaluateWindows(identifier, entry.timestamps, now, true)
+	}
+
+	async function peek(identifier: string): Promise<RateLimitResult> {
+		const key = buildKey(identifier)
+		const now = Date.now()
+		const entry = await store.getEntry(key)
+		return evaluateWindows(identifier, entry?.timestamps ?? [], now, false)
+	}
+
 	async function reset(identifier: string): Promise<void> {
 		await store.deleteEntry(buildKey(identifier))
 	}
 
-	return { check, reset, config }
+	return { check, peek, reset, config }
 }
 
 /**

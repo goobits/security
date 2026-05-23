@@ -13,11 +13,17 @@ import { getRandomBytes } from './_internal/crypto.js'
 import { isProduction } from './_internal/env.js'
 import { type Logger, resolveLogger } from './logger.js'
 
-/** Standard CSP fetch + navigation directives. */
+/** Standard CSP fetch + navigation directives, plus CSP3 + Trusted Types. */
 export type CspDirective =
 	| 'default-src'
 	| 'script-src'
+	// CSP3: fine-grained variants for inline event handlers + non-element scripts.
+	| 'script-src-attr'
+	| 'script-src-elem'
 	| 'style-src'
+	// CSP3: fine-grained variants for inline style attributes + <style>/<link>.
+	| 'style-src-attr'
+	| 'style-src-elem'
 	| 'img-src'
 	| 'font-src'
 	| 'connect-src'
@@ -28,6 +34,7 @@ export type CspDirective =
 	| 'worker-src'
 	| 'manifest-src'
 	| 'child-src'
+	| 'prefetch-src'
 	| 'base-uri'
 	| 'form-action'
 	| 'sandbox'
@@ -35,6 +42,10 @@ export type CspDirective =
 	| 'report-to'
 	| 'upgrade-insecure-requests'
 	| 'block-all-mixed-content'
+	// Trusted Types API (Chrome/Edge). Mitigates DOM-XSS by requiring all sinks
+	// to consume typed objects produced by named policies.
+	| 'trusted-types'
+	| 'require-trusted-types-for'
 
 export type CspDirectives = Partial<Record<CspDirective, string[]>>
 
