@@ -2,6 +2,12 @@
 
 All notable changes to `@goobits/security` are documented here. The format adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`turnstile`**: New `@goobits/security/turnstile` sub-export. Server-side Cloudflare Turnstile token verifier — sister module to `recaptcha`, same discriminated-union result shape (`{ success, reason, errorCodes?, raw }`). Reads `TURNSTILE_SECRET_KEY` env by default. Supports optional `action` + `hostname` assertions. Adds a `bypassLocalhost` option that short-circuits siteverify when `remoteIp` matches a loopback host (only when `NODE_ENV !== 'production'`) — codifies the bypass convention previously copy-pasted across bandamp.com, miko.art, and pdx.run. Same `allowInDevelopment` semantics as recaptcha (default `false`, opt-in dev escape hatch for missing secret).
+
 ## [2.0.0] - 2026-05-18
 
 ### Distribution
