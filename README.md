@@ -36,7 +36,7 @@ git submodule add git@github.com:goobits/security.git packages/security
 ```yaml
 # pnpm-workspace.yaml
 packages:
-  - sites/*
+  - apps/*
   - packages/*
 ```
 
@@ -61,7 +61,7 @@ pnpm add zod             # if using validation
 
 The same submodule layout works — just declare the workspace in the format your package manager expects:
 
-- **npm** / **yarn v1+**: add `"workspaces": ["packages/*", "sites/*"]` to your root `package.json` and reference the package as `"@goobits/security": "*"` from a workspace member.
+- **npm** / **yarn v1+**: add `"workspaces": ["packages/*", "apps/*"]` to your root `package.json` and reference the package as `"@goobits/security": "*"` from a workspace member.
 - **Bun**: same as npm.
 - **No workspace at all**: declare a `file:` reference — `"@goobits/security": "file:./packages/security"`.
 
