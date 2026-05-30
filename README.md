@@ -1,24 +1,31 @@
 # @goobits/security
 
-Server-side security primitives for modern JavaScript runtimes, with SvelteKit adapters where framework integration is useful. CSRF protection, rate limiting, reCAPTCHA verification, CSP headers, request validation, admin auth, audit logging, and security alerting -- all in one TypeScript-native package with minimal runtime dependencies.
+Server-side security primitives for modern JavaScript runtimes, with SvelteKit adapters where framework integration is useful. CSRF protection, rate limiting, reCAPTCHA verification, CSP headers, request validation, admin auth, audit logging, and security alerting, all in one TypeScript-native package with minimal runtime dependencies.
+
+## TL;DR
+
+- Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `admin-auth`, `audit`, `alerting`.
+- Pass a `Logger` to any factory for structured log output; omit it for silent operation.
+- All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
 ## Highlights
 
-- 🛡️ **CSRF** — double-submit cookie pattern with timing-safe comparison, pluggable token store (in-memory or Redis)
-- ⏱️ **Rate limiting** — sliding-window counter with multi-window support, pluggable store
-- 🤖 **reCAPTCHA** — Google v2 + v3 verification with score thresholds, returns a discriminated-union result
-- 🔒 **Content Security Policy** — generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
-- ✅ **Validation** — Zod v4 middleware for request body / query / params
-- 🔐 **Admin authentication** — JWT bearer + API key fallback with constant-time comparison
-- 📋 **Audit logging** — structured events with pluggable sinks (database, cloud logger, anywhere)
-- 🚨 **Alerting** — rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
-- 🪶 **Minimal forced dependencies** — uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit, ioredis, and zod
-- 🧩 **Pluggable logger** — every module accepts a `Logger` interface; bring your own (Pino, Winston, console, or silent)
-- 📦 **ESM-only, full TypeScript** — subpath exports for treeshaking; runs on Node 22+, Bun, Deno, Cloudflare Workers
+- **CSRF:** double-submit cookie pattern with timing-safe comparison, pluggable token store (in-memory or Redis)
+- **Rate limiting:** sliding-window counter with multi-window support, pluggable store
+- **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
+- **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
+- **Validation:** Zod v4 middleware for request body / query / params
+- **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
+- **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
+- **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
+- **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit, ioredis, and zod
+- **Pluggable logger:** every module accepts a `Logger` interface; bring your own (Pino, Winston, console, or silent)
+- **ESM-only, full TypeScript:** subpath exports for treeshaking; runs on Node 22+, Bun, Deno, Cloudflare Workers
 
-## Install
+## Usage
 
-`@goobits/security` is distributed as a **git submodule with TypeScript source** — no build step, no `dist/`, no npm package. Consume it from a workspace whose bundler (Vite, esbuild, SvelteKit, Bun, Deno, etc.) handles `.ts` natively.
+`@goobits/security` is distributed as a **git submodule with TypeScript source**: no build step, no `dist/`, no npm package. Consume it from a workspace whose bundler (Vite, esbuild, SvelteKit, Bun, Deno, etc.) handles `.ts` natively.
 
 ### Why source-only?
 
@@ -59,17 +66,17 @@ pnpm add zod             # if using validation
 
 ### npm / yarn / Bun workspaces
 
-The same submodule layout works — just declare the workspace in the format your package manager expects:
+The same submodule layout works. Just declare the workspace in the format your package manager expects:
 
 - **npm** / **yarn v1+**: add `"workspaces": ["packages/*", "apps/*"]` to your root `package.json` and reference the package as `"@goobits/security": "*"` from a workspace member.
 - **Bun**: same as npm.
-- **No workspace at all**: declare a `file:` reference — `"@goobits/security": "file:./packages/security"`.
+- **No workspace at all**: declare a `file:` reference, e.g. `"@goobits/security": "file:./packages/security"`.
 
 `@goobits/security` depends on [`jose`](https://github.com/panva/jose) for JWT operations in `admin-auth` (Web Crypto-based; cross-runtime). No other transitive runtime deps.
 
 ### Pinning a version
 
-`workspace:*` always tracks the submodule's current HEAD — for production you should pin the submodule to a specific commit. Two options:
+`workspace:*` always tracks the submodule's current HEAD. For production you should pin the submodule to a specific commit. Two options:
 
 ```bash
 # Pin to a tag (recommended for releases):
@@ -141,13 +148,13 @@ const csrf = createCsrf({
 })
 ```
 
-The returned `CsrfProtection` object also exposes `getToken(request)`, `cleanup()` (for the in-memory store; periodically drops expired tokens), `clear()` (purges the store), and `storeSize` (debug-only). For long-running processes with the default in-memory store, schedule `csrf.cleanup()` on a 5-minute interval. Redis stores handle expiry via TTL — no manual cleanup needed.
+The returned `CsrfProtection` object also exposes `getToken(request)`, `cleanup()` (for the in-memory store; periodically drops expired tokens), `clear()` (purges the store), and `storeSize` (debug-only). For long-running processes with the default in-memory store, schedule `csrf.cleanup()` on a 5-minute interval. Redis stores handle expiry via TTL with no manual cleanup needed.
 
 ⚠️ **`cookieOptions` replaces defaults, doesn't merge.** If you supply your own `cookieOptions`, you also lose the sensible defaults (`HttpOnly`, `SameSite=Lax`, etc.). Copy the defaults first if you only want to tweak one field.
 
-### `failClosed` — for compliance-sensitive routes
+### `failClosed`: for compliance-sensitive routes
 
-Default behavior on store errors (Redis down, etc.) is **fail-open** — `validate()` will still let requests through if the cookie + header constant-time compare succeeds. For routes where availability is less important than correctness, opt into fail-closed:
+Default behavior on store errors (Redis down, etc.) is **fail-open**: `validate()` will still let requests through if the cookie + header constant-time compare succeeds. For routes where availability is less important than correctness, opt into fail-closed:
 
 ```ts
 const csrf = createCsrf({ failClosed: true })
@@ -160,13 +167,13 @@ if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
 
 ℹ️ **Scope**: `failClosed` is consulted inside the expiry-check path (`isTokenExpired`). It takes effect when you pass `{ checkExpiry: true }` to `validate()`. Without `checkExpiry`, the store isn't queried at all so `failClosed` has nothing to gate.
 
-### `disabled` — tests only
+### `disabled`: tests only
 
-Set via `DISABLE_CSRF=true` env var or `createCsrf({ disabled: true })`. `createCsrf()` **throws synchronously** if either is set when `NODE_ENV === 'production'` — fails loud, never silently disabled in prod.
+Set via `DISABLE_CSRF=true` env var or `createCsrf({ disabled: true })`. `createCsrf()` **throws synchronously** if either is set when `NODE_ENV === 'production'`, failing loud and never silently disabled in prod.
 
 ### `serializeCookie` rejects illegal characters
 
-The package validates cookie name + value at write time against RFC 6265's allowed character class. Any cookie value containing CRLF, `;`, `,`, `"`, `\`, or whitespace throws synchronously. This is automatic — you don't need to do anything — but it does mean a future custom `cookieOptions` change is constrained to the RFC-legal set.
+The package validates cookie name + value at write time against RFC 6265's allowed character class. Any cookie value containing CRLF, `;`, `,`, `"`, `\`, or whitespace throws synchronously. This is automatic, requiring no action on your part, but it does mean a future custom `cookieOptions` change is constrained to the RFC-legal set.
 
 ## CSP
 
@@ -187,7 +194,7 @@ response.headers.set('Content-Security-Policy', buildCsp({
 }))
 ```
 
-The package has no hardcoded vendor list — you supply your own `extraSources`.
+The package has no hardcoded vendor list. You supply your own `extraSources`.
 
 ## Rate limiting
 
@@ -218,9 +225,9 @@ if (!verdict.allowed) {
 }
 ```
 
-⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments — the package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
+⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments. The package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
 
-⚠️ **`getClientIP` trusts NO proxy headers by default.** This is intentional — blindly trusting `x-forwarded-for` lets attackers spoof the identifier. To enable header trust:
+⚠️ **`getClientIP` trusts NO proxy headers by default.** This is intentional: blindly trusting `x-forwarded-for` lets attackers spoof the identifier. To enable header trust:
 
 ```ts
 import { getClientIP } from '@goobits/security/rate-limit'
@@ -232,7 +239,7 @@ const ip = getClientIP(event.request, { trustHeaders: ['cf-connecting-ip'] })
 const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
 ```
 
-In SvelteKit, prefer `event.getClientAddress()` — it honors your platform adapter's trusted-proxy config.
+In SvelteKit, prefer `event.getClientAddress()`, which honors your platform adapter's trusted-proxy config.
 
 Pre-baked auth flow limiters (login, registration, password reset) live in `@goobits/security/rate-limit/auth`:
 
@@ -361,15 +368,15 @@ const shortToken = await adminAuth.createAdminToken({ id: 'u1', role: 'admin' },
 const key = generateAdminApiKey()
 ```
 
-⚠️ **`jwtSecret` must be ≥32 characters** — `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
+⚠️ **`jwtSecret` must be ≥32 characters.** `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
 
-⚠️ **`algorithms` defaults to `['HS256']`** — pin tight. Adding `HS384`/`HS512` is fine; mixing in `none` is impossible (the type forbids it).
+⚠️ **`algorithms` defaults to `['HS256']`.** Pin tight. Adding `HS384`/`HS512` is fine; mixing in `none` is impossible (the type forbids it).
 
 ## Audit logging
 
 `withAudit` derives `outcome` automatically from the handler's response:
 2xx-3xx → `success`, 401/403 → `denied`, thrown → `error`, otherwise → `failure`.
-It dispatches **fire-and-forget** — the audit event is sent without awaiting
+It dispatches **fire-and-forget**: the audit event is sent without awaiting
 the sink, so the user sees the response before the audit lands. For
 compliance contexts that require the audit record durably stored before
 returning, call `auditor.log()` explicitly with `await` instead.
@@ -470,15 +477,15 @@ const log = createConsoleLogger({ prefix: '[my-app]', level: 'debug' })
 const csrf = createCsrf({ logger: log })
 ```
 
-Any object implementing `{ debug, info, warn, error }` works — including Pino, Winston, or `console`.
+Any object implementing `{ debug, info, warn, error }` works, including Pino, Winston, or `console`.
 
 ---
 
 ## Runtime + environment
 
 - **Node** ≥22 (for native Web Crypto on `globalThis.crypto`)
-- **Bun**, **Deno**, **Cloudflare Workers** — supported with caveats (see table below)
-- ESM only — `"type": "module"` consumers required
+- **Bun**, **Deno**, **Cloudflare Workers**: supported with caveats (see table below)
+- ESM only: `"type": "module"` consumers required
 
 ### Per-module runtime compatibility
 
@@ -498,7 +505,7 @@ Any object implementing `{ debug, info, warn, error }` works — including Pino,
 | `alerting` | ✅ | ✅ | ✅ | ✅ |
 | `logger` | ✅ | ✅ | ✅ | ✅ |
 
-† SvelteKit adapter — types reference `@sveltejs/kit`. Use the parent subpath (`validation`'s `getInputValidator`, `rate-limit`'s `createRateLimiter`, `audit`'s `createAuditLogger`) directly for framework-agnostic usage.
+† SvelteKit adapter: types reference `@sveltejs/kit`. Use the parent subpath (`validation`'s `getInputValidator`, `rate-limit`'s `createRateLimiter`, `audit`'s `createAuditLogger`) directly for framework-agnostic usage.
 
 All modules use the Web Crypto API on `globalThis.crypto` for randomness and signing. None import from `node:crypto`, `node:buffer`, or any other Node-only built-ins.
 
@@ -509,7 +516,7 @@ All modules use the Web Crypto API on `globalThis.crypto` for randomness and sig
 | Module | Variable | Required? |
 |---|---|---|
 | `recaptcha` | `RECAPTCHA_SECRET_KEY` | Yes (or pass `secretKey` via options) |
-| `admin-auth` | (none — `jwtSecret` passed via config) | — |
+| `admin-auth` | (none; `jwtSecret` passed via config) | n/a |
 | `csrf` | `DISABLE_CSRF=true` | Tests only; **throws at startup if set in production** |
 | `csrf` | `NODE_ENV=production` | Read for cookie `Secure` flag default |
 | `recaptcha` | `NODE_ENV` | Read to gate `allowInDevelopment` (default off) |
@@ -520,4 +527,4 @@ The package never reads env vars except via these explicit fallbacks. **Best pra
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE).
