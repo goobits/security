@@ -83,7 +83,10 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 
 		try {
 			if (schemas.body && request.method !== 'GET' && request.method !== 'HEAD') {
-				const raw = await readJsonBody(request, { maxBytes: options.maxBodyBytes })
+				const readOptions = options.maxBodyBytes === undefined
+					? {}
+					: { maxBytes: options.maxBodyBytes }
+				const raw = await readJsonBody(request, readOptions)
 				const result = await schemas.body.safeParseAsync(raw)
 				if (!result.success) {
 					log.warn('Request body validation failed', {
