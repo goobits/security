@@ -91,3 +91,8 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 - No `dist/`, `node_modules/`, `.DS_Store`, or `*.tsbuildinfo` tracked
 - README + CHANGELOG updated for any user-facing change
 - New deps reviewed for license compatibility (permissive only)
+
+## Shared-Folder Git
+
+- Shared macOS/Linux checkouts should use `core.filemode=false`; chmod-only changes will not be noticed reliably.
+- When a script must be executable, run `git update-index --chmod=+x path/to/script.sh` and include that in the commit.
