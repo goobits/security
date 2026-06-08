@@ -71,7 +71,7 @@ describe('createCsrf', () => {
 			cookie: `csrf-token=${ token }`,
 			'X-CSRF-Token': token
 		})
-		await new Promise(r => setTimeout(r, 5))
+		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
 		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
 	})
 
@@ -93,7 +93,7 @@ describe('createCsrf', () => {
 			cookie: `csrf-token=${ token }`,
 			'X-CSRF-Token': token
 		})
-		await new Promise(r => setTimeout(r, 5))
+		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
 		expect(await csrf.validate(request)).toBe(true)
 	})
 
