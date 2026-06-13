@@ -5,6 +5,7 @@ import {
 	textToBytes
 } from './encoding.js'
 
+
 export type HmacAlgorithm = 'HS256' | 'HS384' | 'HS512'
 
 export interface HmacSignature {
@@ -28,7 +29,7 @@ async function importHmacKey(
 ): Promise<CryptoKey> {
 	return crypto.subtle.importKey(
 		'raw',
-		secretToBytes(secret) as unknown as BufferSource,
+		secretToBytes(secret) as never,
 		{ name: 'HMAC', hash: HMAC_HASH[algorithm] },
 		false,
 		[ 'sign', 'verify' ]
@@ -42,7 +43,7 @@ export async function signHmac(
 ): Promise<HmacSignature> {
 	const key = await importHmacKey(secret, algorithm)
 	const data = typeof payload === 'string' ? textToBytes(payload) : payload
-	const signature = await crypto.subtle.sign('HMAC', key, data as unknown as BufferSource)
+	const signature = await crypto.subtle.sign('HMAC', key, data as never)
 	return {
 		algorithm,
 		value: bytesToBase64Url(new Uint8Array(signature))

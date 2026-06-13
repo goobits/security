@@ -5,6 +5,7 @@ import {
 	toHex
 } from '../_internal/crypto.js'
 
+
 export { getRandomBytes as randomBytes, toBytes as textToBytes, toHex as bytesToHex }
 
 export function bytesToText(bytes: Uint8Array): string {
@@ -60,7 +61,7 @@ export function constantTimeEqual(left: Uint8Array | string, right: Uint8Array |
 
 export async function sha256Bytes(value: Uint8Array | string): Promise<Uint8Array> {
 	const data = typeof value === 'string' ? toBytes(value) : value
-	const digest = await crypto.subtle.digest('SHA-256', data as unknown as BufferSource)
+	const digest = await crypto.subtle.digest('SHA-256', data as never)
 	return new Uint8Array(digest)
 }
 

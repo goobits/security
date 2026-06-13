@@ -7,6 +7,8 @@ import {
 	textToBytes
 } from './encoding.js'
 
+type AesKeyUsage = 'encrypt' | 'decrypt'
+
 export interface AesGcmSeal {
 	algorithm: 'AES-GCM'
 	iv: string
@@ -38,10 +40,10 @@ function normalizeData(value: Uint8Array | string | undefined): Uint8Array | und
 	return typeof value === 'string' ? textToBytes(value) : value
 }
 
-async function importAesKey(key: Uint8Array | string, usage: KeyUsage): Promise<CryptoKey> {
+async function importAesKey(key: Uint8Array | string, usage: AesKeyUsage): Promise<CryptoKey> {
 	return crypto.subtle.importKey(
 		'raw',
-		normalizeKey(key) as unknown as BufferSource,
+		normalizeKey(key) as never,
 		'AES-GCM',
 		false,
 		[ usage ]
@@ -56,11 +58,11 @@ export async function sealAesGcm(options: AesGcmOptions): Promise<AesGcmSeal> {
 	const ciphertext = await crypto.subtle.encrypt(
 		{
 			name: 'AES-GCM',
-			iv: iv as unknown as BufferSource,
-			...(associatedData ? { additionalData: associatedData as unknown as BufferSource } : {})
+			iv: iv as never,
+			...(associatedData ? { additionalData: associatedData as never } : {})
 		},
 		key,
-		plaintext as unknown as BufferSource
+		plaintext as never
 	)
 	return {
 		algorithm: 'AES-GCM',
@@ -78,11 +80,11 @@ export async function openAesGcm(options: AesGcmOpenOptions): Promise<Uint8Array
 	const plaintext = await crypto.subtle.decrypt(
 		{
 			name: 'AES-GCM',
-			iv: base64UrlToBytes(options.seal.iv) as unknown as BufferSource,
-			...(associatedData ? { additionalData: associatedData as unknown as BufferSource } : {})
+			iv: base64UrlToBytes(options.seal.iv) as never,
+			...(associatedData ? { additionalData: associatedData as never } : {})
 		},
 		key,
-		base64UrlToBytes(options.seal.ciphertext) as unknown as BufferSource
+		base64UrlToBytes(options.seal.ciphertext) as never
 	)
 	return new Uint8Array(plaintext)
 }
