@@ -90,7 +90,8 @@ export function parseDidWbaAuthorizationHeader(value: string | null | undefined)
 	const did = params['did']
 	const nonce = params['nonce']
 	const timestamp = params['timestamp']
-	const verificationMethod = params['verification_method'] ?? params['verificationmethod']
+	const verificationMethod =
+		params['verification_method'] ?? params['verification-method'] ?? params['verificationmethod']
 	const signature = params['signature']
 	if (!did || !nonce || !timestamp || !verificationMethod || !signature) return null
 	return { did, nonce, timestamp, verificationMethod, signature }

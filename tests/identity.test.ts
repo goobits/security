@@ -34,6 +34,14 @@ describe('DID-WBA identity helpers', () => {
 		})
 	})
 
+	it('parses DID-WBA authorization headers with hyphenated verification method keys', () => {
+		const parsed = parseDidWbaAuthorizationHeader(
+			'DIDWba did="did:wba:example.com", nonce="n1", timestamp="2026-06-13T12:00:00.000Z", verification-method="did:wba:example.com#key-1", signature="sig"'
+		)
+
+		expect(parsed?.verificationMethod).toBe('did:wba:example.com#key-1')
+	})
+
 	it('verifies DID-WBA identity with caller-supplied signature verification', async () => {
 		const header = {
 			did: 'did:wba:example.com',
