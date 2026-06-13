@@ -58,6 +58,42 @@ export {
 	verifyRecaptchaToken
 } from './recaptcha.js'
 
+/* Cross-runtime crypto and proof helpers. */
+export {
+	type AesGcmOpenOptions,
+	type AesGcmOptions,
+	type AesGcmSeal,
+	type CreateSecurityProofOptions,
+	type HmacAlgorithm,
+	type HmacSignature,
+	type SecurityProof,
+	type SecurityProofAlgorithm,
+	type SecurityProofVerification,
+	type VerifySecurityProofOptions,
+	attachSecurityProof,
+	base64UrlToBytes,
+	bytesToBase64Url,
+	bytesToHex,
+	bytesToText,
+	canonicalizeJson,
+	constantTimeEqual,
+	createSecurityProof,
+	hexToBytes,
+	openAesGcm,
+	openJson,
+	randomBytes,
+	randomHex,
+	sealAesGcm,
+	sealJson,
+	sha256Bytes,
+	sha256Hex,
+	signHmac,
+	textToBytes,
+	verifyAttachedSecurityProof,
+	verifyHmac,
+	verifySecurityProof
+} from './crypto/index.js'
+
 /* Rate limiting. */
 export {
 	type GetClientIpOptions,

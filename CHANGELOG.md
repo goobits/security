@@ -11,6 +11,7 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
 - 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.
 - 📦 **`rate-limit`**: `peek()` exposes limiter state without incrementing counters.
+- **`crypto`**: New `@goobits/security/crypto` sub-export with framework-agnostic Web Crypto helpers for encoding, random bytes/hex, SHA-256, constant-time comparison, HMAC signatures, AES-GCM sealing/opening, and deterministic `SecurityProof` envelopes. Adds narrower sub-exports for `crypto/encoding`, `crypto/signatures`, `crypto/aead`, and `crypto/proof` so auth/session and decentralized protocol packages can share one primitive layer without product-specific permissions.
 
 ### 🔧 Changed
 

@@ -5,7 +5,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 ## TL;DR
 
 - Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
-- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `admin-auth`, `audit`, `alerting`.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `admin-auth`, `audit`, `alerting`, `crypto`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
@@ -17,6 +17,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
 - **Validation:** Zod v4 middleware for request body / query / params
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
+- **Crypto:** Web Crypto encoding, HMAC, AES-GCM, SHA-256, and deterministic proof helpers
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
 - **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit, ioredis, and zod
@@ -110,9 +111,43 @@ import { createAdminAuth } from '@goobits/security/admin-auth'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
+import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/security/crypto'
 ```
 
 Each module is independently importable. Import only what you need.
+
+---
+
+## Crypto
+
+```ts
+import {
+  createSecurityProof,
+  randomHex,
+  sealJson,
+  verifySecurityProof
+} from '@goobits/security/crypto'
+
+const key = randomHex(32)
+const sealed = await sealJson({ refreshToken: 'secret' }, { key })
+
+const proof = await createSecurityProof({ id: 'message-1' }, {
+  secret: process.env.PROOF_SECRET!,
+  verificationMethod: 'hmac:app',
+  domain: 'example.com',
+  challenge: 'nonce-123'
+})
+
+const result = await verifySecurityProof({ id: 'message-1' }, proof, {
+  secret: process.env.PROOF_SECRET!,
+  domain: 'example.com',
+  challenge: 'nonce-123'
+})
+```
+
+The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, and deterministic `SecurityProof` envelopes. Product permissions, roles, and app-specific authorization remain outside this package.
+
+Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
 
 ---
 
@@ -495,6 +530,7 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `csrf-redis` | ✅ | ✅ | requires `ioredis` polyfill | ❌ (no TCP from Workers) |
 | `csp` | ✅ | ✅ | ✅ | ✅ |
 | `recaptcha` | ✅ | ✅ | ✅ | ✅ |
+| `crypto` | ✅ | ✅ | ✅ | ✅ |
 | `validation` † | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit` | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit/auth` | ✅ | ✅ | ✅ | ✅ |
