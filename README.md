@@ -5,7 +5,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 ## TL;DR
 
 - Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
-- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `admin-auth`, `audit`, `alerting`, `crypto`.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `audit`, `alerting`, `crypto`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
@@ -16,6 +16,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
 - **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
 - **Validation:** Zod v4 middleware for request body / query / params
+- **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
 - **Crypto:** Web Crypto encoding, HMAC, AES-GCM, SHA-256, and deterministic proof helpers
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
@@ -107,6 +108,7 @@ import { createRateLimiter } from '@goobits/security/rate-limit'
 import { verifyRecaptcha } from '@goobits/security/recaptcha'
 import { getInputValidator } from '@goobits/security/validation'
 import { withValidation } from '@goobits/security/validation/sveltekit'
+import { createPrincipalAuth } from '@goobits/security/principal-auth'
 import { createAdminAuth } from '@goobits/security/admin-auth'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
@@ -115,6 +117,35 @@ import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/sec
 ```
 
 Each module is independently importable. Import only what you need.
+
+---
+
+## Principal auth
+
+```ts
+import { createPrincipalAuth } from '@goobits/security/principal-auth'
+
+const auth = createPrincipalAuth({
+  jwtSecret: process.env.JWT_SECRET!,
+  audience: 'my-app',
+  issuer: 'my-auth-service',
+  apiKeys: [
+    { key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }
+  ]
+})
+
+const result = await auth.requirePrincipal(request)
+if (!result.authenticated) {
+  return new Response('Unauthorized', { status: 401 })
+}
+
+// result.principal is the authenticated caller.
+// Resource authorization belongs in your app's permission system.
+```
+
+`principal-auth` answers "who is calling?" only. It intentionally does not decide whether that principal may edit a resource, manage a space, run a tool, or read private data.
+
+`admin-auth` remains available as a compatibility wrapper for admin-only routes and delegates to the same underlying principal-auth implementation.
 
 ---
 
@@ -535,6 +566,7 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `rate-limit` | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit/auth` | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit/sveltekit` † | ✅ | ✅ | ✅ | ✅ |
+| `principal-auth` | ✅ | ✅ | ✅ | ✅ (uses `jose`, Web Crypto-based) |
 | `admin-auth` | ✅ | ✅ | ✅ | ✅ (uses `jose`, Web Crypto-based) |
 | `audit` | ✅ | ✅ | ✅ | ✅ |
 | `audit/sveltekit` † | ✅ | ✅ | ✅ | ✅ |

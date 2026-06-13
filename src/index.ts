@@ -116,6 +116,17 @@ export {
 
 /* Admin authentication. */
 export {
+	type AuthPrincipal,
+	type PrincipalApiKey,
+	type PrincipalAuth,
+	type PrincipalAuthAlgorithm,
+	type PrincipalAuthConfig,
+	type PrincipalAuthFailureReason,
+	type PrincipalAuthMethod,
+	type PrincipalAuthResult,
+	createPrincipalAuth
+} from './principal-auth.js'
+export {
 	type AdminAuth,
 	type AdminAuthAlgorithm,
 	type AdminAuthConfig,

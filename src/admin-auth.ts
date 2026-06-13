@@ -7,18 +7,20 @@
  * @module @goobits/security/admin-auth
  */
 
-import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
-
 import {
 	getRandomBytes,
-	timingSafeEqualBytes,
-	toBytes,
 	toHex
 } from './_internal/crypto.js'
 import { type Logger, resolveLogger } from './logger.js'
+import {
+	createPrincipalAuth,
+	type AuthPrincipal,
+	type PrincipalAuthAlgorithm,
+	type PrincipalAuthResult
+} from './principal-auth.js'
 
 /** Supported HS-family algorithms. RS/ES variants would require key material. */
-export type AdminAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'
+export type AdminAuthAlgorithm = PrincipalAuthAlgorithm
 
 export interface AdminUser {
 	id: string
@@ -70,11 +72,25 @@ export type AdminAuthResult =
 	| { authenticated: true; user: AdminUser; method: 'jwt' | 'apikey' }
 	| { authenticated: false; reason: 'missing' | 'invalid-jwt' | 'not-admin' | 'invalid-apikey' }
 
-function isAdminClaim(payload: JWTPayload): boolean {
-	const role = payload['role']
-	const isAdmin = payload['isAdmin']
-	const admin = payload['admin']
+function isAdminClaim(principal: AuthPrincipal): boolean {
+	const role = principal['role']
+	const isAdmin = principal['isAdmin']
+	const admin = principal['admin']
 	return role === 'admin' || role === 'super-admin' || isAdmin === true || admin === true
+}
+
+function toAdminResult(result: PrincipalAuthResult): AdminAuthResult {
+	if (result.authenticated) {
+		return {
+			authenticated: true,
+			user: result.principal as AdminUser,
+			method: result.method
+		}
+	}
+	return {
+		authenticated: false,
+		reason: result.reason === 'forbidden' ? 'invalid-jwt' : result.reason
+	}
 }
 
 /**
@@ -100,97 +116,24 @@ function isAdminClaim(payload: JWTPayload): boolean {
  * ```
  */
 export function createAdminAuth(config: AdminAuthConfig): AdminAuth {
-	const {
-		jwtSecret,
-		apiKey,
-		tokenTtl = '24h',
-		algorithms = [ 'HS256' ],
-		audience,
-		issuer,
-		clockTolerance
-	} = config
 	const log = resolveLogger(config.logger)
-
-	if (!jwtSecret) {
-		throw new Error('@goobits/security/admin-auth: jwtSecret is required')
-	}
-	if (jwtSecret.length < 32) {
-		throw new Error(
-			'@goobits/security/admin-auth: jwtSecret must be at least 32 characters. Use a cryptographically random secret.'
-		)
-	}
-	if (algorithms.length === 0) {
-		throw new Error('@goobits/security/admin-auth: algorithms must include at least one algorithm')
-	}
-
-	const secretBytes = toBytes(jwtSecret)
-
-	// Build the jose verify options once at construction.
-	const verifyOptions: Parameters<typeof jwtVerify>[2] = { algorithms }
-	if (audience !== undefined) verifyOptions.audience = audience
-	if (issuer !== undefined) verifyOptions.issuer = issuer
-	if (clockTolerance !== undefined) verifyOptions.clockTolerance = clockTolerance
-
-	async function verifyJwt(token: string): Promise<AdminUser | null> {
-		try {
-			const { payload } = await jwtVerify(token, secretBytes, verifyOptions)
-			if (!isAdminClaim(payload)) {
-				log.warn('Admin JWT valid but lacks admin claim', { sub: payload.sub })
-				return null
-			}
-			const id = (payload as { id?: string }).id ?? payload.sub
-			if (!id) {
-				log.warn('Admin JWT lacks `id` or `sub` claim')
-				return null
-			}
-			return { ...payload, id } as AdminUser
-		} catch(err) {
-			if (err instanceof errors.JWTExpired) {
-				log.warn('Admin JWT expired')
-			} else if (err instanceof errors.JOSEError) {
-				log.warn('Admin JWT verification failed', { code: err.code })
-			} else {
-				log.warn('Admin JWT verification threw', { error: String(err) })
-			}
-			return null
-		}
-	}
-
-	function verifyApiKey(presentedKey: string): boolean {
-		if (!apiKey) return false
-		return timingSafeEqualBytes(toBytes(presentedKey), toBytes(apiKey))
-	}
-
-	function extractBearer(authHeader: string | null): string | null {
-		if (!authHeader) return null
-		// Bearer token: no whitespace inside the token. Reject `Bearer foo bar`.
-		const match = /^Bearer\s+(\S+)\s*$/i.exec(authHeader.trim())
-		return match?.[1] ?? null
-	}
+	const principalAuth = createPrincipalAuth({
+		jwtSecret: config.jwtSecret,
+		tokenTtl: config.tokenTtl,
+		algorithms: config.algorithms,
+		audience: config.audience,
+		issuer: config.issuer,
+		clockTolerance: config.clockTolerance,
+		logger: config.logger,
+		apiKeys: config.apiKey
+			? [ { key: config.apiKey, principal: { id: 'api-key-admin', role: 'admin' } } ]
+			: [],
+		apiKeyHeader: 'x-admin-api-key',
+		authorizePrincipal: (principal) => isAdminClaim(principal)
+	})
 
 	async function authenticate(request: Request): Promise<AdminAuthResult> {
-		const authHeader = request.headers.get('authorization')
-		const bearer = extractBearer(authHeader)
-
-		if (bearer) {
-			const user = await verifyJwt(bearer)
-			if (user) return { authenticated: true, user, method: 'jwt' }
-			return { authenticated: false, reason: 'invalid-jwt' }
-		}
-
-		const presentedApiKey = request.headers.get('x-admin-api-key')
-		if (presentedApiKey) {
-			if (verifyApiKey(presentedApiKey)) {
-				return {
-					authenticated: true,
-					user: { id: 'api-key-admin', role: 'admin' },
-					method: 'apikey'
-				}
-			}
-			return { authenticated: false, reason: 'invalid-apikey' }
-		}
-
-		return { authenticated: false, reason: 'missing' }
+		return toAdminResult(await principalAuth.authenticate(request))
 	}
 
 	async function requireAdmin(request: Request): Promise<AdminAuthResult> {
@@ -202,29 +145,7 @@ export function createAdminAuth(config: AdminAuthConfig): AdminAuth {
 	}
 
 	async function createAdminToken(user: AdminUser, overrideTtl?: string | number): Promise<string> {
-		const ttl = overrideTtl ?? tokenTtl
-		// jose's setExpirationTime treats numbers as ABSOLUTE UNIX seconds (foot-gun!).
-		// We translate consumer-supplied numbers as RELATIVE seconds from now,
-		// matching the jsonwebtoken `expiresIn` convention most users expect.
-		const expirationTime: string | number =
-			typeof ttl === 'number'
-				? Math.floor(Date.now() / 1000) + ttl
-				: ttl
-
-		const builder = new SignJWT({ ...user, role: user.role ?? 'admin' })
-			.setProtectedHeader({ alg: algorithms[0] ?? 'HS256' })
-			.setIssuedAt()
-			.setExpirationTime(expirationTime)
-
-		if (audience !== undefined) {
-			builder.setAudience(audience)
-		}
-		if (issuer !== undefined) {
-			// jose accepts string only for setIssuer; fall back to the first if array.
-			builder.setIssuer(typeof issuer === 'string' ? issuer : (issuer[0] ?? ''))
-		}
-
-		return builder.sign(secretBytes)
+		return principalAuth.createPrincipalToken({ ...user, role: user.role ?? 'admin' }, overrideTtl)
 	}
 
 	return { authenticate, requireAdmin, createAdminToken }

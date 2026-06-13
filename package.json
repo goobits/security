@@ -18,6 +18,7 @@
 		"./crypto/encoding": "./src/crypto/encoding.ts",
 		"./crypto/proof": "./src/crypto/proof.ts",
 		"./crypto/signatures": "./src/crypto/signatures.ts",
+		"./principal-auth": "./src/principal-auth.ts",
 		"./validation": "./src/validation.ts",
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",
 		"./rate-limit": "./src/rate-limit/index.ts",
