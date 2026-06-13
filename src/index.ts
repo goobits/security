@@ -94,6 +94,32 @@ export {
 	verifySecurityProof
 } from './crypto/index.js'
 
+/* Decentralized identity adapters. */
+export {
+	type DidWbaAuthHeader,
+	type DidWbaSignatureInput,
+	type DidWbaVerificationError,
+	type DidWbaVerificationResult,
+	type DidWbaVerifyOptions,
+	type HttpSignatureHeader,
+	type HttpSignatureVerificationError,
+	type HttpSignatureVerificationInput,
+	type HttpSignatureVerificationResult,
+	type IdentityMethod,
+	type VerifiedPrincipal,
+	type VerifyHttpSignatureOptions,
+	buildDidWba,
+	didWbaDomain,
+	didWbaSignatureMessage,
+	didWbaToUrl,
+	parseDidWbaAuthorizationHeader,
+	parseHttpSignatureHeader,
+	principalFromDid,
+	principalFromHttpSignature,
+	verifyDidWbaIdentity,
+	verifyHttpSignatureIdentity
+} from './identity/index.js'
+
 /* Rate limiting. */
 export {
 	type GetClientIpOptions,

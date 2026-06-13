@@ -5,7 +5,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 ## TL;DR
 
 - Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
-- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `audit`, `alerting`, `crypto`.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `audit`, `alerting`, `crypto`, `identity`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
@@ -19,6 +19,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
 - **Crypto:** Web Crypto encoding, HMAC, AES-GCM, SHA-256, and deterministic proof helpers
+- **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
 - **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit, ioredis, and zod
@@ -114,9 +115,29 @@ import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
 import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/security/crypto'
+import { verifyDidWbaIdentity } from '@goobits/security/identity'
 ```
 
 Each module is independently importable. Import only what you need.
+
+---
+
+## Identity
+
+```ts
+import { verifyDidWbaIdentity } from '@goobits/security/identity'
+
+const result = await verifyDidWbaIdentity({
+  header: request.headers.get('authorization'),
+  expectedDomain: 'example.com',
+  verifySignature: async ({ did, verificationMethod, message, signature }) => {
+    const key = await resolvePublicKey(did, verificationMethod)
+    return verifyWithYourProtocolKey(key, message, signature)
+  }
+})
+```
+
+Identity adapters answer "which decentralized principal signed this request?" They do not fetch DID documents, store nonces, or grant product permissions by themselves. Consumers provide key resolution, replay storage, and resource authorization.
 
 ---
 
@@ -562,6 +583,7 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `csp` | ✅ | ✅ | ✅ | ✅ |
 | `recaptcha` | ✅ | ✅ | ✅ | ✅ |
 | `crypto` | ✅ | ✅ | ✅ | ✅ |
+| `identity` | ✅ | ✅ | ✅ | ✅ |
 | `validation` † | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit` | ✅ | ✅ | ✅ | ✅ |
 | `rate-limit/auth` | ✅ | ✅ | ✅ | ✅ |

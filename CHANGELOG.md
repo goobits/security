@@ -12,6 +12,7 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.
 - 📦 **`rate-limit`**: `peek()` exposes limiter state without incrementing counters.
 - **`crypto`**: New `@goobits/security/crypto` sub-export with framework-agnostic Web Crypto helpers for encoding, random bytes/hex, SHA-256, constant-time comparison, HMAC signatures, AES-GCM sealing/opening, and deterministic `SecurityProof` envelopes. Adds narrower sub-exports for `crypto/encoding`, `crypto/signatures`, `crypto/aead`, and `crypto/proof` so auth/session and decentralized protocol packages can share one primitive layer without product-specific permissions.
+- **`identity`**: New `@goobits/security/identity` sub-export with generic DID-WBA and HTTP Signature identity adapters. The adapters parse and validate request identity envelopes, enforce timestamp/domain checks, and call a consumer-supplied signature verifier so protocol packages can plug in their own key resolution without making this package Goobits-product-specific.
 - **`principal-auth`**: New generic `@goobits/security/principal-auth` sub-export for JWT/API-key principal authentication. `admin-auth` now delegates to this shared implementation and remains as a compatibility wrapper for admin-only routes.
 
 ### 🔧 Changed
