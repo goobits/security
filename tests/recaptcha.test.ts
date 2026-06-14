@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { verifyRecaptcha, verifyRecaptchaToken } from '../src/recaptcha.js'
+import { verifyRecaptcha } from '../src/recaptcha.js'
 
 const originalFetch = globalThis.fetch
 const originalProcessEnv = globalThis.process?.env
@@ -146,16 +146,5 @@ describe('verifyRecaptcha', () => {
 			expect(result.score).toBe(0.9)
 			expect(result.action).toBe('submit')
 		}
-	})
-})
-
-describe('verifyRecaptchaToken', () => {
-	it('wraps verifyRecaptcha and returns boolean', async () => {
-		mockFetch({ body: { success: true } })
-		const ok = await verifyRecaptchaToken('token', { secretKey: 'sk' })
-		expect(ok).toBe(true)
-
-		const notOk = await verifyRecaptchaToken('', { secretKey: 'sk' })
-		expect(notOk).toBe(false)
 	})
 })

@@ -6,6 +6,10 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Removed
+
+- Removed legacy boolean CAPTCHA helpers. Use `verifyRecaptcha()` and `verifyTurnstile()` directly so callers can branch on structured failure reasons instead of flattening security decisions to `true`/`false`.
+
 ### ✨ Added
 
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
@@ -88,7 +92,7 @@ First standalone-package release. The bump to v2 reflects breaking API changes v
 - Bumped `zod` peer dep from `^3.x` to `^4.x`; validation helpers updated for v4 API (`safeParseAsync`, `issues`, `z.email()`)
 - CSP builder no longer ships an opinionated vendor allowlist; consumers must pass `extraSources` for any vendor URLs they need (Stripe, fonts, CDNs, dev domains)
 - Rate limiter API redesigned around a `windows: [{ name, windowMs, maxEvents }]` config (replacing the fixed short/medium/long windows in v1.x)
-- `verifyRecaptcha()` now returns `RecaptchaResult` (discriminated union) instead of a plain boolean; use `verifyRecaptchaToken()` for the legacy boolean shape
+- `verifyRecaptcha()` now returns `RecaptchaResult` (discriminated union) instead of a plain boolean
 - Cookie + header parsing moved to internal helpers; no external dependency on `cookie` or `set-cookie-parser`
 - Minimum Node version is now 22 (was 18)
 

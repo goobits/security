@@ -215,15 +215,3 @@ export async function verifyTurnstile(
 		clearTimeout(timeout)
 	}
 }
-
-/**
- * Convenience boolean wrapper around `verifyTurnstile()` for the common case
- * where callers only need to know "valid / not valid".
- */
-export async function verifyTurnstileToken(
-	token: string | null | undefined,
-	options: TurnstileOptions = {}
-): Promise<boolean> {
-	const result = await verifyTurnstile(token, options)
-	return result.success
-}

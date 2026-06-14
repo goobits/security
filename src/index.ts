@@ -54,8 +54,7 @@ export {
 export {
 	type RecaptchaOptions,
 	type RecaptchaResult,
-	verifyRecaptcha,
-	verifyRecaptchaToken
+	verifyRecaptcha
 } from './recaptcha.js'
 
 /* Cross-runtime crypto and proof helpers. */

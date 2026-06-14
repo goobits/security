@@ -171,15 +171,3 @@ export async function verifyRecaptcha(
 		clearTimeout(timeout)
 	}
 }
-
-/**
- * Convenience boolean wrapper around `verifyRecaptcha()` for the common case
- * where callers only need to know "valid / not valid".
- */
-export async function verifyRecaptchaToken(
-	token: string | null | undefined,
-	options: RecaptchaOptions = {}
-): Promise<boolean> {
-	const result = await verifyRecaptcha(token, options)
-	return result.success
-}

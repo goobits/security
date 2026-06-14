@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { verifyTurnstile, verifyTurnstileToken } from '../src/turnstile.js'
+import { verifyTurnstile } from '../src/turnstile.js'
 
 const originalFetch = globalThis.fetch
 const originalProcessEnv = globalThis.process?.env
@@ -197,24 +197,5 @@ describe('verifyTurnstile', () => {
 
 		expect(result.success).toBe(true)
 		expect(fetchSpy).not.toHaveBeenCalled()
-	})
-})
-
-describe('verifyTurnstileToken (boolean wrapper)', () => {
-	it('returns true on a valid token', async() => {
-		mockFetch({ body: { success: true } })
-		const ok = await verifyTurnstileToken('token', { secretKey: 'sk' })
-		expect(ok).toBe(true)
-	})
-
-	it('returns false on missing token', async() => {
-		const ok = await verifyTurnstileToken(null, { secretKey: 'sk' })
-		expect(ok).toBe(false)
-	})
-
-	it('returns false on verification-failed', async() => {
-		mockFetch({ body: { success: false, 'error-codes': [ 'invalid-input' ] } })
-		const ok = await verifyTurnstileToken('token', { secretKey: 'sk' })
-		expect(ok).toBe(false)
 	})
 })
