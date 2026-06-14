@@ -86,7 +86,7 @@ export interface ValidateOptions {
 	checkExpiry?: boolean
 }
 
-class MemoryCsrfStore implements CsrfTokenStore {
+export class MemoryCsrfStore implements CsrfTokenStore {
 	private readonly map = new Map<string, number>()
 
 	get size(): number {

@@ -31,6 +31,7 @@ export {
 	CSRF_COOKIE_NAME,
 	CSRF_HEADER_NAME,
 	CSRF_TOKEN_EXPIRY_MS,
+	MemoryCsrfStore,
 	createCsrf
 } from './csrf.js'
 export {
