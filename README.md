@@ -166,7 +166,8 @@ if (!result.authenticated) {
 
 `principal-auth` answers "who is calling?" only. It intentionally does not decide whether that principal may edit a resource, manage a space, run a tool, or read private data.
 
-`admin-auth` remains available as a compatibility wrapper for admin-only routes and delegates to the same underlying principal-auth implementation.
+`admin-auth` remains available as a focused admin-route adapter and delegates to
+the same underlying principal-auth implementation.
 
 ---
 
