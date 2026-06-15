@@ -2,7 +2,7 @@ import { SignJWT } from 'jose'
 import { describe, expect, it } from 'vitest'
 
 import { toBytes } from '../src/_internal/crypto.js'
-import { createPrincipalAuth } from '../src/principal-auth.js'
+import { createPrincipalAuth } from '../src/principalAuth.js'
 
 const SECRET = 'test-secret-not-for-production-use-min-32-chars-long'
 

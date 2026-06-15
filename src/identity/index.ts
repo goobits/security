@@ -10,7 +10,7 @@ export {
 	type DidWbaVerificationError,
 	type DidWbaVerificationResult,
 	type DidWbaVerifyOptions
-} from './did-wba.js'
+} from './didWba.js'
 export {
 	parseHttpSignatureHeader,
 	verifyHttpSignatureIdentity,
@@ -19,7 +19,7 @@ export {
 	type HttpSignatureVerificationInput,
 	type HttpSignatureVerificationResult,
 	type VerifyHttpSignatureOptions
-} from './http-signature.js'
+} from './httpSignature.js'
 export {
 	principalFromDid,
 	principalFromHttpSignature,

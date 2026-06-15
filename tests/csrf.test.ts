@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCsrf } from '../src/csrf.js'
+import { createCsrf } from '../src/MemoryCsrfStore.js'
 
 function makeRequest(headers: Record<string, string>): Request {
 	return new Request('https://example.test/api', { headers })

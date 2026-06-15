@@ -33,12 +33,12 @@ export {
 	CSRF_TOKEN_EXPIRY_MS,
 	MemoryCsrfStore,
 	createCsrf
-} from './csrf.js'
+} from './MemoryCsrfStore.js'
 export {
 	type RedisCsrfStoreOptions,
 	type RedisLike,
 	createRedisCsrfStore
-} from './csrf-redis.js'
+} from './csrfRedis.js'
 
 /* Content Security Policy. */
 export {
@@ -151,7 +151,7 @@ export {
 	type PrincipalAuthMethod,
 	type PrincipalAuthResult,
 	createPrincipalAuth
-} from './principal-auth.js'
+} from './principalAuth.js'
 export {
 	type AdminAuth,
 	type AdminAuthAlgorithm,
@@ -160,7 +160,7 @@ export {
 	type AdminUser,
 	createAdminAuth,
 	generateAdminApiKey
-} from './admin-auth.js'
+} from './adminAuth.js'
 
 /* Audit logging. */
 export {

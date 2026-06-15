@@ -1,7 +1,7 @@
 import { SignJWT } from 'jose'
 import { describe, expect, it } from 'vitest'
 
-import { createAdminAuth, generateAdminApiKey } from '../src/admin-auth.js'
+import { createAdminAuth, generateAdminApiKey } from '../src/adminAuth.js'
 import { toBytes } from '../src/_internal/crypto.js'
 
 const SECRET = 'test-secret-not-for-production-use-min-32-chars-long'

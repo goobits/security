@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createRedisCsrfStore, type RedisLike } from '../src/csrf-redis.js'
+import { createRedisCsrfStore, type RedisLike } from '../src/csrfRedis.js'
 
 /**
  * In-memory stand-in for ioredis that satisfies the `RedisLike` interface.

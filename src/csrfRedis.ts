@@ -8,7 +8,7 @@
  * @module @goobits/security/csrf-redis
  */
 
-import type { CsrfTokenStore } from './csrf.js'
+import type { CsrfTokenStore } from './MemoryCsrfStore.js'
 import { type Logger, resolveLogger } from './logger.js'
 
 /** Minimal subset of ioredis we depend on. */

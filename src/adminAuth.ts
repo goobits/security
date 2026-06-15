@@ -17,7 +17,7 @@ import {
 	type AuthPrincipal,
 	type PrincipalAuthAlgorithm,
 	type PrincipalAuthResult
-} from './principal-auth.js'
+} from './principalAuth.js'
 
 /** Supported HS-family algorithms. RS/ES variants would require key material. */
 export type AdminAuthAlgorithm = PrincipalAuthAlgorithm
