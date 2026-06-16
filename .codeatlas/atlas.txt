@@ -1,0 +1,447 @@
+
+  CodeAtlas
+══════════════════════════════════════════════════
+
+○ public  ◐ internal  ● private
+
+│ MemoryCsrfStore.ts
+├── ○ T CsrfTokenStore
+│   ├── ○ get
+│   ├── ○ set
+│   ├── ○ delete
+│   ├── ○ clear
+│   └── ○ size
+├── ○ T CsrfConfig
+│   ├── ○ cookieName
+│   ├── ○ headerName
+│   ├── ○ cookieOptions
+│   ├── ○ tokenExpiryMs
+│   ├── ○ tokenStore
+│   ├── ○ logger
+│   ├── ○ disabled
+│   └── ○ failClosed
+├── ○ T GenerateOptions
+│   ├── ○ expiryMs
+│   └── ○ trackExpiry
+├── ○ T ValidateOptions
+│   └── ○ checkExpiry
+├── ○ S MemoryCsrfStore
+│   ├── ○ size
+│   ├── ○ get
+│   ├── ○ set
+│   ├── ○ delete
+│   ├── ○ clear
+│   └── ○ cleanup
+├── ○ f createCsrf
+├── ○ T CsrfProtection
+    ├── ○ cookieName
+    ├── ○ headerName
+    ├── ○ storeSize
+    ├── ○ generate
+    ├── ○ setCookie
+    ├── ○ getToken
+    ├── ○ validate
+    ├── ○ cleanup
+    └── ○ clear
+
+│ _internal/BodyTooLargeError.ts
+├── ○ S BodyTooLargeError
+├── ○ T ReadJsonBodyOptions
+│   └── ○ maxBytes
+└── ○ f readJsonBody
+
+│ _internal/cookies.ts
+├── ○ f parseCookies
+├── ○ T CookieOptions
+│   ├── ○ httpOnly
+│   ├── ○ secure
+│   ├── ○ sameSite
+│   ├── ○ path
+│   ├── ○ domain
+│   ├── ○ maxAge
+│   └── ○ expires
+└── ○ f serializeCookie
+
+│ _internal/crypto.ts
+├── ○ f getRandomBytes
+├── ○ f toHex
+├── ○ f toBytes
+└── ○ f timingSafeEqualBytes
+
+│ _internal/env.ts
+├── ○ f readEnv
+└── ○ f isProduction
+
+│ adminAuth.ts
+├── ○ T AdminUser
+│   ├── ○ id
+│   └── ○ role
+├── ○ T AdminAuthConfig
+│   ├── ○ jwtSecret
+│   ├── ○ apiKey
+│   ├── ○ tokenTtl
+│   ├── ○ algorithms
+│   ├── ○ audience
+│   ├── ○ issuer
+│   ├── ○ clockTolerance
+│   └── ○ logger
+├── ○ f createAdminAuth
+├── ○ T AdminAuth
+│   ├── ○ authenticate
+│   ├── ○ requireAdmin
+│   └── ○ createAdminToken
+└── ○ f generateAdminApiKey
+
+│ alerting.ts
+├── ○ T Alert
+│   ├── ○ severity
+│   ├── ○ title
+│   ├── ○ message
+│   ├── ○ source
+│   ├── ○ timestamp
+│   └── ○ context
+├── ○ T AlertChannel
+│   └── ○ send
+├── ○ T WebhookChannelOptions
+│   ├── ○ url
+│   ├── ○ headers
+│   ├── ○ transform
+│   └── ○ logger
+├── ○ f createWebhookChannel
+├── ○ T CreateSecurityAlerterOptions
+│   ├── ○ channels
+│   ├── ○ rules
+│   └── ○ logger
+├── ○ T SecurityAlerter
+│   └── ○ process
+└── ○ f createSecurityAlerter
+
+│ audit.ts
+├── ○ T AuditEvent
+│   ├── ○ action
+│   ├── ○ timestamp
+│   ├── ○ outcome
+│   ├── ○ actorId
+│   ├── ○ targetId
+│   ├── ○ clientIp
+│   ├── ○ userAgent
+│   ├── ○ sessionId
+│   ├── ○ url
+│   ├── ○ method
+│   ├── ○ status
+│   ├── ○ durationMs
+│   ├── ○ detail
+│   └── ○ error
+├── ○ T AuditSink
+│   └── ○ record
+├── ○ f createLoggerSink
+├── ○ T AuditLogger
+│   └── ○ log
+├── ○ T CreateAuditLoggerOptions
+│   ├── ○ sink
+│   └── ○ logger
+└── ○ f createAuditLogger
+
+│ audit/sveltekit.ts
+├── ○ T WithAuditOptions
+│   ├── ○ action
+│   ├── ○ includeRequestBody
+│   ├── ○ redactKeys
+│   ├── ○ maxRequestBodyBytes
+│   ├── ○ auditor
+│   ├── ○ actorId
+│   ├── ○ detail
+│   └── ○ logger
+└── ○ f withAudit
+
+│ crypto/aead.ts
+├── ○ T AesGcmSeal
+│   ├── ○ algorithm
+│   ├── ○ iv
+│   └── ○ ciphertext
+├── ○ T AesGcmOptions
+│   ├── ○ key
+│   ├── ○ plaintext
+│   └── ○ associatedData
+├── ○ T AesGcmOpenOptions
+│   ├── ○ key
+│   ├── ○ seal
+│   └── ○ associatedData
+├── ○ f sealAesGcm
+├── ○ f openAesGcm
+├── ○ f sealJson
+└── ○ f openJson
+
+│ crypto/encoding.ts
+├── ○ f bytesToText
+├── ○ f hexToBytes
+├── ○ f randomHex
+├── ○ f bytesToBase64Url
+├── ○ f base64UrlToBytes
+├── ○ f constantTimeEqual
+├── ○ f sha256Bytes
+└── ○ f sha256Hex
+
+│ crypto/proof.ts
+├── ○ T SecurityProof
+│   ├── ○ type
+│   ├── ○ algorithm
+│   ├── ○ created
+│   ├── ○ verificationMethod
+│   ├── ○ proofPurpose
+│   ├── ○ proofValue
+│   ├── ○ domain
+│   └── ○ challenge
+├── ○ T CreateSecurityProofOptions
+│   ├── ○ secret
+│   ├── ○ verificationMethod
+│   ├── ○ proofPurpose
+│   ├── ○ algorithm
+│   ├── ○ created
+│   ├── ○ domain
+│   └── ○ challenge
+├── ○ T VerifySecurityProofOptions
+│   ├── ○ secret
+│   ├── ○ domain
+│   ├── ○ challenge
+│   ├── ○ proofPurpose
+│   ├── ○ verificationMethod
+│   ├── ○ now
+│   └── ○ maxAgeMs
+├── ○ T SecurityProofVerification
+│   ├── ○ ok
+│   └── ○ reason
+├── ○ f canonicalizeJson
+├── ○ f createSecurityProof
+├── ○ f verifySecurityProof
+├── ○ f attachSecurityProof
+└── ○ f verifyAttachedSecurityProof
+
+│ crypto/signatures.ts
+├── ○ T HmacSignature
+│   ├── ○ algorithm
+│   └── ○ value
+├── ○ f signHmac
+└── ○ f verifyHmac
+
+│ csp.ts
+├── ○ T CspConfig
+│   ├── ○ mode
+│   ├── ○ extraSources
+│   ├── ○ nonce
+│   ├── ○ reportUri
+│   ├── ○ reportTo
+│   ├── ○ allowFraming
+│   └── ○ logger
+├── ○ f createCspDirectives
+├── ○ f buildCspHeader
+├── ○ f buildCsp
+└── ○ f createCspNonce
+
+│ csrfRedis.ts
+├── ○ T RedisLike
+│   ├── ○ get
+│   ├── ○ set
+│   ├── ○ del
+│   └── ○ scan
+├── ○ T RedisCsrfStoreOptions
+│   ├── ○ client
+│   ├── ○ keyPrefix
+│   ├── ○ logger
+│   ├── ○ clearScanCount
+│   └── ○ clearBatchSize
+└── ○ f createRedisCsrfStore
+
+│ identity/didWba.ts
+├── ○ T DidWbaAuthHeader
+│   ├── ○ did
+│   ├── ○ nonce
+│   ├── ○ timestamp
+│   ├── ○ verificationMethod
+│   └── ○ signature
+├── ○ T DidWbaVerifyOptions
+│   ├── ○ header
+│   ├── ○ expectedDomain
+│   ├── ○ now
+│   ├── ○ maxSkewMs
+│   └── ○ verifySignature
+├── ○ T DidWbaSignatureInput
+│   ├── ○ did
+│   ├── ○ nonce
+│   ├── ○ timestamp
+│   ├── ○ verificationMethod
+│   ├── ○ signature
+│   └── ○ message
+├── ○ f buildDidWba
+├── ○ f didWbaToUrl
+├── ○ f didWbaDomain
+├── ○ f parseDidWbaAuthorizationHeader
+├── ○ f didWbaSignatureMessage
+└── ○ f verifyDidWbaIdentity
+
+│ identity/httpSignature.ts
+├── ○ T HttpSignatureHeader
+│   ├── ○ keyId
+│   ├── ○ algorithm
+│   ├── ○ headers
+│   └── ○ signature
+├── ○ T VerifyHttpSignatureOptions
+│   ├── ○ header
+│   ├── ○ message
+│   └── ○ verifySignature
+├── ○ T HttpSignatureVerificationInput
+│   └── ○ message
+├── ○ f parseHttpSignatureHeader
+└── ○ f verifyHttpSignatureIdentity
+
+│ identity/principal.ts
+├── ○ T VerifiedPrincipal
+│   ├── ○ id
+│   ├── ○ method
+│   └── ○ claims
+├── ○ f principalFromDid
+└── ○ f principalFromHttpSignature
+
+│ logger.ts
+├── ○ T Logger
+│   ├── ○ debug
+│   ├── ○ info
+│   ├── ○ warn
+│   └── ○ error
+├── ○ T ConsoleLoggerOptions
+│   ├── ○ prefix
+│   └── ○ level
+├── ○ f createConsoleLogger
+└── ○ f resolveLogger
+
+│ principalAuth.ts
+├── ○ T AuthPrincipal
+│   ├── ○ id
+│   └── ○ roles
+├── ○ T PrincipalApiKey
+│   ├── ○ key
+│   └── ○ principal
+├── ○ T PrincipalAuthConfig
+│   ├── ○ jwtSecret
+│   ├── ○ apiKeys
+│   ├── ○ apiKey
+│   ├── ○ apiKeyHeader
+│   ├── ○ tokenTtl
+│   ├── ○ algorithms
+│   ├── ○ audience
+│   ├── ○ issuer
+│   ├── ○ clockTolerance
+│   ├── ○ authorizePrincipal
+│   └── ○ logger
+├── ○ T PrincipalAuth
+│   ├── ○ authenticate
+│   ├── ○ requirePrincipal
+│   └── ○ createPrincipalToken
+└── ○ f createPrincipalAuth
+
+│ rate-limit/auth.ts
+├── ○ T AuthRateLimitConfig
+│   ├── ○ store
+│   ├── ○ logger
+│   └── ○ keyPrefix
+├── ○ f createLoginRateLimiter
+├── ○ f createRegistrationRateLimiter
+└── ○ f createPasswordResetRateLimiter
+
+│ rate-limit/index.ts
+├── ○ T RateLimitEntry
+│   └── ○ timestamps
+├── ○ T RateLimitStore
+│   ├── ○ getEntry
+│   ├── ○ incrementEntry
+│   └── ○ deleteEntry
+├── ○ T RateLimitWindow
+│   ├── ○ name
+│   ├── ○ windowMs
+│   └── ○ maxEvents
+├── ○ T RateLimitConfig
+│   ├── ○ windows
+│   ├── ○ store
+│   ├── ○ logger
+│   └── ○ keyPrefix
+├── ○ T RateLimiter
+│   ├── ○ check
+│   ├── ○ peek
+│   ├── ○ reset
+│   └── ○ config
+├── ○ S MemoryRateLimitStore
+│   ├── ○ size
+│   ├── ○ getEntry
+│   ├── ○ incrementEntry
+│   ├── ○ deleteEntry
+│   └── ○ cleanup
+├── ○ f createRateLimiter
+├── ○ T GetClientIpOptions
+│   └── ○ trustHeaders
+└── ○ f getClientIP
+
+│ rate-limit/sveltekit.ts
+├── ○ T RateLimitHandleOptions
+│   ├── ○ identifier
+│   ├── ○ limiter
+│   ├── ○ skip
+│   ├── ○ buildResponse
+│   └── ○ logger
+└── ○ f createRateLimitHandle
+
+│ recaptcha.ts
+├── ○ T RecaptchaOptions
+│   ├── ○ secretKey
+│   ├── ○ action
+│   ├── ○ minScore
+│   ├── ○ allowInDevelopment
+│   ├── ○ timeoutMs
+│   └── ○ logger
+└── ○ f verifyRecaptcha
+
+│ turnstile.ts
+├── ○ T TurnstileOptions
+│   ├── ○ secretKey
+│   ├── ○ action
+│   ├── ○ hostname
+│   ├── ○ remoteIp
+│   ├── ○ bypassLocalhost
+│   ├── ○ bypassHosts
+│   ├── ○ allowInDevelopment
+│   ├── ○ timeoutMs
+│   └── ○ logger
+├── ○ T TurnstileApiResponse
+│   ├── ○ success
+│   ├── ○ action
+│   ├── ○ hostname
+│   ├── ○ challenge_ts
+│   ├── ○ cdata
+│   └── ○ metadata
+└── ○ f verifyTurnstile
+
+│ validation.ts
+├── ○ T ValidationSchemas
+│   ├── ○ body
+│   ├── ○ query
+│   └── ○ params
+├── ○ T ValidatedData
+│   ├── ○ body
+│   ├── ○ query
+│   └── ○ params
+└── ○ f getInputValidator
+
+│ validation/sveltekit.ts
+├── ○ T WithValidationOptions
+│   ├── ○ logger
+│   ├── ○ maxBodyBytes
+│   └── ○ onValidationError
+└── ○ f withValidation
+
+──────────────────────────────────────────────────
+
+✓ 30 files scanned
+  → 27 with public exports
+  → 125 public symbols
+  → 28 dependencies tracked
+
+Tip: Use 'codeatlas map' for visual dependency diagram

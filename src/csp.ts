@@ -53,7 +53,7 @@ export interface CspConfig {
 	/**
 	 * Mode controls baseline permissiveness.
 	 *
-	 *  - `production` (default): strict — no unsafe-inline/unsafe-eval; HTTPS only for connect-src; etc.
+	 *  - `production` (default): strict, no unsafe-inline/unsafe-eval; HTTPS only for connect-src; etc.
 	 *  - `development`: relaxes script/style to allow Vite HMR (`'unsafe-inline'`, `'unsafe-eval'`,
 	 *     blob:, `ws://localhost:*`).
 	 */
@@ -90,8 +90,8 @@ export interface CspConfig {
 	allowFraming?: boolean
 	/**
 	 * Optional logger. Used to warn when `mode: 'development'` is requested
-	 * while `NODE_ENV === 'production'` — a setup bug that silently relaxes
-	 * CSP to allow `unsafe-inline` / `unsafe-eval`. Default: silent.
+	 * while `NODE_ENV === 'production'` (a setup bug that silently relaxes
+	 * CSP to allow `unsafe-inline` / `unsafe-eval`). Default: silent.
 	 */
 	logger?: Logger
 }
@@ -157,7 +157,7 @@ function mergeDirectives(base: CspDirectives, extra: CspDirectives): CspDirectiv
 }
 
 /**
- * Build the CSP directive map. Returns a plain object — pass it to
+ * Build the CSP directive map. Returns a plain object: pass it to
  * `buildCspHeader()` for the header value, or inspect/mutate before that.
  */
 export function createCspDirectives(config: CspConfig = {}): CspDirectives {
@@ -174,7 +174,7 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
 	const log = resolveLogger(logger)
 	if (mode === 'development' && isProduction()) {
 		log.warn(
-			'CSP mode=\'development\' requested while NODE_ENV=production — ' +
+			'CSP mode=\'development\' requested while NODE_ENV=production. ' +
 			'this relaxes script-src/style-src to allow \'unsafe-inline\' and \'unsafe-eval\'. ' +
 			'If unintentional, pass mode=\'production\' or omit the mode option.'
 		)
@@ -245,7 +245,7 @@ export function buildCsp(config: CspConfig = {}): string {
  * value into both the CSP header and any inline `<script nonce="...">` tags.
  *
  * Returns a URL-safe base64 string (RFC 4648 §5, no padding) of 128 bits
- * entropy — meeting the W3C CSP3 recommendation for nonce randomness.
+ * entropy, meeting the W3C CSP3 recommendation for nonce randomness.
  */
 export function createCspNonce(): string {
 	const bytes = getRandomBytes(16)
