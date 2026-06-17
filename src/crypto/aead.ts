@@ -9,18 +9,21 @@ import {
 
 type AesKeyUsage = 'encrypt' | 'decrypt'
 
+/** Serialized AES-GCM encrypted payload. */
 export interface AesGcmSeal {
 	algorithm: 'AES-GCM'
 	iv: string
 	ciphertext: string
 }
 
+/** Inputs for sealing bytes or text with AES-GCM. */
 export interface AesGcmOptions {
 	key: Uint8Array | string
 	plaintext: Uint8Array | string
 	associatedData?: Uint8Array | string
 }
 
+/** Inputs for opening an AES-GCM sealed payload. */
 export interface AesGcmOpenOptions {
 	key: Uint8Array | string
 	seal: AesGcmSeal
@@ -50,6 +53,7 @@ async function importAesKey(key: Uint8Array | string, usage: AesKeyUsage): Promi
 	)
 }
 
+/** Encrypts bytes or text with AES-GCM. */
 export async function sealAesGcm(options: AesGcmOptions): Promise<AesGcmSeal> {
 	const iv = randomBytes(12)
 	const key = await importAesKey(options.key, 'encrypt')
@@ -71,6 +75,7 @@ export async function sealAesGcm(options: AesGcmOptions): Promise<AesGcmSeal> {
 	}
 }
 
+/** Decrypts an AES-GCM seal into raw bytes. */
 export async function openAesGcm(options: AesGcmOpenOptions): Promise<Uint8Array> {
 	if (options.seal.algorithm !== 'AES-GCM') {
 		throw new Error('@goobits/security/crypto: unsupported AEAD algorithm')
@@ -89,6 +94,7 @@ export async function openAesGcm(options: AesGcmOpenOptions): Promise<Uint8Array
 	return new Uint8Array(plaintext)
 }
 
+/** JSON-serializes and encrypts a value with AES-GCM. */
 export async function sealJson(
 	value: unknown,
 	options: Omit<AesGcmOptions, 'plaintext'>
@@ -99,6 +105,7 @@ export async function sealJson(
 	})
 }
 
+/** Decrypts an AES-GCM seal and parses the plaintext as JSON. */
 export async function openJson<T = unknown>(options: AesGcmOpenOptions): Promise<T> {
 	const bytes = await openAesGcm(options)
 	return JSON.parse(bytesToText(bytes)) as T

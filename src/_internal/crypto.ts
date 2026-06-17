@@ -30,7 +30,6 @@ export function getRandomBytes(length: number): Uint8Array {
 export function toHex(bytes: Uint8Array): string {
 	let out = ''
 	for (let i = 0; i < bytes.length; i++) {
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		out += bytes[i]!.toString(16).padStart(2, '0')
 	}
 	return out
@@ -57,7 +56,6 @@ export function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
 
 	let result = 0
 	for (let i = 0; i < a.length; i++) {
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 		result |= a[i]! ^ b[i]!
 	}
 	return result === 0

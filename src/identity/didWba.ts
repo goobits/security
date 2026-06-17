@@ -1,5 +1,6 @@
 import { principalFromDid, type VerifiedPrincipal } from './principal.js'
 
+/** Machine-readable did:wba verification failure reason. */
 export type DidWbaVerificationError =
 	| 'missing-header'
 	| 'invalid-header'
@@ -9,6 +10,7 @@ export type DidWbaVerificationError =
 	| 'domain-mismatch'
 	| 'invalid-signature'
 
+/** Parsed did:wba authorization header. */
 export interface DidWbaAuthHeader {
 	did: string
 	nonce: string
@@ -17,6 +19,7 @@ export interface DidWbaAuthHeader {
 	signature: string
 }
 
+/** Options for verifying a did:wba authorization header. */
 export interface DidWbaVerifyOptions {
 	header: string | DidWbaAuthHeader | null | undefined
 	expectedDomain?: string
@@ -25,6 +28,7 @@ export interface DidWbaVerifyOptions {
 	verifySignature: (input: DidWbaSignatureInput) => boolean | Promise<boolean>
 }
 
+/** Signature payload passed to a did:wba verifier. */
 export interface DidWbaSignatureInput {
 	did: string
 	nonce: string
@@ -34,10 +38,12 @@ export interface DidWbaSignatureInput {
 	message: string
 }
 
+/** Result returned after did:wba identity verification. */
 export type DidWbaVerificationResult =
 	| { ok: true; principal: VerifiedPrincipal; header: DidWbaAuthHeader }
 	| { ok: false; reason: DidWbaVerificationError }
 
+/** Builds a did:wba identifier from a domain and optional path. */
 export function buildDidWba(domain: string, pathSegments: string[] = [], port?: number): string {
 	if (!domain) {
 		throw new Error('@goobits/security/identity: DID-WBA domain is required')
@@ -47,6 +53,7 @@ export function buildDidWba(domain: string, pathSegments: string[] = [], port?: 
 	return `did:wba:${ host }${ path ? `:${ path }` : '' }`
 }
 
+/** Resolves a did:wba identifier to its DID document URL. */
 export function didWbaToUrl(did: string): string {
 	if (!did.startsWith('did:wba:')) {
 		throw new Error('@goobits/security/identity: invalid DID-WBA method')
@@ -64,11 +71,13 @@ export function didWbaToUrl(did: string): string {
 	return `https://${ host }${ path }`
 }
 
+/** Extracts the host domain represented by a did:wba identifier. */
 export function didWbaDomain(did: string): string {
 	const url = new URL(didWbaToUrl(did))
 	return url.host
 }
 
+/** Parses a did:wba authorization header into structured fields. */
 export function parseDidWbaAuthorizationHeader(value: string | null | undefined): DidWbaAuthHeader | null {
 	if (!value) return null
 	const trimmed = value.trim()
@@ -97,10 +106,12 @@ export function parseDidWbaAuthorizationHeader(value: string | null | undefined)
 	return { did, nonce, timestamp, verificationMethod, signature }
 }
 
+/** Builds the canonical message covered by a did:wba signature. */
 export function didWbaSignatureMessage(header: DidWbaAuthHeader): string {
 	return `${ header.did }\n${ header.nonce }\n${ header.timestamp }\n${ header.verificationMethod }`
 }
 
+/** Verifies a did:wba authorization header and returns a principal. */
 export async function verifyDidWbaIdentity(
 	options: DidWbaVerifyOptions
 ): Promise<DidWbaVerificationResult> {

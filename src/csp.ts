@@ -47,8 +47,10 @@ export type CspDirective =
 	| 'trusted-types'
 	| 'require-trusted-types-for'
 
+/** Csp Directives typed model for security middleware. */
 export type CspDirectives = Partial<Record<CspDirective, string[]>>
 
+/** Csp Config request or option shape for security middleware. */
 export interface CspConfig {
 	/**
 	 * Mode controls baseline permissiveness.

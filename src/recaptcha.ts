@@ -9,6 +9,7 @@ import { type Logger, resolveLogger } from './logger.js'
 
 const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
+/** Recaptcha Options request or option shape for security middleware. */
 export interface RecaptchaOptions {
 	/**
 	 * reCAPTCHA secret key. If omitted, falls back to `RECAPTCHA_SECRET_KEY`
@@ -45,6 +46,7 @@ interface RecaptchaApiResponse {
 	'error-codes'?: string[]
 }
 
+/** Recaptcha Result typed model for security middleware. */
 export type RecaptchaResult =
 	| {
 		success: true

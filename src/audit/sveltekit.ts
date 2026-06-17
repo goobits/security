@@ -10,6 +10,7 @@ import { BodyTooLargeError, readJsonBody } from '../_internal/BodyTooLargeError.
 import type { AuditEvent, AuditLogger, AuditOutcome } from '../audit.js'
 import { type Logger, resolveLogger } from '../logger.js'
 
+/** With Audit Options request or option shape for audit logging. */
 export interface WithAuditOptions {
 	/** Action label. */
 	action: string

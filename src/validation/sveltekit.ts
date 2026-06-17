@@ -10,6 +10,7 @@ import { BodyTooLargeError, readJsonBody } from '../_internal/BodyTooLargeError.
 import { type Logger, resolveLogger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'
 
+/** With Validation Options request or option shape for security middleware. */
 export interface WithValidationOptions {
 	/** Pluggable logger. Default: silent. */
 	logger?: Logger

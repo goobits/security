@@ -25,8 +25,11 @@ import { type CookieOptions, parseCookies, serializeCookie } from './_internal/c
 import { isProduction, readEnv } from './_internal/env.js'
 import { type Logger, resolveLogger } from './logger.js'
 
+/** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
+/** Names the CSRF header name used by browser and server guards. */
 export const CSRF_HEADER_NAME = 'X-CSRF-Token'
+/** Names the CSRF token expiry ms used by browser and server guards. */
 export const CSRF_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1 hour
 
 /**
@@ -41,6 +44,7 @@ export interface CsrfTokenStore {
 	readonly size?: number
 }
 
+/** Describes the CSRF store or request options used by the in-memory guard. */
 export interface CsrfConfig {
 	/** Cookie name. Default: `'csrf-token'`. */
 	cookieName?: string
@@ -74,6 +78,7 @@ export interface CsrfConfig {
 	failClosed?: boolean
 }
 
+/** Describes the CSRF store or request options used by the in-memory guard. */
 export interface GenerateOptions {
 	/** Override the default TTL. */
 	expiryMs?: number
@@ -81,11 +86,13 @@ export interface GenerateOptions {
 	trackExpiry?: boolean
 }
 
+/** Describes the CSRF store or request options used by the in-memory guard. */
 export interface ValidateOptions {
 	/** If true, validation also checks store-tracked expiration. Default: false. */
 	checkExpiry?: boolean
 }
 
+/** Describes the CSRF store or request options used by the in-memory guard. */
 export class MemoryCsrfStore implements CsrfTokenStore {
 	private readonly map = new Map<string, number>()
 
@@ -277,6 +284,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 	}
 }
 
+/** Describes the CSRF store or request options used by the in-memory guard. */
 export interface CsrfProtection {
 	readonly cookieName: string
 	readonly headerName: string

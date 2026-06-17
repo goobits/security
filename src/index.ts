@@ -187,4 +187,5 @@ export {
 } from './alerting.js'
 
 /* Version constant. */
+/** Security Package Version registry entry for security middleware. */
 export const SECURITY_PACKAGE_VERSION = packageJson.version

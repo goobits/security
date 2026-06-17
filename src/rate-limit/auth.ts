@@ -10,6 +10,7 @@ import type { Logger } from '../logger.js'
 
 import { createRateLimiter, type RateLimiter, type RateLimitStore } from './index.js'
 
+/** Auth Rate Limit Config request or option shape for rate limiting. */
 export interface AuthRateLimitConfig {
 	store?: RateLimitStore
 	logger?: Logger

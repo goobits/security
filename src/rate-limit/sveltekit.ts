@@ -9,6 +9,7 @@ import type { Handle, RequestEvent } from '@sveltejs/kit'
 import { type Logger, resolveLogger } from '../logger.js'
 import type { RateLimitResult, RateLimiter } from './index.js'
 
+/** Rate Limit Handle Options request or option shape for rate limiting. */
 export interface RateLimitHandleOptions {
 	/** Function to derive the rate-limit identifier from a SvelteKit event. */
 	identifier(event: RequestEvent): string | Promise<string>

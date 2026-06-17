@@ -20,13 +20,9 @@ describe('createConsoleLogger', () => {
 	}
 
 	beforeEach(() => {
-		// eslint-disable-next-line no-console
 		vi.spyOn(console, 'debug').mockImplementation(spies.debug)
-		// eslint-disable-next-line no-console
 		vi.spyOn(console, 'info').mockImplementation(spies.info)
-		// eslint-disable-next-line no-console
 		vi.spyOn(console, 'warn').mockImplementation(spies.warn)
-		// eslint-disable-next-line no-console
 		vi.spyOn(console, 'error').mockImplementation(spies.error)
 		Object.values(spies).forEach(s => s.mockClear())
 	})

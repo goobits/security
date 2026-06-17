@@ -11,8 +11,10 @@
 import type { AuditEvent } from './audit.js'
 import { type Logger, resolveLogger } from './logger.js'
 
+/** Alert Severity typed model for security alerting. */
 export type AlertSeverity = 'info' | 'warning' | 'critical'
 
+/** Alert request or option shape for security alerting. */
 export interface Alert {
 	severity: AlertSeverity
 	title: string
@@ -23,10 +25,12 @@ export interface Alert {
 	context?: Record<string, unknown>
 }
 
+/** Alert Channel request or option shape for security alerting. */
 export interface AlertChannel {
 	send(alert: Alert): Promise<void>
 }
 
+/** Webhook Channel Options request or option shape for security alerting. */
 export interface WebhookChannelOptions {
 	url: string
 	headers?: Record<string, string>
@@ -72,14 +76,17 @@ export function createWebhookChannel(options: WebhookChannelOptions): AlertChann
 	}
 }
 
+/** Alert Rule typed model for security alerting. */
 export type AlertRule = (event: AuditEvent) => Alert | null
 
+/** Create Security Alerter Options request or option shape for security alerting. */
 export interface CreateSecurityAlerterOptions {
 	channels: AlertChannel[]
 	rules: AlertRule[]
 	logger?: Logger
 }
 
+/** Security Alerter request or option shape for security alerting. */
 export interface SecurityAlerter {
 	/**
 	 * Inspect an audit event; if any rule matches, dispatch an alert through

@@ -22,12 +22,14 @@ import {
 /** Supported HS-family algorithms. RS/ES variants would require key material. */
 export type AdminAuthAlgorithm = PrincipalAuthAlgorithm
 
+/** Admin User request or option shape for security middleware. */
 export interface AdminUser {
 	id: string
 	role?: string
 	[key: string]: unknown
 }
 
+/** Admin Auth Config request or option shape for security middleware. */
 export interface AdminAuthConfig {
 	/** JWT signing secret. Required. Must be at least 32 bytes for HS256. */
 	jwtSecret: string
@@ -68,6 +70,7 @@ export interface AdminAuthConfig {
 	logger?: Logger
 }
 
+/** Admin Auth Result typed model for security middleware. */
 export type AdminAuthResult =
 	| { authenticated: true; user: AdminUser; method: 'jwt' | 'apikey' }
 	| { authenticated: false; reason: 'missing' | 'invalid-jwt' | 'not-admin' | 'invalid-apikey' }
@@ -151,6 +154,7 @@ export function createAdminAuth(config: AdminAuthConfig): AdminAuth {
 	return { authenticate, requireAdmin, createAdminToken }
 }
 
+/** Admin Auth request or option shape for security middleware. */
 export interface AdminAuth {
 	authenticate(request: Request): Promise<AdminAuthResult>
 	requireAdmin(request: Request): Promise<AdminAuthResult>

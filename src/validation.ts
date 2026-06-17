@@ -8,6 +8,7 @@ import type { z } from 'zod'
 
 import { type Logger, resolveLogger } from './logger.js'
 
+/** Validation Schemas request or option shape for security middleware. */
 export interface ValidationSchemas<
 	Body = unknown,
 	Query = unknown,
@@ -21,12 +22,14 @@ export interface ValidationSchemas<
 	params?: z.ZodType<Params>
 }
 
+/** Validated Data request or option shape for security middleware. */
 export interface ValidatedData<Body, Query, Params> {
 	body?: Body
 	query?: Query
 	params?: Params
 }
 
+/** Input Validator Result typed model for security middleware. */
 export type InputValidatorResult<T> =
 	| { success: true; data: T }
 	| { success: false; issues: z.core.$ZodIssue[] }

@@ -6,8 +6,10 @@ import {
 } from './encoding.js'
 
 
+/** Supported HMAC signing algorithm. */
 export type HmacAlgorithm = 'HS256' | 'HS384' | 'HS512'
 
+/** Serialized HMAC signature. */
 export interface HmacSignature {
 	algorithm: HmacAlgorithm
 	value: string
@@ -36,6 +38,7 @@ async function importHmacKey(
 	)
 }
 
+/** Signs bytes or text with HMAC. */
 export async function signHmac(
 	payload: Uint8Array | string,
 	secret: Uint8Array | string,
@@ -50,6 +53,7 @@ export async function signHmac(
 	}
 }
 
+/** Verifies an HMAC signature with constant-time comparison. */
 export async function verifyHmac(
 	payload: Uint8Array | string,
 	signature: HmacSignature,

@@ -6,8 +6,10 @@
 
 import { type Logger, resolveLogger } from './logger.js'
 
+/** Audit Outcome typed model for audit logging. */
 export type AuditOutcome = 'success' | 'failure' | 'denied' | 'error'
 
+/** Audit Event request or option shape for audit logging. */
 export interface AuditEvent {
 	/** Action label, e.g. `'user.login'`, `'admin.export-data'`. */
 	action: string
@@ -39,6 +41,7 @@ export interface AuditEvent {
 	error?: { message: string; name?: string }
 }
 
+/** Audit Sink request or option shape for audit logging. */
 export interface AuditSink {
 	/**
 	 * Write a single audit event. Implementations may queue, batch, or persist.
@@ -56,10 +59,12 @@ export function createLoggerSink(logger: Logger): AuditSink {
 	}
 }
 
+/** Audit Logger request or option shape for audit logging. */
 export interface AuditLogger {
 	log(event: Partial<AuditEvent> & { action: string; outcome: AuditOutcome }): Promise<void>
 }
 
+/** Create Audit Logger Options request or option shape for audit logging. */
 export interface CreateAuditLoggerOptions {
 	sink?: AuditSink
 	logger?: Logger

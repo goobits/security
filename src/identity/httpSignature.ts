@@ -1,10 +1,12 @@
 import { principalFromHttpSignature, type VerifiedPrincipal } from './principal.js'
 
+/** Machine-readable HTTP signature verification failure reason. */
 export type HttpSignatureVerificationError =
 	| 'missing-header'
 	| 'invalid-header'
 	| 'invalid-signature'
 
+/** Parsed HTTP Signature header fields. */
 export interface HttpSignatureHeader {
 	keyId: string
 	algorithm?: string
@@ -12,20 +14,24 @@ export interface HttpSignatureHeader {
 	signature: string
 }
 
+/** Options for verifying an HTTP Signature identity. */
 export interface VerifyHttpSignatureOptions {
 	header: string | HttpSignatureHeader | null | undefined
 	message: string
 	verifySignature: (input: HttpSignatureVerificationInput) => boolean | Promise<boolean>
 }
 
+/** Signature verification input including the canonical message. */
 export interface HttpSignatureVerificationInput extends HttpSignatureHeader {
 	message: string
 }
 
+/** Result returned after HTTP Signature identity verification. */
 export type HttpSignatureVerificationResult =
 	| { ok: true; principal: VerifiedPrincipal; header: HttpSignatureHeader }
 	| { ok: false; reason: HttpSignatureVerificationError }
 
+/** Parses an HTTP Signature header into structured fields. */
 export function parseHttpSignatureHeader(value: string | null | undefined): HttpSignatureHeader | null {
 	if (!value) return null
 	const params: Record<string, string> = {}
@@ -50,6 +56,7 @@ export function parseHttpSignatureHeader(value: string | null | undefined): Http
 	}
 }
 
+/** Verifies an HTTP Signature header and returns a principal. */
 export async function verifyHttpSignatureIdentity(
 	options: VerifyHttpSignatureOptions
 ): Promise<HttpSignatureVerificationResult> {

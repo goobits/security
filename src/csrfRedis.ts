@@ -25,6 +25,7 @@ export interface RedisLike {
 	): Promise<[string, string[]]>
 }
 
+/** Redis Csrf Store Options request or option shape for security middleware. */
 export interface RedisCsrfStoreOptions {
 	client: RedisLike
 	keyPrefix?: string

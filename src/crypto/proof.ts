@@ -1,7 +1,9 @@
 import { signHmac, type HmacAlgorithm, verifyHmac } from './signatures.js'
 
+/** Supported algorithm for security proofs. */
 export type SecurityProofAlgorithm = HmacAlgorithm
 
+/** HMAC-backed proof bound to a JSON-compatible payload. */
 export interface SecurityProof {
 	type: 'SecurityProof'
 	algorithm: SecurityProofAlgorithm
@@ -13,6 +15,7 @@ export interface SecurityProof {
 	challenge?: string
 }
 
+/** Options for creating a security proof. */
 export interface CreateSecurityProofOptions {
 	secret: Uint8Array | string
 	verificationMethod: string
@@ -23,6 +26,7 @@ export interface CreateSecurityProofOptions {
 	challenge?: string
 }
 
+/** Options for verifying a security proof. */
 export interface VerifySecurityProofOptions {
 	secret: Uint8Array | string
 	domain?: string
@@ -33,6 +37,7 @@ export interface VerifySecurityProofOptions {
 	maxAgeMs?: number
 }
 
+/** Verification result for a security proof. */
 export interface SecurityProofVerification {
 	ok: boolean
 	reason?:
@@ -71,6 +76,7 @@ function toJsonValue(value: unknown): JsonValue {
 	throw new Error('@goobits/security/crypto: proof payload must be JSON-compatible')
 }
 
+/** Canonicalizes JSON-compatible values for proof signing. */
 export function canonicalizeJson(value: unknown): string {
 	const json = toJsonValue(value)
 	if (json === null || typeof json !== 'object') return JSON.stringify(json)
@@ -95,6 +101,7 @@ function proofMessage(payload: unknown, proof: SecurityProof): string {
 	})
 }
 
+/** Creates a detached HMAC security proof for a payload. */
 export async function createSecurityProof(
 	payload: unknown,
 	options: CreateSecurityProofOptions
@@ -116,6 +123,7 @@ export async function createSecurityProof(
 	}
 }
 
+/** Verifies a detached HMAC security proof for a payload. */
 export async function verifySecurityProof(
 	payload: unknown,
 	proof: SecurityProof,
@@ -153,6 +161,7 @@ export async function verifySecurityProof(
 	return ok ? { ok: true } : { ok: false, reason: 'invalid-signature' }
 }
 
+/** Attaches a security proof to a record payload. */
 export async function attachSecurityProof<T extends Record<string, unknown>>(
 	payload: T,
 	options: CreateSecurityProofOptions
@@ -165,6 +174,7 @@ export async function attachSecurityProof<T extends Record<string, unknown>>(
 	} as T & { proof: SecurityProof }
 }
 
+/** Verifies a security proof attached to a record payload. */
 export async function verifyAttachedSecurityProof(
 	payload: Record<string, unknown> & { proof?: SecurityProof },
 	options: VerifySecurityProofOptions

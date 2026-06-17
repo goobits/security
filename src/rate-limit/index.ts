@@ -29,6 +29,7 @@ export interface RateLimitStore {
 	deleteEntry(key: string): Promise<void> | void
 }
 
+/** Rate Limit Window request or option shape for rate limiting. */
 export interface RateLimitWindow {
 	/** Human label, e.g. `'short'`, `'long'`. */
 	name: string
@@ -38,6 +39,7 @@ export interface RateLimitWindow {
 	maxEvents: number
 }
 
+/** Rate Limit Config request or option shape for rate limiting. */
 export interface RateLimitConfig {
 	/** One or more sliding windows. ALL must be satisfied to allow a request. */
 	windows: RateLimitWindow[]
@@ -49,10 +51,12 @@ export interface RateLimitConfig {
 	keyPrefix?: string
 }
 
+/** Rate Limit Result typed model for rate limiting. */
 export type RateLimitResult =
 	| { allowed: true; remaining: number; resetAtMs: number; window?: string }
 	| { allowed: false; retryAfterSec: number; resetAtMs: number; window: string }
 
+/** Rate Limiter request or option shape for rate limiting. */
 export interface RateLimiter {
 	check(identifier: string): Promise<RateLimitResult>
 	/**

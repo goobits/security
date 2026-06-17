@@ -12,19 +12,23 @@ import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
 import { timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
 import { type Logger, resolveLogger } from './logger.js'
 
+/** Principal Auth Algorithm shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'
 
+/** Auth Principal shape used for signed principals, API keys, and request authentication. */
 export interface AuthPrincipal {
 	id: string
 	roles?: string[]
 	[key: string]: unknown
 }
 
+/** Principal Api Key shape used for signed principals, API keys, and request authentication. */
 export interface PrincipalApiKey {
 	key: string
 	principal: AuthPrincipal
 }
 
+/** Principal Auth Config shape used for signed principals, API keys, and request authentication. */
 export interface PrincipalAuthConfig {
 	/** JWT signing secret. Required. Must be at least 32 bytes for HS-family algorithms. */
 	jwtSecret: string
@@ -53,18 +57,22 @@ export interface PrincipalAuthConfig {
 	logger?: Logger
 }
 
+/** Principal Auth Method shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthMethod = 'jwt' | 'apikey'
 
+/** Principal Auth Failure Reason shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthFailureReason =
 	| 'missing'
 	| 'invalid-jwt'
 	| 'invalid-apikey'
 	| 'forbidden'
 
+/** Principal Auth Result shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthResult =
 	| { authenticated: true; principal: AuthPrincipal; method: PrincipalAuthMethod }
 	| { authenticated: false; reason: PrincipalAuthFailureReason }
 
+/** Principal Auth shape used for signed principals, API keys, and request authentication. */
 export interface PrincipalAuth {
 	authenticate(request: Request): Promise<PrincipalAuthResult>
 	requirePrincipal(request: Request): Promise<PrincipalAuthResult>
@@ -121,6 +129,7 @@ function resolveExpirationTime(ttl: string | number): string | number {
 		: ttl
 }
 
+/** Create Principal Auth shape used for signed principals, API keys, and request authentication. */
 export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth {
 	const {
 		jwtSecret,

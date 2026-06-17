@@ -13,6 +13,7 @@
 
 export type LogContext = Record<string, unknown>
 
+/** Logger request or option shape for security middleware. */
 export interface Logger {
 	debug(message: string, context?: LogContext): void
 	info(message: string, context?: LogContext): void
@@ -33,6 +34,7 @@ export const noopLogger: Logger = {
 	error(): void {}
 }
 
+/** Console Logger Options request or option shape for security middleware. */
 export interface ConsoleLoggerOptions {
 	/** A prefix added before every log line, e.g. `[security:csrf]`. */
 	prefix?: string
