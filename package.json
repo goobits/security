@@ -53,7 +53,7 @@
 	},
 	"packageManager": "pnpm@10.13.1",
 	"dependencies": {
-		"jose": "^5.9.6"
+		"jose": "^6.2.3"
 	},
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
@@ -72,13 +72,13 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.59.0",
-		"@types/node": "^22.10.0",
-		"@vitest/coverage-v8": "^4.0.0",
-		"ioredis": "^5.8.2",
-		"typescript": "^5.9.0",
-		"vitest": "^4.0.0",
-		"zod": "^4.0.0"
+		"@sveltejs/kit": "^2.66.0",
+		"@types/node": "^26.0.0",
+		"@vitest/coverage-v8": "^4.1.9",
+		"ioredis": "^5.11.1",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.9",
+		"zod": "^4.4.3"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
