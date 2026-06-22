@@ -4,7 +4,7 @@ import { createRedisCsrfStore, type RedisLike } from '../src/csrfRedis.js'
 
 /**
  * In-memory stand-in for ioredis that satisfies the `RedisLike` interface.
- * Mirrors the `set ... PX ttlMs` semantic — keys auto-expire client-side.
+ * Mirrors the `set ... PX ttlMs` semantic, keys auto-expire client-side.
  */
 function makeFakeRedis(): RedisLike & { _state: Map<string, { value: string; expiresAt: number }> } {
 	const state = new Map<string, { value: string; expiresAt: number }>()

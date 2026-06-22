@@ -54,7 +54,7 @@ describe('createAdminAuth', () => {
 
 	it('rejects tokens signed with a different algorithm', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET, algorithms: [ 'HS256' ] })
-		// Forge a token with HS512 — should be rejected because only HS256 is allowed
+		// Forge a token with HS512, should be rejected because only HS256 is allowed
 		const hs512Token = await new SignJWT({ id: 'user-1', role: 'admin' })
 			.setProtectedHeader({ alg: 'HS512' })
 			.setExpirationTime('1h')
@@ -103,7 +103,7 @@ describe('createAdminAuth', () => {
 	})
 })
 
-describe('createAdminAuth — numeric tokenTtl (regression: jose absolute-vs-relative)', () => {
+describe('createAdminAuth numeric tokenTtl (regression: jose absolute-vs-relative)', () => {
 	it('numeric tokenTtl is treated as RELATIVE seconds, not absolute UNIX seconds', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET, tokenTtl: 3600 }) // 1 hour
 		const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' })
@@ -124,7 +124,7 @@ describe('createAdminAuth — numeric tokenTtl (regression: jose absolute-vs-rel
 	})
 })
 
-describe('createAdminAuth — audience / issuer / clockTolerance', () => {
+describe('createAdminAuth audience / issuer / clockTolerance', () => {
 	it('rejects tokens with mismatched audience', async () => {
 		const issuer = createAdminAuth({ jwtSecret: SECRET, audience: 'app-a' })
 		const verifier = createAdminAuth({ jwtSecret: SECRET, audience: 'app-b' })
