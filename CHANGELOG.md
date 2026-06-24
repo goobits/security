@@ -2,11 +2,25 @@
 
 All notable changes to `@goobits/security` are documented here. The format adheres to [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<!-- CHANGELOG audit cutoff: 2026-06-24. commit 06d1824 on main. -->
+
 ## [Unreleased]
 
-### Added
+### ✨ Added
 
-- **`turnstile`**: New `@goobits/security/turnstile` sub-export. Server-side Cloudflare Turnstile token verifier — sister module to `recaptcha`, same discriminated-union result shape (`{ success, reason, errorCodes?, raw }`). Reads `TURNSTILE_SECRET_KEY` env by default. Supports optional `action` + `hostname` assertions. Adds a `bypassLocalhost` option that short-circuits siteverify when `remoteIp` matches a loopback host (only when `NODE_ENV !== 'production'`) — codifies the bypass convention previously copy-pasted across bandamp.com, miko.art, and pdx.run. Same `allowInDevelopment` semantics as recaptcha (default `false`, opt-in dev escape hatch for missing secret).
+- 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
+- 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.
+- 📦 **`rate-limit`**: `peek()` exposes limiter state without incrementing counters.
+
+### 🔧 Changed
+
+- 📦 **`validation/sveltekit`**: Validation options now satisfy exact optional property types without weakening public option shapes.
+
+### 🏠 Internal
+
+- 📚 README guidance refreshed for source-level distribution and current app paths.
+- 🧪 Timing-sensitive security tests now document their probes more clearly.
+- 📦 Development dependencies refreshed for the current package toolchain.
 
 ## [2.0.0] - 2026-05-18
 

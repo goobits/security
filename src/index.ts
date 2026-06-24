@@ -10,6 +10,8 @@
  * @module @goobits/security
  */
 
+import packageJson from '../package.json' with { type: 'json' }
+
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
@@ -112,4 +114,4 @@ export {
 } from './alerting.js'
 
 /* Version constant. */
-export const SECURITY_PACKAGE_VERSION = '2.0.0'
+export const SECURITY_PACKAGE_VERSION = packageJson.version
