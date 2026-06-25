@@ -39,6 +39,14 @@ export {
 	type RedisLike,
 	createRedisCsrfStore
 } from './csrfRedis.js'
+export {
+	type CsrfFetch,
+	type CsrfFetchConfig,
+	createCsrfFetch,
+	csrfFetch,
+	isSameOriginRequest,
+	readBrowserCookie
+} from './csrfClient.js'
 
 /* Content Security Policy. */
 export {
