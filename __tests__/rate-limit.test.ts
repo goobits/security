@@ -1,6 +1,42 @@
 import { describe, expect, it } from 'vitest'
 
-import { createRateLimiter, MemoryRateLimitStore } from '../src/rate-limit/index.js'
+import {
+	createRateLimiter,
+	D1RateLimitStore,
+	MemoryRateLimitStore
+} from '../src/rate-limit/index.js'
+
+type FakeRateLimitRow = {
+	count: number | string | null
+	reset_at: number | string | null
+}
+
+class FakeD1RateLimitDatabase {
+	readonly rows = new Map<string, FakeRateLimitRow>()
+
+	prepare(sql: string) {
+		return {
+			bind: (...args: Array<string | number | boolean | null>) => ({
+				first: async <T = FakeRateLimitRow>() => {
+					const key = String(args[0])
+					return (this.rows.get(key) ?? null) as T | null
+				},
+				run: async () => {
+					const key = String(args[0])
+					if (/^INSERT/i.test(sql.trim())) {
+						this.rows.set(key, {
+							count: args[1] as string,
+							reset_at: args[2] as number
+						})
+					}
+					if (/^DELETE/i.test(sql.trim())) {
+						this.rows.delete(key)
+					}
+				}
+			})
+		}
+	}
+}
 
 describe('createRateLimiter', () => {
 	it('throws on empty windows', () => {
@@ -110,5 +146,33 @@ describe('createRateLimiter', () => {
 
 		const entry = store.getEntry('rate-limit:alice')
 		expect(entry?.timestamps).toHaveLength(3)
+	})
+
+	it('supports D1-backed sliding-window limits', async () => {
+		const db = new FakeD1RateLimitDatabase()
+		const limiter = createRateLimiter({
+			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 2 } ],
+			store: new D1RateLimitStore(db),
+			keyPrefix: 'auth'
+		})
+
+		expect((await limiter.check('alice')).allowed).toBe(true)
+		expect((await limiter.check('alice')).allowed).toBe(true)
+		expect((await limiter.check('alice')).allowed).toBe(false)
+		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
+	})
+
+	it('reads legacy D1 numeric count rows', async () => {
+		const db = new FakeD1RateLimitDatabase()
+		db.rows.set('auth:alice', {
+			count: 2,
+			reset_at: Math.ceil((Date.now() + 60_000) / 1000)
+		})
+		const store = new D1RateLimitStore(db)
+
+		const entry = await store.incrementEntry('auth:alice', Date.now(), 60_000, 4)
+
+		expect(entry.timestamps).toHaveLength(3)
+		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
 	})
 })

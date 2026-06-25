@@ -29,6 +29,150 @@ export interface RateLimitStore {
 	deleteEntry(key: string): Promise<void> | void
 }
 
+type D1RateLimitValue = string | number | boolean | null
+
+/** Minimal Cloudflare D1-compatible database shape used by `D1RateLimitStore`. */
+export interface D1RateLimitDatabase {
+	prepare(sql: string): {
+		bind(...args: D1RateLimitValue[]): {
+			first<T = Record<string, D1RateLimitValue>>(): Promise<T | null>
+			run(): Promise<unknown>
+		}
+	}
+}
+
+export interface D1RateLimitStoreOptions {
+	table?: string
+	columns?: Partial<{
+		key: string
+		count: string
+		resetAt: string
+	}>
+}
+
+const DEFAULT_D1_RATE_LIMIT_COLUMNS = {
+	key: 'key',
+	count: 'count',
+	resetAt: 'reset_at'
+} as const
+type D1RateLimitColumns = {
+	key: string
+	count: string
+	resetAt: string
+}
+
+function quoteD1Identifier(identifier: string): string {
+	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
+		throw new Error(`D1RateLimitStore: invalid SQL identifier "${ identifier }"`)
+	}
+	return `"${ identifier }"`
+}
+
+/**
+ * D1-backed rate limit store.
+ *
+ * Uses the common `rate_limits(key, count, reset_at)` table by default. The
+ * `count` column stores JSON timestamp arrays for sliding-window precision,
+ * while numeric legacy counts are still readable during migrations.
+ */
+export class D1RateLimitStore implements RateLimitStore {
+	private readonly table: string
+	private readonly columns: D1RateLimitColumns
+
+	constructor(
+		private readonly db: D1RateLimitDatabase,
+		options: D1RateLimitStoreOptions = {}
+	) {
+		this.table = quoteD1Identifier(options.table ?? 'rate_limits')
+		this.columns = {
+			...DEFAULT_D1_RATE_LIMIT_COLUMNS,
+			...options.columns
+		}
+		for (const column of Object.values(this.columns)) quoteD1Identifier(column)
+	}
+
+	private mapEntry(
+		row: { count: number | string | null; reset_at: number | string | null } | null,
+		now = Date.now()
+	): RateLimitEntry | null {
+		if (!row) return null
+		const resetAtMs = Number(row.reset_at ?? 0) * 1000
+		if (!Number.isFinite(resetAtMs) || resetAtMs <= now) return null
+
+		const raw = row.count
+		if (typeof raw === 'string') {
+			try {
+				const parsed = JSON.parse(raw) as unknown
+				if (Array.isArray(parsed) && parsed.every(value => typeof value === 'number' && Number.isFinite(value))) {
+					return { timestamps: parsed }
+				}
+			} catch {
+				return null
+			}
+		}
+
+		const count = typeof raw === 'number' ? raw : Number(raw ?? 0)
+		if (!Number.isFinite(count) || count <= 0) return null
+		const timestamp = Math.min(now, resetAtMs - 1)
+		return { timestamps: Array.from({ length: count }, () => timestamp) }
+	}
+
+	async getEntry(key: string): Promise<RateLimitEntry | null> {
+		const keyColumn = quoteD1Identifier(this.columns.key)
+		const countColumn = quoteD1Identifier(this.columns.count)
+		const resetAtColumn = quoteD1Identifier(this.columns.resetAt)
+		const row = await this.db
+			.prepare(
+				`SELECT ${ countColumn } AS count, ${ resetAtColumn } AS reset_at
+				 FROM ${ this.table }
+				 WHERE ${ keyColumn } = ? LIMIT 1`
+			)
+			.bind(key)
+			.first<{ count: number | string | null; reset_at: number | string | null }>()
+		const entry = this.mapEntry(row)
+		if (!row || entry) return entry
+		await this.deleteEntry(key)
+		return null
+	}
+
+	async incrementEntry(
+		key: string,
+		timestamp: number,
+		ttlMs: number,
+		maxEntries?: number
+	): Promise<RateLimitEntry> {
+		const cutoff = timestamp - ttlMs
+		const current = await this.getEntry(key)
+		const timestamps = current ? current.timestamps.filter(value => value > cutoff) : []
+		timestamps.push(timestamp)
+		if (maxEntries !== undefined && timestamps.length > maxEntries) {
+			timestamps.splice(0, timestamps.length - maxEntries)
+		}
+
+		const entry: RateLimitEntry = { timestamps }
+		const keyColumn = quoteD1Identifier(this.columns.key)
+		const countColumn = quoteD1Identifier(this.columns.count)
+		const resetAtColumn = quoteD1Identifier(this.columns.resetAt)
+		const resetAtSeconds = Math.ceil((timestamp + ttlMs) / 1000)
+		await this.db
+			.prepare(
+				`INSERT INTO ${ this.table } (${ keyColumn }, ${ countColumn }, ${ resetAtColumn }) VALUES (?, ?, ?)
+				 ON CONFLICT(${ keyColumn }) DO UPDATE SET ${ countColumn } = excluded.${ countColumn }, ${ resetAtColumn } = excluded.${ resetAtColumn }`
+			)
+			.bind(key, JSON.stringify(timestamps), resetAtSeconds)
+			.run()
+		return entry
+	}
+
+	async deleteEntry(key: string): Promise<void> {
+		const keyColumn = quoteD1Identifier(this.columns.key)
+		await this.db
+			.prepare(`DELETE FROM ${ this.table } WHERE ${ keyColumn } = ?`)
+			.bind(key)
+			.run()
+	}
+}
+
 /** Rate Limit Window request or option shape for rate limiting. */
 export interface RateLimitWindow {
 	/** Human label, e.g. `'short'`, `'long'`. */

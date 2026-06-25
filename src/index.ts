@@ -122,6 +122,8 @@ export {
 
 /* Rate limiting. */
 export {
+	type D1RateLimitDatabase,
+	type D1RateLimitStoreOptions,
 	type GetClientIpOptions,
 	type RateLimitConfig,
 	type RateLimitEntry,
@@ -129,6 +131,7 @@ export {
 	type RateLimitStore,
 	type RateLimitWindow,
 	type RateLimiter,
+	D1RateLimitStore,
 	MemoryRateLimitStore,
 	createRateLimiter,
 	getClientIP
