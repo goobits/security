@@ -29,13 +29,11 @@ export interface RateLimitStore {
 	deleteEntry(key: string): Promise<void> | void
 }
 
-type D1RateLimitValue = string | number | boolean | null
-
 /** Minimal Cloudflare D1-compatible database shape used by `D1RateLimitStore`. */
 export interface D1RateLimitDatabase {
 	prepare(sql: string): {
-		bind(...args: D1RateLimitValue[]): {
-			first<T = Record<string, D1RateLimitValue>>(): Promise<T | null>
+		bind(...args: unknown[]): {
+			first<T = Record<string, unknown>>(): Promise<T | null>
 			run(): Promise<unknown>
 		}
 	}
