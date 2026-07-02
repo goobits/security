@@ -1,9 +1,9 @@
 /**
- * Security alerting — send notifications when high-priority security events occur.
+ * Security alerting  -  send notifications when high-priority security events occur.
  *
  * Designed as a thin layer over the audit log: subscribe to specific actions
  * or outcomes, dispatch to a webhook / email / etc. The package does NOT
- * include transport implementations — provide your own `AlertChannel`.
+ * include transport implementations  -  provide your own `AlertChannel`.
  *
  * @module @goobits/security/alerting
  */

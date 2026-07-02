@@ -1,5 +1,5 @@
 /**
- * Generic principal authentication — JWT bearer token + API key fallback.
+ * Generic principal authentication  -  JWT bearer token + API key fallback.
  *
  * This module authenticates who is calling. Product permissions, roles,
  * relationship grants, and resource authorization stay in consumer code.

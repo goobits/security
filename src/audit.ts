@@ -1,5 +1,5 @@
 /**
- * Audit logging — structured event emission for security-sensitive operations.
+ * Audit logging  -  structured event emission for security-sensitive operations.
  *
  * @module @goobits/security/audit
  */
@@ -45,7 +45,7 @@ export interface AuditEvent {
 export interface AuditSink {
 	/**
 	 * Write a single audit event. Implementations may queue, batch, or persist.
-	 * Should NOT throw — log internally and swallow errors.
+	 * Should NOT throw  -  log internally and swallow errors.
 	 */
 	record(event: AuditEvent): void | Promise<void>
 }

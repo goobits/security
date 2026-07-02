@@ -40,7 +40,7 @@ export interface TurnstileOptions {
 	 * address. Convenience for local dev (browsing to localhost while CF
 	 * widgets can't resolve a real remote IP). Default: `false`.
 	 *
-	 * In production this flag is ALWAYS ignored — loopback bypass is never
+	 * In production this flag is ALWAYS ignored  -  loopback bypass is never
 	 * applied when `NODE_ENV === 'production'`.
 	 */
 	bypassLocalhost?: boolean
@@ -55,7 +55,7 @@ export interface TurnstileOptions {
 	 * Dev escape hatch: when `true` AND `NODE_ENV !== 'production'` AND the
 	 * secret key is missing, verification passes. Default: `false`.
 	 *
-	 * In production this flag is always ignored — missing secret always fails.
+	 * In production this flag is always ignored  -  missing secret always fails.
 	 */
 	allowInDevelopment?: boolean
 
@@ -102,7 +102,7 @@ export type TurnstileResult =
 /**
  * Verify a Turnstile token against Cloudflare's siteverify endpoint.
  *
- * Never throws — all failures are reported via the discriminated `result.success`
+ * Never throws  -  all failures are reported via the discriminated `result.success`
  * field plus a closed-enum `reason`.
  *
  * @example
@@ -132,7 +132,7 @@ export async function verifyTurnstile(
 		return { success: false, reason: 'missing-token' }
 	}
 
-	// Loopback bypass — only outside production, only when explicitly opted in.
+	// Loopback bypass  -  only outside production, only when explicitly opted in.
 	if (bypassLocalhost && !isProduction() && remoteIp && bypassHosts.includes(remoteIp)) {
 		log.info('Turnstile bypassed for loopback remoteIp', { remoteIp })
 		return {

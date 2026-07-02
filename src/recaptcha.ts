@@ -23,12 +23,12 @@ export interface RecaptchaOptions {
 	minScore?: number
 	/**
 	 * Dev escape hatch: when `true` AND `NODE_ENV !== 'production'` AND the
-	 * secret key is missing, verification passes. **Default: `false`** — you
+	 * secret key is missing, verification passes. **Default: `false`**  -  you
 	 * must explicitly opt in. This default ensures that runtimes where
 	 * `NODE_ENV` is unset (Cloudflare Workers, Deno, many CI environments)
 	 * do NOT silently disable CAPTCHA.
 	 *
-	 * In production this flag is always ignored — missing secret always fails.
+	 * In production this flag is always ignored  -  missing secret always fails.
 	 */
 	allowInDevelopment?: boolean
 	/** Network timeout in milliseconds. Default: 5000. */

@@ -3,8 +3,8 @@
  *
  * Centralizes the "is `process.env` even there?" guard used by multiple
  * modules. Works on Node, Bun, Deno (via `Deno.env` shim is NOT included
- * here — pass values explicitly when running on Deno), and Cloudflare
- * Workers (where `process.env` is absent — every call returns undefined,
+ * here  -  pass values explicitly when running on Deno), and Cloudflare
+ * Workers (where `process.env` is absent  -  every call returns undefined,
  * which forces the consumer to pass values explicitly).
  *
  * @internal
@@ -35,7 +35,7 @@ export function readEnv(name: string): string | undefined {
  * Many runtimes leave `NODE_ENV` unset by default (Cloudflare Workers, Deno,
  * Bun without explicit env loading). Treating "no NODE_ENV" as "non-prod" is
  * a security foot-gun for security-sensitive defaults (CAPTCHA bypass, CSRF
- * disable). Use `isProduction()` to gate dev-only behavior — and always
+ * disable). Use `isProduction()` to gate dev-only behavior  -  and always
  * default the behavior to its safe (production) variant when in doubt.
  */
 export function isProduction(): boolean {

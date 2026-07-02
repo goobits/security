@@ -1,5 +1,5 @@
 /**
- * Rate limiting — sliding-window counter with pluggable store.
+ * Rate limiting  -  sliding-window counter with pluggable store.
  *
  * @module @goobits/security/rate-limit
  */
@@ -202,7 +202,7 @@ export type RateLimitResult =
 export interface RateLimiter {
 	check(identifier: string): Promise<RateLimitResult>
 	/**
-	 * Non-incrementing read of the current rate-limit verdict — useful for
+	 * Non-incrementing read of the current rate-limit verdict  -  useful for
 	 * response headers (`X-RateLimit-Remaining`, `X-RateLimit-Reset`) where
 	 * you want to surface quota without consuming one. Returns the same
 	 * `RateLimitResult` shape as `check()` based on the current stored
@@ -220,7 +220,7 @@ export interface RateLimiter {
  * In-memory rate limit store.
  *
  * **Suitable only for single-instance deployments.** Multi-pod / multi-process
- * deployments must supply a Redis (or equivalent shared) store — each replica
+ * deployments must supply a Redis (or equivalent shared) store  -  each replica
  * holds an independent counter, defeating the rate limit.
  *
  * Includes opportunistic cleanup (~1% chance per increment) to bound memory.
@@ -316,7 +316,7 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 	const store = config.store ?? new MemoryRateLimitStore()
 	const keyPrefix = config.keyPrefix ?? 'rate-limit'
 
-	// Use the longest window as the storage TTL — covers all shorter windows.
+	// Use the longest window as the storage TTL  -  covers all shorter windows.
 	const maxWindowMs = Math.max(...config.windows.map(w => w.windowMs))
 	const maxStoredEvents = Math.max(...config.windows.map(w => w.maxEvents + 1))
 
@@ -326,10 +326,10 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 
 	/**
 	 * Evaluate the rate-limit verdict for an entry. Pure compute over the
-	 * timestamps list — no store access. Used by both `check()` (which
+	 * timestamps list  -  no store access. Used by both `check()` (which
 	 * increments first) and `peek()` (which reads only).
 	 *
-	 * When `logOnHit` is true, emits a warning on limit-exceeded — `check()`
+	 * When `logOnHit` is true, emits a warning on limit-exceeded  -  `check()`
 	 * sets this; `peek()` does not (peeks happen during response-header
 	 * builds where a warning per request would be noisy).
 	 */
@@ -410,13 +410,13 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 
 /**
  * Options for `getClientIP`. You MUST explicitly opt in to trusting any
- * proxy header — otherwise the helper returns the literal `'unknown'`.
+ * proxy header  -  otherwise the helper returns the literal `'unknown'`.
  * This default prevents attackers from spoofing identifiers via `x-forwarded-for`
  * when your service is not actually behind a known proxy.
  */
 export interface GetClientIpOptions {
 	/**
-	 * Which proxy headers (if any) to honor. Order is preserved — the first
+	 * Which proxy headers (if any) to honor. Order is preserved  -  the first
 	 * header that's present wins. Default: `[]` (trust none).
 	 *
 	 * Only enable headers you know your trusted proxy sets, and confirm that
@@ -432,12 +432,12 @@ export interface GetClientIpOptions {
 /**
  * Resolve the client IP from a Fetch-API `Request`.
  *
- * **By default, this trusts NO proxy headers** — it returns `'unknown'` unless
+ * **By default, this trusts NO proxy headers**  -  it returns `'unknown'` unless
  * you explicitly opt in via `trustHeaders`. This is intentional: blindly
  * trusting `x-forwarded-for` is a common security mistake that turns rate
  * limiters into header-spoofable counters.
  *
- * When running in SvelteKit, prefer `event.getClientAddress()` — it consults
+ * When running in SvelteKit, prefer `event.getClientAddress()`  -  it consults
  * your platform adapter's trusted proxy config.
  *
  * @example

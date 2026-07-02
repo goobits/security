@@ -1,5 +1,5 @@
 /**
- * Admin route authentication — JWT bearer token + API key fallback.
+ * Admin route authentication  -  JWT bearer token + API key fallback.
  *
  * Uses [`jose`](https://github.com/panva/jose) (Web Crypto-based) so the
  * module loads cleanly on Cloudflare Workers, Deno, Bun, and Node ≥22.
@@ -37,8 +37,8 @@ export interface AdminAuthConfig {
 	apiKey?: string
 	/**
 	 * Default JWT TTL when creating tokens. Accepts:
-	 *  - **number** — RELATIVE seconds from issuance (e.g. `86400` = 24 hours)
-	 *  - **string** — `jose`-compatible duration like `'24h'`, `'7d'`, `'15m'`
+	 *  - **number**  -  RELATIVE seconds from issuance (e.g. `86400` = 24 hours)
+	 *  - **string**  -  `jose`-compatible duration like `'24h'`, `'7d'`, `'15m'`
 	 *
 	 * Default: `'24h'`.
 	 *

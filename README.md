@@ -61,7 +61,7 @@ packages:
 ```bash
 pnpm install
 
-# Optional peer dependencies — install only what you use:
+# Optional peer dependencies  -  install only what you use:
 pnpm add @sveltejs/kit   # if using SvelteKit helper subpaths
 pnpm add ioredis         # if using Redis-backed CSRF
 pnpm add zod             # if using validation
@@ -429,12 +429,12 @@ Note: `@goobits/security` peer-depends on `zod ^4.0.0` (optional). If you don't 
 import { createAdminAuth, generateAdminApiKey } from '@goobits/security/admin-auth'
 
 const adminAuth = createAdminAuth({
-  jwtSecret: process.env.JWT_SECRET!,   // >= 32 chars — throws otherwise
+  jwtSecret: process.env.JWT_SECRET!,   // >= 32 chars  -  throws otherwise
   apiKey:    process.env.ADMIN_API_KEY, // optional fallback
   algorithms: ['HS256'],                // default: ['HS256'] (pinned tight)
-  audience:  'my-app',                  // optional — rejected if token aud differs
-  issuer:    'my-auth-service',         // optional — rejected if token iss differs
-  clockTolerance: 30                    // optional — seconds of skew tolerated on exp/nbf
+  audience:  'my-app',                  // optional  -  rejected if token aud differs
+  issuer:    'my-auth-service',         // optional  -  rejected if token iss differs
+  clockTolerance: 30                    // optional  -  seconds of skew tolerated on exp/nbf
 })
 
 export async function POST({ request }) {
@@ -451,7 +451,7 @@ const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' })
 // Numeric tokenTtl is RELATIVE seconds (1 hour below), NOT absolute UNIX time:
 const shortToken = await adminAuth.createAdminToken({ id: 'u1', role: 'admin' }, 3600)
 
-// Generate a fresh API key (256-bit, hex-encoded) — store this once at
+// Generate a fresh API key (256-bit, hex-encoded)  -  store this once at
 // provisioning time in your secret manager; do not regenerate per request:
 const key = generateAdminApiKey()
 ```

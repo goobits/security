@@ -1,5 +1,5 @@
 /**
- * Auth-flow rate limiting — pre-baked limiters tuned for login + registration.
+ * Auth-flow rate limiting  -  pre-baked limiters tuned for login + registration.
  *
  * Defaults are conservative; tune as needed for your traffic.
  *

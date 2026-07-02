@@ -1,5 +1,5 @@
 /**
- * CSRF protection — double-submit cookie pattern with optional expiration.
+ * CSRF protection  -  double-submit cookie pattern with optional expiration.
  *
  * Strategy:
  *   1. Server generates a random 256-bit token and sets it as an HttpOnly cookie.
@@ -9,7 +9,7 @@
  *      a constant-time comparison.
  *
  * Token store is pluggable: a `Map` for in-memory (default; single-instance) or
- * any object implementing `CsrfTokenStore` (multi-instance, e.g. Redis — see
+ * any object implementing `CsrfTokenStore` (multi-instance, e.g. Redis  -  see
  * `@goobits/security/csrf-redis`).
  *
  * @module @goobits/security/csrf
@@ -51,7 +51,7 @@ export interface CsrfConfig {
 	/** Request header name carrying the token. Default: `'X-CSRF-Token'`. */
 	headerName?: string
 	/**
-	 * Cookie options. **Completely replaces defaults** when supplied — does
+	 * Cookie options. **Completely replaces defaults** when supplied  -  does
 	 * NOT merge. The defaults are: `{ httpOnly: true, secure: NODE_ENV === 'production',
 	 * sameSite: 'lax', path: '/', maxAge: 86400 }`. If you only want to tweak one
 	 * field, copy the defaults first.
@@ -66,7 +66,7 @@ export interface CsrfConfig {
 	/**
 	 * Disable validation entirely. **For tests only.** Set via `DISABLE_CSRF=true`
 	 * env var OR via this option. **Throws at `createCsrf()` time in production**
-	 * (`NODE_ENV === 'production'`) — fail loud, fail early.
+	 * (`NODE_ENV === 'production'`)  -  fail loud, fail early.
 	 */
 	disabled?: boolean
 	/**

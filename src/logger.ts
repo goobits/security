@@ -3,7 +3,7 @@
  *
  * Every module in `@goobits/security` that emits diagnostic output accepts a
  * `Logger` via its options object. Consumers can supply any object matching
- * this shape — `@goobits/logger`, `pino`, `winston`, `console`, or a no-op.
+ * this shape  -  `@goobits/logger`, `pino`, `winston`, `console`, or a no-op.
  *
  * By design, this package has zero hard dependency on any specific logging
  * library. The default for every factory is `noopLogger` (silent).
