@@ -189,6 +189,22 @@ export {
 	createWebhookChannel
 } from './alerting.js'
 
+/* Lightweight validation helpers. */
+export {
+	type FieldValidator,
+	type ValidationIssue,
+	type ValidationIssueCode,
+	type ValidationOptions,
+	type ValidationResult,
+	RequestValidationError,
+	validateArray,
+	validateBoolean,
+	validateNumber,
+	validateObject,
+	validateRequestBody,
+	validateString
+} from './validation/simple.js'
+
 /* Version constant. */
 /** Security Package Version registry entry for security middleware. */
 export const SECURITY_PACKAGE_VERSION = packageJson.version

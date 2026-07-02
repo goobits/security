@@ -25,6 +25,7 @@
 		"./identity/principal": "./src/identity/principal.ts",
 		"./principal-auth": "./src/principalAuth.ts",
 		"./validation": "./src/validation.ts",
+		"./validation/simple": "./src/validation/simple.ts",
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",
 		"./rate-limit": "./src/rate-limit/index.ts",
 		"./rate-limit/sveltekit": "./src/rate-limit/sveltekit.ts",
