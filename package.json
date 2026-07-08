@@ -63,7 +63,7 @@
 	"engines": {
 		"node": ">=22"
 	},
-	"packageManager": "pnpm@10.13.1",
+	"packageManager": "pnpm@11.10.0",
 	"dependencies": {
 		"jose": "^6.2.3"
 	},
@@ -84,12 +84,12 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.68.0",
-		"@types/node": "^26.0.1",
-		"@vitest/coverage-v8": "^4.1.9",
+		"@sveltejs/kit": "^2.69.1",
+		"@types/node": "^26.1.0",
+		"@vitest/coverage-v8": "^4.1.10",
 		"ioredis": "^5.11.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.9",
+		"vitest": "^4.1.10",
 		"zod": "^4.4.3"
 	},
 	"scripts": {
