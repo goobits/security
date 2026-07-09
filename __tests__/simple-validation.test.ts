@@ -56,8 +56,7 @@ describe('simple validation helpers', () => {
 		})
 
 		const data = await validateRequestBody<{ name: string }>(request, {
-			name: (value, fieldName) =>
-				validateString(value, fieldName, { required: true })
+			name: (value, fieldName) => validateString(value, fieldName, { required: true })
 		})
 
 		expect(data).toEqual({ name: 'Inbox' })
@@ -71,8 +70,7 @@ describe('simple validation helpers', () => {
 
 		await expect(
 			validateRequestBody<{ name: string }>(request, {
-				name: (value, fieldName) =>
-					validateString(value, fieldName, { required: true })
+				name: (value, fieldName) => validateString(value, fieldName, { required: true })
 			})
 		).rejects.toBeInstanceOf(RequestValidationError)
 	})

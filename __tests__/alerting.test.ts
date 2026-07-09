@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { type AlertChannel, createSecurityAlerter, createWebhookChannel } from '../src/alerting.js'
 import type { AuditEvent } from '../src/audit.js'
+
+afterEach(() => {
+	vi.unstubAllGlobals()
+})
 
 function event(partial: Partial<AuditEvent>): AuditEvent {
 	return {
@@ -89,10 +93,10 @@ describe('createSecurityAlerter', () => {
 describe('createWebhookChannel', () => {
 	it('POSTs JSON to the configured URL', async () => {
 		const fetched: Array<{ url: string; init: RequestInit }> = []
-		globalThis.fetch = vi.fn(async (url: unknown, init: unknown) => {
+		vi.stubGlobal('fetch', vi.fn(async (url: unknown, init: unknown) => {
 			fetched.push({ url: String(url), init: init as RequestInit })
 			return { ok: true, status: 200 } as unknown as Response
-		}) as typeof fetch
+		}))
 
 		const channel = createWebhookChannel({ url: 'https://hook.test/alerts' })
 		await channel.send({
@@ -111,10 +115,10 @@ describe('createWebhookChannel', () => {
 
 	it('applies transform when provided', async () => {
 		const fetched: Array<{ body: unknown }> = []
-		globalThis.fetch = vi.fn(async (_url: unknown, init: unknown) => {
+		vi.stubGlobal('fetch', vi.fn(async (_url: unknown, init: unknown) => {
 			fetched.push({ body: JSON.parse(String((init as RequestInit).body)) })
 			return { ok: true, status: 200 } as unknown as Response
-		}) as typeof fetch
+		}))
 
 		const channel = createWebhookChannel({
 			url: 'https://hook.test',

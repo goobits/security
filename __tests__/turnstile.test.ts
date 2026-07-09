@@ -2,30 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { verifyTurnstile } from '../src/turnstile.js'
 
-const originalFetch = globalThis.fetch
-const originalProcessEnv = globalThis.process?.env
-
 function mockFetch(response: { ok?: boolean; status?: number; body: object }): void {
-	globalThis.fetch = vi.fn(async () => ({
+	vi.stubGlobal('fetch', vi.fn(async () => ({
 		ok: response.ok ?? true,
 		status: response.status ?? 200,
 		json: async () => response.body
-	}) as unknown as Response) as typeof fetch
+	}) as unknown as Response))
 }
 
 beforeEach(() => {
-	if (globalThis.process?.env) {
-		delete globalThis.process.env['NODE_ENV']
-		delete globalThis.process.env['TURNSTILE_SECRET_KEY']
-	}
+	vi.stubEnv('NODE_ENV', '')
+	vi.stubEnv('TURNSTILE_SECRET_KEY', '')
 })
 
 afterEach(() => {
-	globalThis.fetch = originalFetch
-	if (globalThis.process?.env && originalProcessEnv) {
-		globalThis.process.env['NODE_ENV'] = originalProcessEnv['NODE_ENV']
-		globalThis.process.env['TURNSTILE_SECRET_KEY'] = originalProcessEnv['TURNSTILE_SECRET_KEY']
-	}
+	vi.unstubAllGlobals()
+	vi.unstubAllEnvs()
 	vi.restoreAllMocks()
 })
 
@@ -48,19 +40,19 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('permits dev bypass only when explicitly opted in AND NODE_ENV !== production', async() => {
-		if (globalThis.process?.env) globalThis.process.env['NODE_ENV'] = 'development'
+		vi.stubEnv('NODE_ENV', 'development')
 		const result = await verifyTurnstile('token', { allowInDevelopment: true })
 		expect(result.success).toBe(true)
 	})
 
 	it('ignores the dev bypass in production even when opt-in is set', async() => {
-		if (globalThis.process?.env) globalThis.process.env['NODE_ENV'] = 'production'
+		vi.stubEnv('NODE_ENV', 'production')
 		const result = await verifyTurnstile('token', { allowInDevelopment: true })
 		expect(result.success).toBe(false)
 	})
 
 	it('reads TURNSTILE_SECRET_KEY from env when option omitted', async() => {
-		if (globalThis.process?.env) globalThis.process.env['TURNSTILE_SECRET_KEY'] = 'env-secret'
+		vi.stubEnv('TURNSTILE_SECRET_KEY', 'env-secret')
 		mockFetch({ body: { success: true, hostname: 'example.com' } })
 
 		const result = await verifyTurnstile('token', {})
@@ -118,9 +110,9 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('returns api-error when fetch rejects', async() => {
-		globalThis.fetch = vi.fn(async () => {
+		vi.stubGlobal('fetch', vi.fn(async () => {
 			throw new Error('network down')
-		}) as typeof fetch
+		}))
 
 		const result = await verifyTurnstile('token', { secretKey: 'sk' })
 		expect(result.success).toBe(false)
@@ -133,7 +125,7 @@ describe('verifyTurnstile', () => {
 			status: 200,
 			json: async () => ({ success: true })
 		}) as unknown as Response)
-		globalThis.fetch = fetchMock as typeof fetch
+		vi.stubGlobal('fetch', fetchMock)
 
 		await verifyTurnstile('token', { secretKey: 'sk', remoteIp: '203.0.113.5' })
 
@@ -147,7 +139,7 @@ describe('verifyTurnstile', () => {
 
 	it('skips siteverify entirely when bypassLocalhost matches remoteIp (non-prod)', async() => {
 		const fetchSpy = vi.fn()
-		globalThis.fetch = fetchSpy as unknown as typeof fetch
+		vi.stubGlobal('fetch', fetchSpy)
 
 		const result = await verifyTurnstile('token', {
 			secretKey: 'sk',
@@ -172,7 +164,7 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('ignores bypassLocalhost in production', async() => {
-		if (globalThis.process?.env) globalThis.process.env['NODE_ENV'] = 'production'
+		vi.stubEnv('NODE_ENV', 'production')
 		mockFetch({ body: { success: true } })
 
 		await verifyTurnstile('token', {
@@ -186,7 +178,7 @@ describe('verifyTurnstile', () => {
 
 	it('honors custom bypassHosts list', async() => {
 		const fetchSpy = vi.fn()
-		globalThis.fetch = fetchSpy as unknown as typeof fetch
+		vi.stubGlobal('fetch', fetchSpy)
 
 		const result = await verifyTurnstile('token', {
 			secretKey: 'sk',

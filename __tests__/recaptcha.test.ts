@@ -2,30 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { verifyRecaptcha } from '../src/recaptcha.js'
 
-const originalFetch = globalThis.fetch
-const originalProcessEnv = globalThis.process?.env
-
 function mockFetch(response: { ok?: boolean; status?: number; body: object }): void {
-	globalThis.fetch = vi.fn(async () => ({
+	vi.stubGlobal('fetch', vi.fn(async () => ({
 		ok: response.ok ?? true,
 		status: response.status ?? 200,
 		json: async () => response.body
-	}) as unknown as Response) as typeof fetch
+	}) as unknown as Response))
 }
 
 beforeEach(() => {
-	if (globalThis.process?.env) {
-		delete globalThis.process.env['NODE_ENV']
-		delete globalThis.process.env['RECAPTCHA_SECRET_KEY']
-	}
+	vi.stubEnv('NODE_ENV', '')
+	vi.stubEnv('RECAPTCHA_SECRET_KEY', '')
 })
 
 afterEach(() => {
-	globalThis.fetch = originalFetch
-	if (globalThis.process?.env && originalProcessEnv) {
-		globalThis.process.env['NODE_ENV'] = originalProcessEnv['NODE_ENV']
-		globalThis.process.env['RECAPTCHA_SECRET_KEY'] = originalProcessEnv['RECAPTCHA_SECRET_KEY']
-	}
+	vi.unstubAllGlobals()
+	vi.unstubAllEnvs()
 	vi.restoreAllMocks()
 })
 
@@ -49,13 +41,13 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('permits dev bypass only when explicitly opted in AND NODE_ENV !== production', async () => {
-		if (globalThis.process?.env) globalThis.process.env['NODE_ENV'] = 'development'
+		vi.stubEnv('NODE_ENV', 'development')
 		const result = await verifyRecaptcha('token', { allowInDevelopment: true })
 		expect(result.success).toBe(true)
 	})
 
 	it('ignores the dev bypass in production even when opt-in is set', async () => {
-		if (globalThis.process?.env) globalThis.process.env['NODE_ENV'] = 'production'
+		vi.stubEnv('NODE_ENV', 'production')
 		const result = await verifyRecaptcha('token', { allowInDevelopment: true })
 		expect(result.success).toBe(false)
 	})
@@ -77,13 +69,13 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns api-error when the API response is not valid JSON', async () => {
-		globalThis.fetch = vi.fn(async () => ({
+		vi.stubGlobal('fetch', vi.fn(async () => ({
 			ok: true,
 			status: 200,
 			json: async () => {
 				throw new SyntaxError('not json')
 			}
-		}) as unknown as Response) as typeof fetch
+		}) as unknown as Response))
 
 		const result = await verifyRecaptcha('token', { secretKey: 'sk' })
 		expect(result.success).toBe(false)
@@ -91,12 +83,12 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns api-error when the request times out', async () => {
-		globalThis.fetch = vi.fn((_url, init) => new Promise<Response>((_resolve, reject) => {
+		vi.stubGlobal('fetch', vi.fn((_url, init) => new Promise<Response>((_resolve, reject) => {
 			const signal = (init as RequestInit | undefined)?.signal
 			signal?.addEventListener('abort', () => {
 				reject(new DOMException('Aborted', 'AbortError'))
 			})
-		})) as typeof fetch
+		})))
 
 		const result = await verifyRecaptcha('token', { secretKey: 'sk', timeoutMs: 1 })
 		expect(result.success).toBe(false)
