@@ -65,13 +65,19 @@ describe('createCsrf', () => {
 	})
 
 	it('rejects expired tokens when checkExpiry is true', async () => {
-		const csrf = createCsrf({ tokenExpiryMs: 1 })
-		const token = await csrf.generate()
+		const csrf = createCsrf({
+			tokenStore: {
+				get() { return Date.now() - 1 },
+				set() {},
+				delete() {},
+				clear() {}
+			}
+		})
+		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
 			cookie: `csrf-token=${ token }`,
 			'X-CSRF-Token': token
 		})
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
 		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
 	})
 
@@ -87,13 +93,19 @@ describe('createCsrf', () => {
 	})
 
 	it('allows expired tokens when checkExpiry is false (default)', async () => {
-		const csrf = createCsrf({ tokenExpiryMs: 1 })
-		const token = await csrf.generate()
+		const csrf = createCsrf({
+			tokenStore: {
+				get() { return Date.now() - 1 },
+				set() {},
+				delete() {},
+				clear() {}
+			}
+		})
+		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
 			cookie: `csrf-token=${ token }`,
 			'X-CSRF-Token': token
 		})
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
 		expect(await csrf.validate(request)).toBe(true)
 	})
 

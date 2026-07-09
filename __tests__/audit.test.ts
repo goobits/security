@@ -109,8 +109,8 @@ describe('withAudit redaction', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await handler(event as any)
 
-		// Audit is fire-and-forget; give it a tick.
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
+		// Audit is fire-and-forget; flush the async logger microtask.
+		await Promise.resolve()
 
 		expect(records).toHaveLength(1)
 		const body = records[0]?.detail?.['requestBody'] as Record<string, unknown>
@@ -141,7 +141,7 @@ describe('withAudit redaction', () => {
 		})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await handler(event as any)
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
+		await Promise.resolve()
 
 		const body = records[0]?.detail?.['requestBody'] as {
 			profile: { credentials: { password: string } }
@@ -163,7 +163,7 @@ describe('withAudit redaction', () => {
 		const { event } = makeEvent('POST', { password: 'plaintext' })
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await handler(event as any)
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
+		await Promise.resolve()
 
 		const body = records[0]?.detail?.['requestBody'] as Record<string, unknown>
 		expect(body['password']).toBe('plaintext')
@@ -181,7 +181,7 @@ describe('withAudit redaction', () => {
 		const { event } = makeEvent('POST', {})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await handler(event as any)
-		await new Promise(r => setTimeout(r, 5)) // test-shape: timing-probe - documented test timing behavior.
+		await Promise.resolve()
 
 		expect(records[0]?.outcome).toBe('denied')
 		expect(records[0]?.status).toBe(403)
