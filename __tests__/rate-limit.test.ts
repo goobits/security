@@ -13,22 +13,42 @@ type FakeRateLimitRow = {
 
 class FakeD1RateLimitDatabase {
 	readonly rows = new Map<string, FakeRateLimitRow>()
+	selectCount = 0
 
 	prepare(sql: string) {
 		return {
 			bind: (...args: Array<string | number | boolean | null>) => ({
 				first: async <T = FakeRateLimitRow>() => {
 					const key = String(args[0])
+					if (/^INSERT/i.test(sql.trim())) {
+						const timestamp = Number(args[1])
+						const resetAt = Number(args[2])
+						const retainedLimit = Number(args[5])
+						const cutoff = Number(args[7])
+						const current = this.rows.get(key)
+						const currentResetAt = Number(current?.reset_at ?? 0) * 1000
+						let timestamps: number[] = []
+						if (current && currentResetAt > timestamp) {
+							if (typeof current.count === 'string' && current.count.startsWith('[')) {
+								timestamps = JSON.parse(current.count) as number[]
+							} else {
+								timestamps = Array.from(
+									{ length: Number(current.count ?? 0) },
+									() => timestamp - 1
+								)
+							}
+						}
+						timestamps = timestamps.filter(value => value > cutoff)
+						if (retainedLimit >= 0) timestamps = timestamps.slice(-retainedLimit || timestamps.length)
+						timestamps.push(timestamp)
+						this.rows.set(key, { count: JSON.stringify(timestamps), reset_at: resetAt })
+						return this.rows.get(key) as T
+					}
+					this.selectCount++
 					return (this.rows.get(key) ?? null) as T | null
 				},
 				run: async () => {
 					const key = String(args[0])
-					if (/^INSERT/i.test(sql.trim())) {
-						this.rows.set(key, {
-							count: args[1] as string,
-							reset_at: args[2] as number
-						})
-					}
 					if (/^DELETE/i.test(sql.trim())) {
 						this.rows.delete(key)
 					}
@@ -160,6 +180,22 @@ describe('createRateLimiter', () => {
 		expect((await limiter.check('alice')).allowed).toBe(true)
 		expect((await limiter.check('alice')).allowed).toBe(false)
 		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
+		expect(db.selectCount).toBe(0)
+	})
+
+	it('atomically preserves concurrent D1 increments', async () => {
+		const db = new FakeD1RateLimitDatabase()
+		const store = new D1RateLimitStore(db)
+		const now = Date.now()
+
+		await Promise.all(
+			Array.from({ length: 20 }, (_, index) =>
+				store.incrementEntry('auth:alice', now + index, 60_000, 21)
+			)
+		)
+
+		expect(JSON.parse(String(db.rows.get('auth:alice')?.count))).toHaveLength(20)
+		expect(db.selectCount).toBe(0)
 	})
 
 	it('reads legacy D1 numeric count rows', async () => {

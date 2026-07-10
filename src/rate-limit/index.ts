@@ -139,26 +139,73 @@ export class D1RateLimitStore implements RateLimitStore {
 		ttlMs: number,
 		maxEntries?: number
 	): Promise<RateLimitEntry> {
-		const cutoff = timestamp - ttlMs
-		const current = await this.getEntry(key)
-		const timestamps = current ? current.timestamps.filter(value => value > cutoff) : []
-		timestamps.push(timestamp)
-		if (maxEntries !== undefined && timestamps.length > maxEntries) {
-			timestamps.splice(0, timestamps.length - maxEntries)
-		}
-
-		const entry: RateLimitEntry = { timestamps }
 		const keyColumn = quoteD1Identifier(this.columns.key)
 		const countColumn = quoteD1Identifier(this.columns.count)
 		const resetAtColumn = quoteD1Identifier(this.columns.resetAt)
+		const cutoff = timestamp - ttlMs
+		const retainedLimit = maxEntries === undefined ? -1 : Math.max(0, maxEntries - 1)
 		const resetAtSeconds = Math.ceil((timestamp + ttlMs) / 1000)
-		await this.db
+		const row = await this.db
 			.prepare(
-				`INSERT INTO ${ this.table } (${ keyColumn }, ${ countColumn }, ${ resetAtColumn }) VALUES (?, ?, ?)
-				 ON CONFLICT(${ keyColumn }) DO UPDATE SET ${ countColumn } = excluded.${ countColumn }, ${ resetAtColumn } = excluded.${ resetAtColumn }`
+				`INSERT INTO ${ this.table } (${ keyColumn }, ${ countColumn }, ${ resetAtColumn })
+				 VALUES (?, json_array(?), ?)
+				 ON CONFLICT(${ keyColumn }) DO UPDATE SET
+				 	${ countColumn } = json_insert(
+				 		(
+				 			SELECT json_group_array(value)
+				 			FROM (
+				 				SELECT value, position
+				 				FROM (
+				 					SELECT CAST(value AS INTEGER) AS value, CAST(key AS INTEGER) AS position
+				 					FROM json_each(
+				 						CASE
+				 							WHEN CAST(${ this.table }.${ resetAtColumn } AS INTEGER) * 1000 <= ? THEN json_array()
+				 							WHEN json_valid(${ this.table }.${ countColumn }) AND json_type(${ this.table }.${ countColumn }) = 'array'
+				 								THEN ${ this.table }.${ countColumn }
+				 							WHEN CAST(${ this.table }.${ countColumn } AS INTEGER) > 0 THEN (
+				 								WITH RECURSIVE legacy(position, value) AS (
+				 									SELECT 0, ? - 1
+				 									UNION ALL
+				 									SELECT position + 1, value
+				 									FROM legacy
+				 									WHERE position + 1 < CASE
+				 										WHEN ? < 0 THEN CAST(${ this.table }.${ countColumn } AS INTEGER)
+				 										ELSE MIN(CAST(${ this.table }.${ countColumn } AS INTEGER), ?)
+				 									END
+				 								)
+				 								SELECT json_group_array(value) FROM legacy
+				 							)
+				 							ELSE json_array()
+				 						END
+				 					)
+				 					WHERE CAST(value AS REAL) > ?
+				 					ORDER BY position DESC
+				 					LIMIT ?
+				 				)
+				 				ORDER BY position
+				 			)
+				 		),
+				 		'$[#]',
+				 		?
+				 	),
+				 	${ resetAtColumn } = excluded.${ resetAtColumn }
+				 RETURNING ${ countColumn } AS count, ${ resetAtColumn } AS reset_at`
 			)
-			.bind(key, JSON.stringify(timestamps), resetAtSeconds)
-			.run()
+			.bind(
+				key,
+				timestamp,
+				resetAtSeconds,
+				timestamp,
+				timestamp,
+				retainedLimit,
+				retainedLimit,
+				cutoff,
+				retainedLimit,
+				timestamp
+			)
+			.first<{ count: number | string | null; reset_at: number | string | null }>()
+		const entry = this.mapEntry(row, timestamp)
+		if (!entry) throw new Error('D1RateLimitStore: increment did not return a valid entry')
 		return entry
 	}
 
