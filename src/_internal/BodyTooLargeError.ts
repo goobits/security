@@ -4,7 +4,7 @@
  * @internal
  */
 
-const DEFAULT_MAX_JSON_BODY_BYTES = 1_048_576
+const DEFAULT_MAX_BODY_BYTES = 1_048_576
 
 export class BodyTooLargeError extends Error {
 	constructor(readonly maxBytes: number) {
@@ -13,16 +13,16 @@ export class BodyTooLargeError extends Error {
 	}
 }
 
-export interface ReadJsonBodyOptions {
+export interface ReadBodyOptions {
 	/** Maximum bytes to read before failing. Default: 1 MiB. */
 	maxBytes?: number
 }
 
-export async function readJsonBody(
+export async function readRequestBodyBytes(
 	request: Request,
-	options: ReadJsonBodyOptions = {}
-): Promise<unknown> {
-	const maxBytes = options.maxBytes ?? DEFAULT_MAX_JSON_BODY_BYTES
+	options: ReadBodyOptions = {}
+): Promise<ArrayBuffer | undefined> {
+	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BODY_BYTES
 	const contentLength = request.headers.get('content-length')
 	if (contentLength) {
 		const parsed = Number(contentLength)
@@ -34,9 +34,8 @@ export async function readJsonBody(
 	if (!request.body) return undefined
 
 	const reader = request.body.getReader()
-	const decoder = new TextDecoder()
 	let bytesRead = 0
-	let text = ''
+	const chunks: Uint8Array[] = []
 
 	try {
 		while (true) {
@@ -44,14 +43,29 @@ export async function readJsonBody(
 			if (done) break
 			bytesRead += value.byteLength
 			if (bytesRead > maxBytes) {
+				await reader.cancel()
 				throw new BodyTooLargeError(maxBytes)
 			}
-			text += decoder.decode(value, { stream: true })
+			chunks.push(value)
 		}
-		text += decoder.decode()
 	} finally {
 		reader.releaseLock()
 	}
 
-	return JSON.parse(text)
+	const bytes = new Uint8Array(bytesRead)
+	let offset = 0
+	for (const chunk of chunks) {
+		bytes.set(chunk, offset)
+		offset += chunk.byteLength
+	}
+	return bytes.buffer
+}
+
+export async function readJsonBody(
+	request: Request,
+	options: ReadBodyOptions = {}
+): Promise<unknown> {
+	const bytes = await readRequestBodyBytes(request, options)
+	if (bytes === undefined) return undefined
+	return JSON.parse(new TextDecoder().decode(bytes))
 }

@@ -6,9 +6,15 @@
 
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 
-import { BodyTooLargeError, readJsonBody } from '../_internal/BodyTooLargeError.js'
+import {
+	BodyTooLargeError,
+	readJsonBody,
+	readRequestBodyBytes
+} from '../_internal/BodyTooLargeError.js'
 import { type Logger, resolveLogger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'
+
+export { BodyTooLargeError, readJsonBody, readRequestBodyBytes }
 
 /** With Validation Options request or option shape for security middleware. */
 export interface WithValidationOptions {

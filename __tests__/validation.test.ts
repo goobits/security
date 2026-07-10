@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { getInputValidator } from '../src/validation.js'
-import { withValidation } from '../src/validation/sveltekit.js'
+import { BodyTooLargeError, readRequestBodyBytes, withValidation } from '../src/validation/sveltekit.js'
 
 describe('getInputValidator', () => {
 	const schema = z.object({
@@ -89,5 +89,25 @@ describe('withValidation', () => {
 		const response = await handler(event as any)
 
 		expect(response.status).toBe(413)
+	})
+})
+
+describe('readRequestBodyBytes', () => {
+	it('caps streamed bodies without a content-length header', async () => {
+		const request = new Request('https://example.test/upload', {
+			method: 'POST',
+			body: new ReadableStream({
+				start(controller) {
+					controller.enqueue(new Uint8Array(5))
+					controller.enqueue(new Uint8Array(5))
+					controller.close()
+				}
+			}),
+			duplex: 'half'
+		} as RequestInit)
+
+		await expect(readRequestBodyBytes(request, { maxBytes: 8 })).rejects.toBeInstanceOf(
+			BodyTooLargeError
+		)
 	})
 })
