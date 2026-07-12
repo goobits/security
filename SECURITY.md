@@ -32,7 +32,8 @@ In scope:
 
 Out of scope:
 
-- Vulnerabilities in transitive dependencies (please report upstream to `jose`, `zod`, `ioredis`, etc.)
+- Vulnerabilities in dependencies supplied by this package or its consumers
+  (report those to the affected upstream project, such as `jose` or `zod`)
 - Issues that require an already-compromised host or already-leaked secret
 - Misconfiguration in consumer code (we are happy to document hardening guidance, but it is not a CVE)
 

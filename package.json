@@ -69,14 +69,10 @@
 	},
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
-		"ioredis": "^5.0.0",
 		"zod": "^4.0.0"
 	},
 	"peerDependenciesMeta": {
 		"@sveltejs/kit": {
-			"optional": true
-		},
-		"ioredis": {
 			"optional": true
 		},
 		"zod": {
@@ -87,7 +83,6 @@
 		"@sveltejs/kit": "^2.69.1",
 		"@types/node": "^26.1.0",
 		"@vitest/coverage-v8": "^4.1.10",
-		"ioredis": "^5.11.1",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.10",
 		"zod": "^4.4.3"

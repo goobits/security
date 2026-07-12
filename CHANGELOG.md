@@ -9,6 +9,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 ### Removed
 
 - Removed legacy boolean CAPTCHA helpers. Use `verifyRecaptcha()` and `verifyTurnstile()` directly so callers can branch on structured failure reasons instead of flattening security decisions to `true`/`false`.
+- Removed the unused `ioredis` peer and development dependency. Redis-backed
+  CSRF remains client-agnostic through the public `RedisLike` contract.
+- Stopped exporting the private request-body and cookie parser helper types.
 
 ### ✨ Added
 

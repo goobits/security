@@ -13,7 +13,7 @@ export class BodyTooLargeError extends Error {
 	}
 }
 
-export interface ReadBodyOptions {
+interface ReadBodyOptions {
 	/** Maximum bytes to read before failing. Default: 1 MiB. */
 	maxBytes?: number
 }

@@ -1,8 +1,8 @@
 /**
  * Redis-backed CSRF token store, for multi-instance deployments.
  *
- * Wraps any [ioredis](https://github.com/redis/ioredis)-compatible client
- * (anything implementing `get`, `set`, `del`, `scan`) in the
+ * Wraps any Redis-compatible client implementing `get`, `set`, `del`, and
+ * `scan` in the
  * `CsrfTokenStore` interface from `@goobits/security/csrf`.
  *
  * @module @goobits/security/csrf-redis
@@ -11,7 +11,7 @@
 import type { CsrfTokenStore } from './MemoryCsrfStore.js'
 import { type Logger, resolveLogger } from './logger.js'
 
-/** Minimal subset of ioredis we depend on. */
+/** Minimal Redis client contract required by this adapter. */
 export interface RedisLike {
 	get(key: string): Promise<string | null>
 	set(key: string, value: string, mode: 'PX', ttlMs: number): Promise<unknown>
@@ -39,7 +39,7 @@ export interface RedisCsrfStoreOptions {
  *
  * @example
  * ```ts
- * import Redis from 'ioredis'
+ * import Redis from 'ioredis' // Host-owned client; not a package dependency.
  * import { createCsrf } from '@goobits/security/csrf'
  * import { createRedisCsrfStore } from '@goobits/security/csrf-redis'
  *

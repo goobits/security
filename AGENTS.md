@@ -8,7 +8,7 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 
 - **Category:** library (ESM-only, TypeScript)
 - **Distribution:** git submodule consumed inside a pnpm workspace. Consumer bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source directly  -  no build step, no `dist/`, no npm publish.
-- **Primary stack:** TypeScript 5.9 + vitest. Runtime dep: `jose ^5`. Optional peer-deps: `@sveltejs/kit ^2`, `zod ^4`, `ioredis ^5`
+- **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependency: `jose ^6`. Optional peer dependencies: `@sveltejs/kit ^2`, `zod ^4`
 - **Runtime targets:** Node 22+, Bun, Deno, Cloudflare Workers (anything with Web Crypto on `globalThis`)
 - **Engines:** Node `>=22`
 
@@ -33,14 +33,14 @@ src/
 │   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
 ├── audit/
 │   └── sveltekit.ts  # withAudit handler wrapper (SvelteKit adapter)
-├── csrf.ts           # double-submit CSRF, pluggable token store
-├── csrf-redis.ts     # Redis adapter for the CSRF token store
+├── MemoryCsrfStore.ts # double-submit CSRF, pluggable token store
+├── csrfRedis.ts       # structural Redis adapter for the CSRF token store
 ├── csp.ts            # parameterized CSP builder (no hardcoded vendors)
 ├── recaptcha.ts      # Google v2/v3 verifier (discriminated-union result)
 ├── validation.ts     # Zod v4 helpers (framework-agnostic)
 ├── validation/
 │   └── sveltekit.ts  # withValidation SvelteKit adapter
-├── admin-auth.ts     # JWT + API key admin gate
+├── adminAuth.ts      # JWT + API key admin gate
 ├── audit.ts          # createAuditLogger + sinks (framework-agnostic)
 ├── alerting.ts       # rule-based dispatch over pluggable channels
 ├── logger.ts         # pluggable Logger interface + noopLogger + createConsoleLogger
@@ -71,15 +71,16 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 ## Project-specific overrides
 
 - **`@goobits/logger` is intentionally not a dependency.** Use the local pluggable `Logger` interface from `./logger.js`. If a future module needs richer structured logging, add it via the consumer-supplied logger  -  don't reach for a specific logging library.
-- **`jose ^5` is the package's only direct runtime dependency.** Used by `admin-auth` for cross-runtime JWT (Web Crypto-based; works on Node, Bun, Deno, and Cloudflare Workers). Do NOT add `jsonwebtoken` back  -  it's CJS-only and would re-break the cross-runtime claim.
+- **`jose ^6` is the package's only direct runtime dependency.** Used by principal and admin authentication for cross-runtime JWTs (Web Crypto-based; works on Node, Bun, Deno, and Cloudflare Workers). Do NOT add `jsonwebtoken` back  -  it's CJS-only and would re-break the cross-runtime claim.
 - **Zod is an optional peer dep at `^4.0.0`.** When updating validation code, use v4 APIs (`safeParseAsync`, `z.email()`, the `issues` shape on errors).
-- **`ioredis`, `@sveltejs/kit`** are optional peers. Modules that depend on them MUST gracefully no-op (or throw a clear error) when the peer is absent. They are loaded via `import` at module level, so consumers who don't install them simply never import those subpaths.
+- **`@sveltejs/kit` and `zod` are optional peers.** Consumers install only the adapter dependencies they use.
+- **The Redis CSRF adapter does not own a Redis client dependency.** Hosts pass any client satisfying the exported `RedisLike` contract; `ioredis` is one possible host-owned implementation.
 
 ## Where to look
 
 - Public API barrel: `src/index.ts`
 - Per-capability module: `src/<name>.ts` or `src/<name>/<sub>.ts`
-- Tests for each module: `tests/<name>.test.ts`
+- Tests for each module: `__tests__/<name>.test.ts`
 - Test config: `vitest.config.ts`
 - Types-strict config: `tsconfig.json`
 

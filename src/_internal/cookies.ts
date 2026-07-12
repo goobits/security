@@ -4,7 +4,7 @@
  * @internal
  */
 
-export type CookieMap = Record<string, string>
+type CookieMap = Record<string, string>
 
 export function parseCookies(cookieHeader: string | null | undefined): CookieMap {
 	// Use a null-prototype object so attacker-controlled cookie names like

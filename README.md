@@ -22,7 +22,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
-- **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit, ioredis, and zod
+- **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit and Zod. Redis clients remain host-owned.
 - **Pluggable logger:** every module accepts a `Logger` interface; bring your own (Pino, Winston, console, or silent)
 - **ESM-only, full TypeScript:** subpath exports for treeshaking; runs on Node 22+, Bun, Deno, Cloudflare Workers
 
@@ -53,8 +53,7 @@ packages:
 ```jsonc
 // your app's package.json
 "dependencies": {
-  "@goobits/security": "workspace:*",
-  "jose": "^5.9.6"
+  "@goobits/security": "workspace:*"
 }
 ```
 
@@ -63,7 +62,6 @@ pnpm install
 
 # Optional peer dependencies  -  install only what you use:
 pnpm add @sveltejs/kit   # if using SvelteKit helper subpaths
-pnpm add ioredis         # if using Redis-backed CSRF
 pnpm add zod             # if using validation
 ```
 
@@ -223,7 +221,9 @@ if (!(await csrf.validate(event.request))) {
 }
 ```
 
-**Multi-instance deployment?** Swap the in-memory store for a Redis one:
+**Multi-instance deployment?** Swap the in-memory store for a Redis one. The
+package accepts a structural `RedisLike` client; this example uses host-owned
+`ioredis`, but `ioredis` is not a package dependency or peer dependency:
 
 ```ts
 import Redis from 'ioredis'
@@ -580,7 +580,7 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | Module | Node ≥22 | Bun | Deno | Cloudflare Workers |
 |---|---|---|---|---|
 | `csrf` | ✅ | ✅ | ✅ | ✅ |
-| `csrf-redis` | ✅ | ✅ | requires `ioredis` polyfill | ❌ (no TCP from Workers) |
+| `csrf-redis` ‡ | client-dependent | client-dependent | client-dependent | client-dependent |
 | `csp` | ✅ | ✅ | ✅ | ✅ |
 | `recaptcha` | ✅ | ✅ | ✅ | ✅ |
 | `crypto` | ✅ | ✅ | ✅ | ✅ |
@@ -597,6 +597,8 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `logger` | ✅ | ✅ | ✅ | ✅ |
 
 † SvelteKit adapter: types reference `@sveltejs/kit`. Use the parent subpath (`validation`'s `getInputValidator`, `rate-limit`'s `createRateLimiter`, `audit`'s `createAuditLogger`) directly for framework-agnostic usage.
+
+‡ `csrf-redis` imports no Redis library. Runtime support depends on the host-supplied client satisfying the exported `RedisLike` contract.
 
 All modules use the Web Crypto API on `globalThis.crypto` for randomness and signing. None import from `node:crypto`, `node:buffer`, or any other Node-only built-ins.
 

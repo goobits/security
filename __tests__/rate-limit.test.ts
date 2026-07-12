@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	createRateLimiter,
 	D1RateLimitStore,
+	getClientIP,
 	MemoryRateLimitStore
 } from '../src/rate-limit/index.js'
 
@@ -210,5 +211,141 @@ describe('createRateLimiter', () => {
 
 		expect(entry.timestamps).toHaveLength(3)
 		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
+	})
+
+	it('reads persisted D1 JSON timestamps and numeric migration rows', async () => {
+		const db = new FakeD1RateLimitDatabase()
+		const store = new D1RateLimitStore(db)
+		const now = Date.now()
+		const resetAt = Math.ceil((now + 60_000) / 1000)
+		const timestamps = [ now - 2_000, now - 1_000 ]
+		db.rows.set('json', { count: JSON.stringify(timestamps), reset_at: resetAt })
+		db.rows.set('legacy', { count: 2, reset_at: resetAt })
+
+		expect(await store.getEntry('json')).toEqual({ timestamps })
+		expect((await store.getEntry('legacy'))?.timestamps).toHaveLength(2)
+	})
+
+	it('deletes expired and malformed D1 rows instead of restoring bad counters', async () => {
+		const db = new FakeD1RateLimitDatabase()
+		const store = new D1RateLimitStore(db)
+		const futureReset = Math.ceil((Date.now() + 60_000) / 1000)
+		const invalidRows: Array<[string, FakeRateLimitRow]> = [
+			[ 'expired', { count: '[1]', reset_at: 0 } ],
+			[ 'invalid-json', { count: '{', reset_at: futureReset } ],
+			[ 'invalid-array', { count: '[1,"bad"]', reset_at: futureReset } ],
+			[ 'zero-count', { count: 0, reset_at: futureReset } ],
+			[ 'null-count', { count: null, reset_at: futureReset } ],
+			[ 'invalid-reset', { count: 1, reset_at: 'not-a-number' } ]
+		]
+
+		for (const [ key, row ] of invalidRows) db.rows.set(key, row)
+
+		expect(await store.getEntry('missing')).toBeNull()
+		for (const [ key ] of invalidRows) {
+			expect(await store.getEntry(key)).toBeNull()
+			expect(db.rows.has(key)).toBe(false)
+		}
+	})
+
+	it('rejects unsafe D1 table identifiers', () => {
+		const db = new FakeD1RateLimitDatabase()
+
+		expect(() => new D1RateLimitStore(db, { table: 'rate-limits; DROP TABLE users' }))
+			.toThrowError(/invalid SQL identifier/)
+	})
+
+	it('fails loudly when a D1 increment returns no counter row', async () => {
+		const db = {
+			prepare() {
+				return {
+					bind() {
+						return {
+							async first<T>(): Promise<T | null> { return null },
+							async run(): Promise<void> {}
+						}
+					}
+				}
+			}
+		}
+		const store = new D1RateLimitStore(db)
+
+		await expect(store.incrementEntry('auth:alice', Date.now(), 60_000))
+			.rejects.toThrowError(/increment did not return a valid entry/)
+	})
+
+	it('removes only stale in-memory entries during explicit cleanup', () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		store.incrementEntry('expired', 0, 60_000)
+		store.incrementEntry('active', Number.MAX_SAFE_INTEGER, 60_000)
+
+		expect(store.cleanup(1)).toBe(1)
+		expect(store.getEntry('expired')).toBeNull()
+		expect(store.getEntry('active')).not.toBeNull()
+	})
+
+	it('runs configured opportunistic cleanup without dropping active entries', () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 1 })
+
+		store.incrementEntry('active', Number.MAX_SAFE_INTEGER, 60_000)
+
+		expect(store.size).toBe(1)
+	})
+
+	it('peeks at new and exhausted quotas without consuming another event', async () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const limiter = createRateLimiter({
+			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ],
+			store
+		})
+
+		expect(await limiter.peek('alice')).toMatchObject({
+			allowed: true,
+			remaining: 1,
+			window: 'burst'
+		})
+		await limiter.check('alice')
+		await limiter.check('alice')
+		const storedEvents = store.getEntry('rate-limit:alice')?.timestamps.length ?? 0
+
+		expect(await limiter.peek('alice')).toMatchObject({
+			allowed: false,
+			window: 'burst'
+		})
+		expect(store.getEntry('rate-limit:alice')?.timestamps).toHaveLength(storedEvents)
+	})
+})
+
+describe('getClientIP', () => {
+	it('ignores spoofable proxy headers unless the caller explicitly trusts them', () => {
+		const request = new Request('https://example.test', {
+			headers: {
+				'cf-connecting-ip': '203.0.113.1',
+				'x-forwarded-for': '198.51.100.2, 10.0.0.1'
+			}
+		})
+
+		expect(getClientIP(request)).toBe('unknown')
+		expect(getClientIP(request, { trustHeaders: [ 'cf-connecting-ip' ] }))
+			.toBe('203.0.113.1')
+	})
+
+	it('uses the first available trusted header and first forwarded address', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'x-forwarded-for': ' 198.51.100.2, 10.0.0.1 ' }
+		})
+
+		expect(getClientIP(request, {
+			trustHeaders: [ 'x-real-ip', 'x-forwarded-for' ]
+		})).toBe('198.51.100.2')
+	})
+
+	it('rejects a trusted forwarding chain with no first address', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'x-forwarded-for': ', 198.51.100.2' }
+		})
+
+		expect(getClientIP(request, { trustHeaders: [ 'x-forwarded-for' ] }))
+			.toBe('unknown')
 	})
 })
