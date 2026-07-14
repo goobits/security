@@ -40,7 +40,7 @@ describe('serializeCookie', () => {
 		})
 		expect(result).toContain('csrf=abc123')
 		expect(result).toContain('Max-Age=3600')
-		expect(result).toContain(`Expires=${ expires.toUTCString() }`)
+		expect(result).toContain(`Expires=${expires.toUTCString()}`)
 		expect(result).toContain('Domain=example.test')
 		expect(result).toContain('Path=/api')
 		expect(result).toContain('SameSite=Strict')
@@ -68,9 +68,13 @@ describe('serializeCookie', () => {
 	})
 
 	it('throws on cookie domain or path with header-breaking characters', () => {
-		expect(() => serializeCookie('x', 'y', { domain: 'example.test\r\nSet-Cookie: evil=1' })).toThrow(/cookie domain/)
+		expect(() =>
+			serializeCookie('x', 'y', { domain: 'example.test\r\nSet-Cookie: evil=1' })
+		).toThrow(/cookie domain/)
 		expect(() => serializeCookie('x', 'y', { domain: '-bad.example' })).toThrow(/cookie domain/)
-		expect(() => serializeCookie('x', 'y', { path: '/ok\r\nSet-Cookie: evil=1' })).toThrow(/cookie path/)
+		expect(() => serializeCookie('x', 'y', { path: '/ok\r\nSet-Cookie: evil=1' })).toThrow(
+			/cookie path/
+		)
 		expect(() => serializeCookie('x', 'y', { path: '/bad;path' })).toThrow(/cookie path/)
 	})
 

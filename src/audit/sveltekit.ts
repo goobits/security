@@ -50,7 +50,7 @@ const DEFAULT_REDACT_KEYS = [
 ]
 
 function redactSensitive(body: unknown, keys: ReadonlyArray<string>): unknown {
-	const normalizedKeys = new Set(keys.map(key => key.toLowerCase()))
+	const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()))
 	const seen = new WeakSet<object>()
 
 	function redact(value: unknown): unknown {
@@ -59,14 +59,12 @@ function redactSensitive(body: unknown, keys: ReadonlyArray<string>): unknown {
 		seen.add(value)
 
 		if (Array.isArray(value)) {
-			return value.map(item => redact(item))
+			return value.map((item) => redact(item))
 		}
 
 		const out: Record<string, unknown> = {}
-		for (const [ key, nested ] of Object.entries(value as Record<string, unknown>)) {
-			out[key] = normalizedKeys.has(key.toLowerCase())
-				? '[redacted]'
-				: redact(nested)
+		for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+			out[key] = normalizedKeys.has(key.toLowerCase()) ? '[redacted]' : redact(nested)
 		}
 		return out
 	}
@@ -98,10 +96,7 @@ function redactSensitive(body: unknown, keys: ReadonlyArray<string>): unknown {
  * )
  * ```
  */
-export function withAudit(
-	options: WithAuditOptions,
-	handler: RequestHandler
-): RequestHandler {
+export function withAudit(options: WithAuditOptions, handler: RequestHandler): RequestHandler {
 	const log = resolveLogger(options.logger)
 	const redactKeys = options.redactKeys ?? DEFAULT_REDACT_KEYS
 
@@ -110,13 +105,17 @@ export function withAudit(
 		const baseDetail = options.detail?.(event) ?? {}
 		let requestBody: unknown
 
-		if (options.includeRequestBody && event.request.method !== 'GET' && event.request.method !== 'HEAD') {
+		if (
+			options.includeRequestBody &&
+			event.request.method !== 'GET' &&
+			event.request.method !== 'HEAD'
+		) {
 			try {
 				const raw = await readJsonBody(event.request.clone(), {
 					maxBytes: options.maxRequestBodyBytes ?? 65_536
 				})
 				requestBody = redactSensitive(raw, redactKeys)
-			} catch(err) {
+			} catch (err) {
 				log.debug('audit: could not capture request body', {
 					error: err instanceof BodyTooLargeError ? 'body-too-large' : String(err)
 				})
@@ -129,17 +128,19 @@ export function withAudit(
 		try {
 			response = await handler(event)
 			return response
-		} catch(err) {
+		} catch (err) {
 			thrown = err
 			throw err
 		} finally {
 			const durationMs = Date.now() - startedAt
 			const status = response?.status ?? (thrown ? 500 : 0)
-			const outcome: AuditOutcome =
-				thrown ? 'error'
-					: status >= 200 && status < 400 ? 'success'
-						: status === 401 || status === 403 ? 'denied'
-							: 'failure'
+			const outcome: AuditOutcome = thrown
+				? 'error'
+				: status >= 200 && status < 400
+					? 'success'
+					: status === 401 || status === 403
+						? 'denied'
+						: 'failure'
 
 			const auditEvent: Partial<AuditEvent> & { action: string; outcome: AuditOutcome } = {
 				action: options.action,
@@ -148,9 +149,7 @@ export function withAudit(
 				url: event.url.toString(),
 				status,
 				durationMs,
-				detail: requestBody === undefined
-					? baseDetail
-					: { ...baseDetail, requestBody }
+				detail: requestBody === undefined ? baseDetail : { ...baseDetail, requestBody }
 			}
 			const actorId = options.actorId?.(event)
 			if (actorId) auditEvent.actorId = actorId

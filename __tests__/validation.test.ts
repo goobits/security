@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { getInputValidator } from '../src/validation.js'
-import { BodyTooLargeError, readRequestBodyBytes, withValidation } from '../src/validation/sveltekit.js'
+import {
+	BodyTooLargeError,
+	readRequestBodyBytes,
+	withValidation
+} from '../src/validation/sveltekit.js'
 
 describe('getInputValidator', () => {
 	const schema = z.object({
@@ -23,8 +27,8 @@ describe('getInputValidator', () => {
 		expect(result.success).toBe(false)
 		if (!result.success) {
 			expect(result.issues.length).toBeGreaterThan(0)
-			expect(result.issues.some(i => i.path.includes('email'))).toBe(true)
-			expect(result.issues.some(i => i.path.includes('name'))).toBe(true)
+			expect(result.issues.some((i) => i.path.includes('email'))).toBe(true)
+			expect(result.issues.some((i) => i.path.includes('name'))).toBe(true)
 		}
 	})
 

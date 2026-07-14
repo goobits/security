@@ -54,7 +54,7 @@ export interface AuditSink {
 export function createLoggerSink(logger: Logger): AuditSink {
 	return {
 		record(event: AuditEvent): void {
-			logger.info(`audit:${ event.action }`, event as unknown as Record<string, unknown>)
+			logger.info(`audit:${event.action}`, event as unknown as Record<string, unknown>)
 		}
 	}
 }
@@ -98,7 +98,7 @@ export function createAuditLogger(options: CreateAuditLoggerOptions = {}): Audit
 			}
 			try {
 				await sink.record(event)
-			} catch(err) {
+			} catch (err) {
 				log.error('Audit sink threw', { error: String(err), action: event.action })
 			}
 		}

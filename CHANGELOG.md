@@ -41,17 +41,19 @@ All notable changes to `@goobits/security` are documented here. The format adher
 ### Hardening pass (pre-release)
 
 Security
+
 - **`recaptcha`**: `allowInDevelopment` default flipped from `true` to `false`. Closes a silent-bypass foot-gun on runtimes that don't set `NODE_ENV` (Cloudflare Workers, Deno, CI). Consumers who relied on the old behavior must now pass `{ allowInDevelopment: true }` explicitly.
 - **`admin-auth`**: swapped `jsonwebtoken` (CJS, Node-only) for [`jose`](https://github.com/panva/jose) (Web Crypto, cross-runtime). The module now genuinely loads on Cloudflare Workers, Deno, and Bun. `createAdminToken` is now `async`.
 - **`admin-auth`**: JWT verification now pins `algorithms: ['HS256']` by default (overridable via `algorithms` config). Defense-in-depth against future jsonwebtoken-style regressions and algorithm-confusion attacks.
 - **`admin-auth`**: `jwtSecret` is now validated to be ≥32 characters at `createAdminAuth()` time. Throws loudly on weak secrets.
 - **`csrf`**: `DISABLE_CSRF` now throws at `createCsrf()` time when `NODE_ENV === 'production'`. Previously it only logged. Fixes JSDoc-vs-implementation drift.
-- **`csrf`**: Added `failClosed?: boolean` option  -  store errors return `false` from `validate()` when set. Default remains fail-open (availability over correctness); compliance-sensitive routes can opt in.
+- **`csrf`**: Added `failClosed?: boolean` option - store errors return `false` from `validate()` when set. Default remains fail-open (availability over correctness); compliance-sensitive routes can opt in.
 - **`rate-limit`**: `MemoryRateLimitStore` now performs opportunistic cleanup (~1% chance per increment) to bound memory growth on attacker-rotated identifiers.
-- **`rate-limit`**: `getClientIP` now requires explicit `trustHeaders` opt-in. By default returns `'unknown'`  -  refuses to blindly trust spoof-friendly proxy headers.
+- **`rate-limit`**: `getClientIP` now requires explicit `trustHeaders` opt-in. By default returns `'unknown'` - refuses to blindly trust spoof-friendly proxy headers.
 - **`_internal/cookies`**: `serializeCookie` now validates cookie name + value against RFC 6265 character classes. Throws on CRLF / `;` / `,` / `\` / `"` / space in values (mitigates header-injection latent risk).
 
 API + types
+
 - **`audit`**: `withAudit` adds `redactKeys` option, defaulting to `['password', 'token', 'secret', 'apiKey', 'authorization', 'creditCard', 'cvv']`. Request body capture (`includeRequestBody: true`) now strips these fields before logging. Pass `redactKeys: []` to disable explicitly.
 - **`audit`**: documented fire-and-forget dispatch semantics + outcome derivation rules in JSDoc.
 - **`audit`**: caller-supplied `timestamp` in `auditor.log({ timestamp })` now correctly takes precedence (was always being overwritten by spread order).
@@ -61,8 +63,9 @@ API + types
 - **`index.ts`**: barrel now re-exports `createRedisCsrfStore` and the three auth rate-limit factories. Previously only reachable via subpath.
 
 Build + docs
+
 - **`tsconfig.test.json`**: added so `pnpm typecheck` covers tests as well as `src/`.
-- **`package.json`**: `zod` moved into `peerDependenciesMeta.optional: true`. Aligns with the package's actual runtime behavior  -  consumers who don't import `@goobits/security/validation` don't need zod.
+- **`package.json`**: `zod` moved into `peerDependenciesMeta.optional: true`. Aligns with the package's actual runtime behavior - consumers who don't import `@goobits/security/validation` don't need zod.
 - **`package.json`**: removed `jsonwebtoken` (and `@types/jsonwebtoken`) entirely; added `jose` to runtime deps.
 - **`_internal/env.ts`** (new): shared `readEnv()` + `isProduction()` helpers. Replaces four duplicated `globalThis as unknown as { process? }` shims across modules.
 - **README**: per-module runtime compatibility table; fixed `import.meta.env.PROD` example (was Vite-only); documented `withAudit` fire-and-forget semantics; documented `cookieOptions` replace-not-merge; documented `getClientIP` no-default-trust policy; added explicit Zod v4 syntax callouts.
@@ -73,11 +76,12 @@ Build + docs
 First standalone-package release. The bump to v2 reflects breaking API changes vs the legacy internal `v1.x`; everything below is the v2 surface.
 
 ### Added
+
 - ESM-only TypeScript-native package with full `.d.ts` declarations
 - Subpath exports for every capability (`csrf`, `csrf-redis`, `csp`, `recaptcha`, `validation`, `rate-limit`, `rate-limit/auth`, `rate-limit/sveltekit`, `admin-auth`, `audit`, `audit/sveltekit`, `alerting`, `logger`). Framework-agnostic primitives live at the parent subpaths; SvelteKit-specific adapters live under dedicated `/sveltekit` subpaths so non-SvelteKit consumers never pay for the `@sveltejs/kit` types.
-- Pluggable `Logger` interface  -  every module accepts `logger?: Logger` and is silent by default; bring Pino/Winston/console as needed
+- Pluggable `Logger` interface - every module accepts `logger?: Logger` and is silent by default; bring Pino/Winston/console as needed
 - `createCsrf()` factory returning a `CsrfProtection` with `generate`/`setCookie`/`validate`/`cleanup`/`clear`
-- `createCspDirectives()` + `buildCsp()`  -  fully parameterized CSP builder (no hardcoded vendor allowlist; `extraSources` is now caller-supplied)
+- `createCspDirectives()` + `buildCsp()` - fully parameterized CSP builder (no hardcoded vendor allowlist; `extraSources` is now caller-supplied)
 - `createCspNonce()` for per-request nonce generation
 - `verifyRecaptcha()` returns a discriminated-union `RecaptchaResult` with explicit `reason` codes
 - `createRateLimiter()` with multi-window sliding-counter support; pluggable `RateLimitStore`
@@ -90,8 +94,9 @@ First standalone-package release. The bump to v2 reflects breaking API changes v
 - Comprehensive test suite (vitest) covering CSRF, CSP, rate-limit, validation, admin-auth
 
 ### Changed (breaking from internal v1.x)
+
 - All source files converted from JavaScript to TypeScript with strict typing throughout
-- Replaced direct `@goobits/logger` dependency with a pluggable `Logger` interface  -  package now has zero hard logging dep
+- Replaced direct `@goobits/logger` dependency with a pluggable `Logger` interface - package now has zero hard logging dep
 - Bumped `zod` peer dep from `^3.x` to `^4.x`; validation helpers updated for v4 API (`safeParseAsync`, `issues`, `z.email()`)
 - CSP builder no longer ships an opinionated vendor allowlist; consumers must pass `extraSources` for any vendor URLs they need (Stripe, fonts, CDNs, dev domains)
 - Rate limiter API redesigned around a `windows: [{ name, windowMs, maxEvents }]` config (replacing the fixed short/medium/long windows in v1.x)
@@ -100,13 +105,15 @@ First standalone-package release. The bump to v2 reflects breaking API changes v
 - Minimum Node version is now 22 (was 18)
 
 ### Removed
-- Internal migration docs (`RATE_LIMITER_MIGRATION.md`, `REDIS_RATE_LIMITER_QUICK_START.md`)  -  these were specific to the source repo's internal cutover, not relevant to standalone consumers
-- Opinionated default vendor allowlist from CSP (Stripe paths, MapLibre CDN, local development domains)  -  consumers now supply these via `extraSources`
-- Hard dependency on `@sveltejs/kit` runtime  -  now an optional peer (CSRF/CSP/recaptcha/rate-limit work in any Fetch-API environment)
-- Hard dependency on `ioredis`  -  now an optional peer (only required when using `csrf-redis` or a Redis rate-limit store)
-- Hard dependency on `jsonwebtoken`  -  replaced with `jose` as the package's only runtime dependency
+
+- Internal migration docs (`RATE_LIMITER_MIGRATION.md`, `REDIS_RATE_LIMITER_QUICK_START.md`) - these were specific to the source repo's internal cutover, not relevant to standalone consumers
+- Opinionated default vendor allowlist from CSP (Stripe paths, MapLibre CDN, local development domains) - consumers now supply these via `extraSources`
+- Hard dependency on `@sveltejs/kit` runtime - now an optional peer (CSRF/CSP/recaptcha/rate-limit work in any Fetch-API environment)
+- Hard dependency on `ioredis` - now an optional peer (only required when using `csrf-redis` or a Redis rate-limit store)
+- Hard dependency on `jsonwebtoken` - replaced with `jose` as the package's only runtime dependency
 
 ### Security
+
 - Verified clean: no hardcoded secrets, no embedded credentials, no project-specific paths in source
 - All cryptographic primitives use Web Crypto from `globalThis.crypto`; no Node-only `crypto` imports
 - Constant-time comparison preserved for CSRF + admin API key

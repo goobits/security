@@ -20,21 +20,30 @@ describe('createSecurityAlerter', () => {
 	it('dispatches an alert through every channel when a rule matches', async () => {
 		const channel1Sends: unknown[] = []
 		const channel2Sends: unknown[] = []
-		const ch1: AlertChannel = { async send(a) { channel1Sends.push(a) } }
-		const ch2: AlertChannel = { async send(a) { channel2Sends.push(a) } }
+		const ch1: AlertChannel = {
+			async send(a) {
+				channel1Sends.push(a)
+			}
+		}
+		const ch2: AlertChannel = {
+			async send(a) {
+				channel2Sends.push(a)
+			}
+		}
 
 		const alerter = createSecurityAlerter({
-			channels: [ ch1, ch2 ],
+			channels: [ch1, ch2],
 			rules: [
-				(e) => e.outcome === 'denied'
-					? {
-							severity: 'critical',
-							title: 'Denied',
-							message: e.action,
-							source: 'test',
-							timestamp: e.timestamp
-						}
-					: null
+				(e) =>
+					e.outcome === 'denied'
+						? {
+								severity: 'critical',
+								title: 'Denied',
+								message: e.action,
+								source: 'test',
+								timestamp: e.timestamp
+							}
+						: null
 			]
 		})
 
@@ -46,11 +55,15 @@ describe('createSecurityAlerter', () => {
 
 	it('skips dispatch when no rule matches', async () => {
 		const sends: unknown[] = []
-		const ch: AlertChannel = { async send(a) { sends.push(a) } }
+		const ch: AlertChannel = {
+			async send(a) {
+				sends.push(a)
+			}
+		}
 
 		const alerter = createSecurityAlerter({
-			channels: [ ch ],
-			rules: [ () => null ]
+			channels: [ch],
+			rules: [() => null]
 		})
 
 		await alerter.process(event({}))
@@ -59,12 +72,18 @@ describe('createSecurityAlerter', () => {
 
 	it('continues when a rule throws', async () => {
 		const sends: unknown[] = []
-		const ch: AlertChannel = { async send(a) { sends.push(a) } }
+		const ch: AlertChannel = {
+			async send(a) {
+				sends.push(a)
+			}
+		}
 
 		const alerter = createSecurityAlerter({
-			channels: [ ch ],
+			channels: [ch],
 			rules: [
-				() => { throw new Error('rule boom') },
+				() => {
+					throw new Error('rule boom')
+				},
 				() => ({ severity: 'info', title: 'Hi', message: 'm', source: 'test', timestamp: 'now' })
 			]
 		})
@@ -75,11 +94,19 @@ describe('createSecurityAlerter', () => {
 
 	it('continues when a channel throws', async () => {
 		const sends: unknown[] = []
-		const okChannel: AlertChannel = { async send(a) { sends.push(a) } }
-		const badChannel: AlertChannel = { async send() { throw new Error('channel boom') } }
+		const okChannel: AlertChannel = {
+			async send(a) {
+				sends.push(a)
+			}
+		}
+		const badChannel: AlertChannel = {
+			async send() {
+				throw new Error('channel boom')
+			}
+		}
 
 		const alerter = createSecurityAlerter({
-			channels: [ badChannel, okChannel ],
+			channels: [badChannel, okChannel],
 			rules: [
 				() => ({ severity: 'info', title: 'Hi', message: 'm', source: 'test', timestamp: 'now' })
 			]
@@ -93,10 +120,13 @@ describe('createSecurityAlerter', () => {
 describe('createWebhookChannel', () => {
 	it('POSTs JSON to the configured URL', async () => {
 		const fetched: Array<{ url: string; init: RequestInit }> = []
-		vi.stubGlobal('fetch', vi.fn(async (url: unknown, init: unknown) => {
-			fetched.push({ url: String(url), init: init as RequestInit })
-			return { ok: true, status: 200 } as unknown as Response
-		}))
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (url: unknown, init: unknown) => {
+				fetched.push({ url: String(url), init: init as RequestInit })
+				return { ok: true, status: 200 } as unknown as Response
+			})
+		)
 
 		const channel = createWebhookChannel({ url: 'https://hook.test/alerts' })
 		await channel.send({
@@ -115,14 +145,17 @@ describe('createWebhookChannel', () => {
 
 	it('applies transform when provided', async () => {
 		const fetched: Array<{ body: unknown }> = []
-		vi.stubGlobal('fetch', vi.fn(async (_url: unknown, init: unknown) => {
-			fetched.push({ body: JSON.parse(String((init as RequestInit).body)) })
-			return { ok: true, status: 200 } as unknown as Response
-		}))
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (_url: unknown, init: unknown) => {
+				fetched.push({ body: JSON.parse(String((init as RequestInit).body)) })
+				return { ok: true, status: 200 } as unknown as Response
+			})
+		)
 
 		const channel = createWebhookChannel({
 			url: 'https://hook.test',
-			transform: (a) => ({ text: `[${ a.severity }] ${ a.title }` })
+			transform: (a) => ({ text: `[${a.severity}] ${a.title}` })
 		})
 
 		await channel.send({

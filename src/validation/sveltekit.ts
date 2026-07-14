@@ -40,10 +40,7 @@ function jsonResponse(payload: unknown, status: number): Response {
 	})
 }
 
-function defaultErrorResponse(
-	layer: 'body' | 'query' | 'params',
-	issues: unknown
-): Response {
+function defaultErrorResponse(layer: 'body' | 'query' | 'params', issues: unknown): Response {
 	const labels: Record<typeof layer, string> = {
 		body: 'Invalid request body',
 		query: 'Invalid query parameters',
@@ -74,15 +71,18 @@ function defaultErrorResponse(
  */
 export function withValidation<Body = unknown, Query = unknown, Params = unknown>(
 	schemas: ValidationSchemas<Body, Query, Params>,
-	handler: (event: RequestEvent & {
-		locals: RequestEvent['locals'] & {
-			validatedData: ValidatedData<Body, Query, Params>
+	handler: (
+		event: RequestEvent & {
+			locals: RequestEvent['locals'] & {
+				validatedData: ValidatedData<Body, Query, Params>
+			}
 		}
-	}) => Response | Promise<Response>,
+	) => Response | Promise<Response>,
 	options: WithValidationOptions = {}
 ): RequestHandler {
 	const log = resolveLogger(options.logger)
-	const onError = options.onValidationError ?? ((layer, issues) => defaultErrorResponse(layer, issues))
+	const onError =
+		options.onValidationError ?? ((layer, issues) => defaultErrorResponse(layer, issues))
 
 	return async (event) => {
 		const { request, url, params } = event
@@ -90,9 +90,8 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 
 		try {
 			if (schemas.body && request.method !== 'GET' && request.method !== 'HEAD') {
-				const readOptions = options.maxBodyBytes === undefined
-					? {}
-					: { maxBytes: options.maxBodyBytes }
+				const readOptions =
+					options.maxBodyBytes === undefined ? {} : { maxBytes: options.maxBodyBytes }
 				const raw = await readJsonBody(request, readOptions)
 				const result = await schemas.body.safeParseAsync(raw)
 				if (!result.success) {
@@ -138,7 +137,7 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 			eventWithLocals.locals.validatedData = validatedData
 
 			return await handler(eventWithLocals)
-		} catch(error) {
+		} catch (error) {
 			if (error instanceof BodyTooLargeError) {
 				log.warn('Validation request body too large', {
 					path: url.pathname,

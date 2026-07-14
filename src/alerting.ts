@@ -69,7 +69,7 @@ export function createWebhookChannel(options: WebhookChannelOptions): AlertChann
 				if (!response.ok) {
 					log.error('Webhook alert failed', { status: response.status, title: alert.title })
 				}
-			} catch(err) {
+			} catch (err) {
 				log.error('Webhook alert threw', { error: String(err), title: alert.title })
 			}
 		}
@@ -130,7 +130,7 @@ export function createSecurityAlerter(options: CreateSecurityAlerterOptions): Se
 				let candidate: Alert | null
 				try {
 					candidate = rule(event)
-				} catch(err) {
+				} catch (err) {
 					log.error('Alert rule threw', { error: String(err) })
 					continue
 				}
@@ -139,9 +139,11 @@ export function createSecurityAlerter(options: CreateSecurityAlerterOptions): Se
 				// Local const removes the need for non-null assertions inside the closure.
 				const alert: Alert = candidate
 				await Promise.all(
-					options.channels.map(channel => channel.send(alert).catch(err => {
-						log.error('Alert channel threw', { error: String(err), title: alert.title })
-					}))
+					options.channels.map((channel) =>
+						channel.send(alert).catch((err) => {
+							log.error('Alert channel threw', { error: String(err), title: alert.title })
+						})
+					)
 				)
 			}
 		}

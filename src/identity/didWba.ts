@@ -48,9 +48,9 @@ export function buildDidWba(domain: string, pathSegments: string[] = [], port?: 
 	if (!domain) {
 		throw new Error('@goobits/security/identity: DID-WBA domain is required')
 	}
-	const host = port ? `${ domain }%3A${ port }` : domain
-	const path = pathSegments.map(segment => encodeURIComponent(segment)).join(':')
-	return `did:wba:${ host }${ path ? `:${ path }` : '' }`
+	const host = port ? `${domain}%3A${port}` : domain
+	const path = pathSegments.map((segment) => encodeURIComponent(segment)).join(':')
+	return `did:wba:${host}${path ? `:${path}` : ''}`
 }
 
 /** Resolves a did:wba identifier to its DID document URL. */
@@ -60,15 +60,15 @@ export function didWbaToUrl(did: string): string {
 	}
 	const methodId = did.slice('did:wba:'.length)
 	const parts = methodId.split(':').filter(Boolean)
-	const [ encodedHost, ...encodedPath ] = parts
+	const [encodedHost, ...encodedPath] = parts
 	if (!encodedHost) {
 		throw new Error('@goobits/security/identity: missing DID-WBA host')
 	}
 	const host = decodeURIComponent(encodedHost)
 	const path = encodedPath.length
-		? `/${ encodedPath.map(part => decodeURIComponent(part)).join('/') }/did.json`
+		? `/${encodedPath.map((part) => decodeURIComponent(part)).join('/')}/did.json`
 		: '/.well-known/did.json'
-	return `https://${ host }${ path }`
+	return `https://${host}${path}`
 }
 
 /** Extracts the host domain represented by a did:wba identifier. */
@@ -78,7 +78,9 @@ export function didWbaDomain(did: string): string {
 }
 
 /** Parses a did:wba authorization header into structured fields. */
-export function parseDidWbaAuthorizationHeader(value: string | null | undefined): DidWbaAuthHeader | null {
+export function parseDidWbaAuthorizationHeader(
+	value: string | null | undefined
+): DidWbaAuthHeader | null {
 	if (!value) return null
 	const trimmed = value.trim()
 	const prefix = /^(didwba|did)\s+/i.exec(trimmed)
@@ -108,16 +110,17 @@ export function parseDidWbaAuthorizationHeader(value: string | null | undefined)
 
 /** Builds the canonical message covered by a did:wba signature. */
 export function didWbaSignatureMessage(header: DidWbaAuthHeader): string {
-	return `${ header.did }\n${ header.nonce }\n${ header.timestamp }\n${ header.verificationMethod }`
+	return `${header.did}\n${header.nonce}\n${header.timestamp}\n${header.verificationMethod}`
 }
 
 /** Verifies a did:wba authorization header and returns a principal. */
 export async function verifyDidWbaIdentity(
 	options: DidWbaVerifyOptions
 ): Promise<DidWbaVerificationResult> {
-	const header = typeof options.header === 'string'
-		? parseDidWbaAuthorizationHeader(options.header)
-		: options.header
+	const header =
+		typeof options.header === 'string'
+			? parseDidWbaAuthorizationHeader(options.header)
+			: options.header
 	if (!header) {
 		return { ok: false, reason: options.header ? 'invalid-header' : 'missing-header' }
 	}

@@ -7,7 +7,7 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 ## Quick reference
 
 - **Category:** library (ESM-only, TypeScript)
-- **Distribution:** git submodule consumed inside a pnpm workspace. Consumer bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source directly  -  no build step, no `dist/`, no npm publish.
+- **Distribution:** git submodule consumed inside a pnpm workspace. Consumer bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source directly - no build step, no `dist/`, no npm publish.
 - **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependency: `jose ^6`. Optional peer dependencies: `@sveltejs/kit ^2`, `zod ^4`
 - **Runtime targets:** Node 22+, Bun, Deno, Cloudflare Workers (anything with Web Crypto on `globalThis`)
 - **Engines:** Node `>=22`
@@ -62,7 +62,7 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 
 ## Security rules (do not bypass)
 
-- Never log raw tokens, passwords, JWTs, or API keys. The supplied `Logger` may be third-party  -  assume it captures everything passed to it.
+- Never log raw tokens, passwords, JWTs, or API keys. The supplied `Logger` may be third-party - assume it captures everything passed to it.
 - All cryptographic comparisons MUST be constant-time. Use `timingSafeEqualBytes` from `_internal/crypto.ts`.
 - All random values for tokens/keys MUST come from `globalThis.crypto.getRandomValues` (via `getRandomBytes`). Never use `Math.random()` for security-sensitive paths.
 - `csp.ts` MUST NOT hardcode any third-party vendor URLs (Stripe, fonts, CDNs, etc.). Consumers supply those via `extraSources`. Adding vendor knowledge to defaults would force every consumer to inherit those policies whether they need them or not.
@@ -70,8 +70,8 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 
 ## Project-specific overrides
 
-- **`@goobits/logger` is intentionally not a dependency.** Use the local pluggable `Logger` interface from `./logger.js`. If a future module needs richer structured logging, add it via the consumer-supplied logger  -  don't reach for a specific logging library.
-- **`jose ^6` is the package's only direct runtime dependency.** Used by principal and admin authentication for cross-runtime JWTs (Web Crypto-based; works on Node, Bun, Deno, and Cloudflare Workers). Do NOT add `jsonwebtoken` back  -  it's CJS-only and would re-break the cross-runtime claim.
+- **`@goobits/logger` is intentionally not a dependency.** Use the local pluggable `Logger` interface from `./logger.js`. If a future module needs richer structured logging, add it via the consumer-supplied logger - don't reach for a specific logging library.
+- **`jose ^6` is the package's only direct runtime dependency.** Used by principal and admin authentication for cross-runtime JWTs (Web Crypto-based; works on Node, Bun, Deno, and Cloudflare Workers). Do NOT add `jsonwebtoken` back - it's CJS-only and would re-break the cross-runtime claim.
 - **Zod is an optional peer dep at `^4.0.0`.** When updating validation code, use v4 APIs (`safeParseAsync`, `z.email()`, the `issues` shape on errors).
 - **`@sveltejs/kit` and `zod` are optional peers.** Consumers install only the adapter dependencies they use.
 - **The Redis CSRF adapter does not own a Redis client dependency.** Hosts pass any client satisfying the exported `RedisLike` contract; `ioredis` is one possible host-owned implementation.

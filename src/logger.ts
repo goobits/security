@@ -64,7 +64,7 @@ const LEVEL_ORDER: Record<NonNullable<ConsoleLoggerOptions['level']>, number> = 
 export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger {
 	const { prefix, level = 'info' } = options
 	const minLevel = LEVEL_ORDER[level]
-	const tag = prefix ? `${ prefix } ` : ''
+	const tag = prefix ? `${prefix} ` : ''
 
 	const emit = (
 		method: 'debug' | 'info' | 'warn' | 'error',
@@ -74,10 +74,10 @@ export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger 
 		if (LEVEL_ORDER[method] < minLevel) return
 		if (context) {
 			// eslint-disable-next-line no-console
-			console[method](`${ tag }${ message }`, context)
+			console[method](`${tag}${message}`, context)
 		} else {
 			// eslint-disable-next-line no-console
-			console[method](`${ tag }${ message }`)
+			console[method](`${tag}${message}`)
 		}
 	}
 

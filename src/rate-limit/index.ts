@@ -61,9 +61,9 @@ type D1RateLimitColumns = {
 
 function quoteD1Identifier(identifier: string): string {
 	if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(identifier)) {
-		throw new Error(`D1RateLimitStore: invalid SQL identifier "${ identifier }"`)
+		throw new Error(`D1RateLimitStore: invalid SQL identifier "${identifier}"`)
 	}
-	return `"${ identifier }"`
+	return `"${identifier}"`
 }
 
 /**
@@ -101,7 +101,10 @@ export class D1RateLimitStore implements RateLimitStore {
 		if (typeof raw === 'string') {
 			try {
 				const parsed = JSON.parse(raw) as unknown
-				if (Array.isArray(parsed) && parsed.every(value => typeof value === 'number' && Number.isFinite(value))) {
+				if (
+					Array.isArray(parsed) &&
+					parsed.every((value) => typeof value === 'number' && Number.isFinite(value))
+				) {
 					return { timestamps: parsed }
 				}
 			} catch {
@@ -121,9 +124,9 @@ export class D1RateLimitStore implements RateLimitStore {
 		const resetAtColumn = quoteD1Identifier(this.columns.resetAt)
 		const row = await this.db
 			.prepare(
-				`SELECT ${ countColumn } AS count, ${ resetAtColumn } AS reset_at
-				 FROM ${ this.table }
-				 WHERE ${ keyColumn } = ? LIMIT 1`
+				`SELECT ${countColumn} AS count, ${resetAtColumn} AS reset_at
+				 FROM ${this.table}
+				 WHERE ${keyColumn} = ? LIMIT 1`
 			)
 			.bind(key)
 			.first<{ count: number | string | null; reset_at: number | string | null }>()
@@ -147,49 +150,49 @@ export class D1RateLimitStore implements RateLimitStore {
 		const resetAtSeconds = Math.ceil((timestamp + ttlMs) / 1000)
 		const row = await this.db
 			.prepare(
-				`INSERT INTO ${ this.table } (${ keyColumn }, ${ countColumn }, ${ resetAtColumn })
+				`INSERT INTO ${this.table} (${keyColumn}, ${countColumn}, ${resetAtColumn})
 				 VALUES (?, json_array(?), ?)
-				 ON CONFLICT(${ keyColumn }) DO UPDATE SET
-				 	${ countColumn } = json_insert(
-				 		(
-				 			SELECT json_group_array(value)
-				 			FROM (
-				 				SELECT value, position
-				 				FROM (
-				 					SELECT CAST(value AS INTEGER) AS value, CAST(key AS INTEGER) AS position
-				 					FROM json_each(
-				 						CASE
-				 							WHEN CAST(${ this.table }.${ resetAtColumn } AS INTEGER) * 1000 <= ? THEN json_array()
-				 							WHEN json_valid(${ this.table }.${ countColumn }) AND json_type(${ this.table }.${ countColumn }) = 'array'
-				 								THEN ${ this.table }.${ countColumn }
-				 							WHEN CAST(${ this.table }.${ countColumn } AS INTEGER) > 0 THEN (
-				 								WITH RECURSIVE legacy(position, value) AS (
-				 									SELECT 0, ? - 1
-				 									UNION ALL
-				 									SELECT position + 1, value
-				 									FROM legacy
-				 									WHERE position + 1 < CASE
-				 										WHEN ? < 0 THEN CAST(${ this.table }.${ countColumn } AS INTEGER)
-				 										ELSE MIN(CAST(${ this.table }.${ countColumn } AS INTEGER), ?)
-				 									END
-				 								)
-				 								SELECT json_group_array(value) FROM legacy
-				 							)
-				 							ELSE json_array()
-				 						END
-				 					)
-				 					WHERE CAST(value AS REAL) > ?
-				 					ORDER BY position DESC
-				 					LIMIT ?
-				 				)
-				 				ORDER BY position
-				 			)
-				 		),
-				 		'$[#]',
-				 		?
-				 	),
-				 	${ resetAtColumn } = excluded.${ resetAtColumn }
-				 RETURNING ${ countColumn } AS count, ${ resetAtColumn } AS reset_at`
+				 ON CONFLICT(${keyColumn}) DO UPDATE SET
+					${countColumn} = json_insert(
+						(
+							SELECT json_group_array(value)
+							FROM (
+								SELECT value, position
+								FROM (
+									SELECT CAST(value AS INTEGER) AS value, CAST(key AS INTEGER) AS position
+									FROM json_each(
+										CASE
+											WHEN CAST(${this.table}.${resetAtColumn} AS INTEGER) * 1000 <= ? THEN json_array()
+											WHEN json_valid(${this.table}.${countColumn}) AND json_type(${this.table}.${countColumn}) = 'array'
+												THEN ${this.table}.${countColumn}
+											WHEN CAST(${this.table}.${countColumn} AS INTEGER) > 0 THEN (
+												WITH RECURSIVE legacy(position, value) AS (
+													SELECT 0, ? - 1
+													UNION ALL
+													SELECT position + 1, value
+													FROM legacy
+													WHERE position + 1 < CASE
+														WHEN ? < 0 THEN CAST(${this.table}.${countColumn} AS INTEGER)
+														ELSE MIN(CAST(${this.table}.${countColumn} AS INTEGER), ?)
+													END
+												)
+												SELECT json_group_array(value) FROM legacy
+											)
+											ELSE json_array()
+										END
+									)
+									WHERE CAST(value AS REAL) > ?
+									ORDER BY position DESC
+									LIMIT ?
+								)
+								ORDER BY position
+							)
+						),
+						'$[#]',
+						?
+					),
+					${resetAtColumn} = excluded.${resetAtColumn}
+				 RETURNING ${countColumn} AS count, ${resetAtColumn} AS reset_at`
 			)
 			.bind(
 				key,
@@ -211,10 +214,7 @@ export class D1RateLimitStore implements RateLimitStore {
 
 	async deleteEntry(key: string): Promise<void> {
 		const keyColumn = quoteD1Identifier(this.columns.key)
-		await this.db
-			.prepare(`DELETE FROM ${ this.table } WHERE ${ keyColumn } = ?`)
-			.bind(key)
-			.run()
+		await this.db.prepare(`DELETE FROM ${this.table} WHERE ${keyColumn} = ?`).bind(key).run()
 	}
 }
 
@@ -289,12 +289,15 @@ export class MemoryRateLimitStore implements RateLimitStore {
 		return this.map.get(key) ?? null
 	}
 
-	incrementEntry(key: string, timestamp: number, ttlMs: number, maxEntries?: number): RateLimitEntry {
+	incrementEntry(
+		key: string,
+		timestamp: number,
+		ttlMs: number,
+		maxEntries?: number
+	): RateLimitEntry {
 		const cutoff = timestamp - ttlMs
 		const existing = this.map.get(key)
-		const timestamps = existing
-			? existing.timestamps.filter(t => t > cutoff)
-			: []
+		const timestamps = existing ? existing.timestamps.filter((t) => t > cutoff) : []
 		timestamps.push(timestamp)
 		if (maxEntries !== undefined && timestamps.length > maxEntries) {
 			timestamps.splice(0, timestamps.length - maxEntries)
@@ -318,7 +321,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
 	cleanup(maxAgeMs: number): number {
 		const cutoff = Date.now() - maxAgeMs
 		let removed = 0
-		for (const [ key, entry ] of this.map.entries()) {
+		for (const [key, entry] of this.map.entries()) {
 			const lastTimestamp = entry.timestamps[entry.timestamps.length - 1] ?? 0
 			if (lastTimestamp < cutoff) {
 				this.map.delete(key)
@@ -364,11 +367,11 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 	const keyPrefix = config.keyPrefix ?? 'rate-limit'
 
 	// Use the longest window as the storage TTL  -  covers all shorter windows.
-	const maxWindowMs = Math.max(...config.windows.map(w => w.windowMs))
-	const maxStoredEvents = Math.max(...config.windows.map(w => w.maxEvents + 1))
+	const maxWindowMs = Math.max(...config.windows.map((w) => w.windowMs))
+	const maxStoredEvents = Math.max(...config.windows.map((w) => w.maxEvents + 1))
 
 	function buildKey(identifier: string): string {
-		return `${ keyPrefix }:${ identifier }`
+		return `${keyPrefix}:${identifier}`
 	}
 
 	/**
@@ -392,9 +395,7 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 
 		for (const window of config.windows) {
 			const cutoff = now - window.windowMs
-			const inWindow = timestamps
-				.filter(t => t > cutoff)
-				.slice(-(window.maxEvents + 1))
+			const inWindow = timestamps.filter((t) => t > cutoff).slice(-(window.maxEvents + 1))
 			const remaining = window.maxEvents - inWindow.length
 
 			if (inWindow.length > window.maxEvents) {
@@ -403,7 +404,7 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 				const oldest = inWindow[0] ?? now
 				const resetAt = oldest + window.windowMs
 				if (logOnHit) {
-					log.warn(`Rate limit hit (window=${ window.name })`, {
+					log.warn(`Rate limit hit (window=${window.name})`, {
 						identifier,
 						events: inWindow.length,
 						maxEvents: window.maxEvents

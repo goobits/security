@@ -54,7 +54,7 @@ type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string
 
 function toJsonValue(value: unknown): JsonValue {
 	if (value === null) return null
-	if ([ 'boolean', 'string' ].includes(typeof value)) return value as boolean | string
+	if (['boolean', 'string'].includes(typeof value)) return value as boolean | string
 	if (typeof value === 'number') {
 		if (!Number.isFinite(value)) {
 			throw new Error('@goobits/security/crypto: proof payload numbers must be finite')
@@ -66,7 +66,7 @@ function toJsonValue(value: unknown): JsonValue {
 	}
 	if (typeof value === 'object') {
 		const out: { [key: string]: JsonValue } = {}
-		for (const [ key, entry ] of Object.entries(value as Record<string, unknown>)) {
+		for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
 			if (entry !== undefined) {
 				out[key] = toJsonValue(entry)
 			}
@@ -81,12 +81,12 @@ export function canonicalizeJson(value: unknown): string {
 	const json = toJsonValue(value)
 	if (json === null || typeof json !== 'object') return JSON.stringify(json)
 	if (Array.isArray(json)) {
-		return `[${ json.map(canonicalizeJson).join(',') }]`
+		return `[${json.map(canonicalizeJson).join(',')}]`
 	}
-	return `{${ Object.keys(json)
+	return `{${Object.keys(json)
 		.sort()
-		.map(key => `${ JSON.stringify(key) }:${ canonicalizeJson(json[key]) }`)
-		.join(',') }}`
+		.map((key) => `${JSON.stringify(key)}:${canonicalizeJson(json[key])}`)
+		.join(',')}}`
 }
 
 function proofMetadata(proof: SecurityProof): Omit<SecurityProof, 'proofValue'> {

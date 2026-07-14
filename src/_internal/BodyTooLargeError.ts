@@ -8,7 +8,7 @@ const DEFAULT_MAX_BODY_BYTES = 1_048_576
 
 export class BodyTooLargeError extends Error {
 	constructor(readonly maxBytes: number) {
-		super(`Request body exceeds ${ maxBytes } bytes`)
+		super(`Request body exceeds ${maxBytes} bytes`)
 		this.name = 'BodyTooLargeError'
 	}
 }

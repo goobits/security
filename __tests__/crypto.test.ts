@@ -80,11 +80,13 @@ describe('crypto AEAD helpers', () => {
 			associatedData: 'auth-context'
 		})
 
-		await expect(openAesGcm({
-			key,
-			seal,
-			associatedData: 'other-context'
-		})).rejects.toThrow()
+		await expect(
+			openAesGcm({
+				key,
+				seal,
+				associatedData: 'other-context'
+			})
+		).rejects.toThrow()
 	})
 
 	it('seals and opens JSON values', async () => {

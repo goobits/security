@@ -24,9 +24,7 @@ export interface CsrfFetchConfig {
 export type CsrfFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
 
 export function readBrowserCookie(name: string, cookieHeader?: string): string | null {
-	const source =
-		cookieHeader ??
-		(typeof document === 'undefined' ? null : document.cookie)
+	const source = cookieHeader ?? (typeof document === 'undefined' ? null : document.cookie)
 	if (!source) return null
 
 	const prefix = `${encodeURIComponent(name)}=`
@@ -40,9 +38,7 @@ export function readBrowserCookie(name: string, cookieHeader?: string): string |
 }
 
 export function isSameOriginRequest(input: RequestInfo | URL, baseUrl?: string): boolean {
-	const base =
-		baseUrl ??
-		(typeof window === 'undefined' ? null : window.location.href)
+	const base = baseUrl ?? (typeof window === 'undefined' ? null : window.location.href)
 	if (!base) return false
 
 	const requestUrl = input instanceof Request ? input.url : String(input)
@@ -57,7 +53,7 @@ export function createCsrfFetch(config: CsrfFetchConfig = {}): CsrfFetch {
 	const cookieName = config.cookieName ?? CSRF_COOKIE_NAME
 	const headerName = config.headerName ?? CSRF_HEADER_NAME
 	const safeMethods = new Set(
-		[...(config.safeMethods ?? DEFAULT_SAFE_METHODS)].map(method => method.toUpperCase())
+		[...(config.safeMethods ?? DEFAULT_SAFE_METHODS)].map((method) => method.toUpperCase())
 	)
 	const readToken = config.readToken ?? readBrowserCookie
 

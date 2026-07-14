@@ -37,39 +37,52 @@ describe('security proofs', () => {
 	})
 
 	it('rejects tampered payloads', async () => {
-		const proof = await createSecurityProof({ id: 'msg-1' }, {
-			secret: SECRET,
-			verificationMethod: 'hmac:test'
-		})
+		const proof = await createSecurityProof(
+			{ id: 'msg-1' },
+			{
+				secret: SECRET,
+				verificationMethod: 'hmac:test'
+			}
+		)
 
 		const result = await verifySecurityProof({ id: 'msg-2' }, proof, { secret: SECRET })
 		expect(result).toEqual({ ok: false, reason: 'invalid-signature' })
 	})
 
 	it('checks domain and challenge before signature verification', async () => {
-		const proof = await createSecurityProof({ id: 'msg-1' }, {
-			secret: SECRET,
-			verificationMethod: 'hmac:test',
-			domain: 'example.test',
-			challenge: 'nonce-1'
-		})
+		const proof = await createSecurityProof(
+			{ id: 'msg-1' },
+			{
+				secret: SECRET,
+				verificationMethod: 'hmac:test',
+				domain: 'example.test',
+				challenge: 'nonce-1'
+			}
+		)
 
-		await expect(verifySecurityProof({ id: 'msg-1' }, proof, {
-			secret: SECRET,
-			domain: 'other.test'
-		})).resolves.toEqual({ ok: false, reason: 'domain-mismatch' })
-		await expect(verifySecurityProof({ id: 'msg-1' }, proof, {
-			secret: SECRET,
-			challenge: 'nonce-2'
-		})).resolves.toEqual({ ok: false, reason: 'challenge-mismatch' })
+		await expect(
+			verifySecurityProof({ id: 'msg-1' }, proof, {
+				secret: SECRET,
+				domain: 'other.test'
+			})
+		).resolves.toEqual({ ok: false, reason: 'domain-mismatch' })
+		await expect(
+			verifySecurityProof({ id: 'msg-1' }, proof, {
+				secret: SECRET,
+				challenge: 'nonce-2'
+			})
+		).resolves.toEqual({ ok: false, reason: 'challenge-mismatch' })
 	})
 
 	it('rejects old proofs when maxAgeMs is set', async () => {
-		const proof = await createSecurityProof({ id: 'msg-1' }, {
-			secret: SECRET,
-			verificationMethod: 'hmac:test',
-			created: '2026-06-13T00:00:00.000Z'
-		})
+		const proof = await createSecurityProof(
+			{ id: 'msg-1' },
+			{
+				secret: SECRET,
+				verificationMethod: 'hmac:test',
+				created: '2026-06-13T00:00:00.000Z'
+			}
+		)
 
 		const result = await verifySecurityProof({ id: 'msg-1' }, proof, {
 			secret: SECRET,
@@ -81,14 +94,20 @@ describe('security proofs', () => {
 	})
 
 	it('attaches and verifies proofs without signing the proof field itself', async () => {
-		const signed = await attachSecurityProof({ id: 'msg-1' }, {
-			secret: SECRET,
-			verificationMethod: 'hmac:test'
-		})
+		const signed = await attachSecurityProof(
+			{ id: 'msg-1' },
+			{
+				secret: SECRET,
+				verificationMethod: 'hmac:test'
+			}
+		)
 
 		expect(signed.proof.type).toBe('SecurityProof')
-		await expect(verifyAttachedSecurityProof(signed, { secret: SECRET })).resolves.toEqual({ ok: true })
-		await expect(verifyAttachedSecurityProof({ ...signed, id: 'msg-2' }, { secret: SECRET }))
-			.resolves.toEqual({ ok: false, reason: 'invalid-signature' })
+		await expect(verifyAttachedSecurityProof(signed, { secret: SECRET })).resolves.toEqual({
+			ok: true
+		})
+		await expect(
+			verifyAttachedSecurityProof({ ...signed, id: 'msg-2' }, { secret: SECRET })
+		).resolves.toEqual({ ok: false, reason: 'invalid-signature' })
 	})
 })

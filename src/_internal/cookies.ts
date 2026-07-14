@@ -19,7 +19,11 @@ export function parseCookies(cookieHeader: string | null | undefined): CookieMap
 			let value = pair.substring(equalIndex + 1).trim()
 			// Strip surrounding double-quotes per RFC 6265 (proxies sometimes emit
 			// `name="value"`); preserves the inner value.
-			if (value.length >= 2 && value.charCodeAt(0) === 0x22 && value.charCodeAt(value.length - 1) === 0x22) {
+			if (
+				value.length >= 2 &&
+				value.charCodeAt(0) === 0x22 &&
+				value.charCodeAt(value.length - 1) === 0x22
+			) {
 				value = value.slice(1, -1)
 			}
 			cookies[key] = value
@@ -44,15 +48,18 @@ const COOKIE_NAME_RE = /^[!#$%&'*+\-.0-9A-Z^_`a-z|~]+$/
 // Cookie value: visible ASCII except CTL (\x00-\x1F, \x7F), space (\x20),
 // double-quote (\x22), comma (\x2C), semicolon (\x3B), backslash (\x5C).
 const COOKIE_VALUE_RE = /^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]*$/
-const COOKIE_DOMAIN_RE = /^\.?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$/
+const COOKIE_DOMAIN_RE =
+	/^\.?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$/
 const COOKIE_PATH_RE = /^[\x20-\x3A\x3C-\x7E]*$/
 
 export function serializeCookie(name: string, value: string, options: CookieOptions = {}): string {
 	if (!COOKIE_NAME_RE.test(name)) {
-		throw new Error(`@goobits/security: invalid cookie name "${ name }"`)
+		throw new Error(`@goobits/security: invalid cookie name "${name}"`)
 	}
 	if (!COOKIE_VALUE_RE.test(value)) {
-		throw new Error('@goobits/security: cookie value contains illegal characters (control / CRLF / quote / comma / semicolon / backslash)')
+		throw new Error(
+			'@goobits/security: cookie value contains illegal characters (control / CRLF / quote / comma / semicolon / backslash)'
+		)
 	}
 	if (options.domain && !COOKIE_DOMAIN_RE.test(options.domain)) {
 		throw new Error('@goobits/security: cookie domain contains illegal characters')
@@ -61,18 +68,16 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
 		throw new Error('@goobits/security: cookie path contains illegal characters')
 	}
 
-	const parts: string[] = [ `${ name }=${ value }` ]
+	const parts: string[] = [`${name}=${value}`]
 
-	if (options.maxAge !== undefined) parts.push(`Max-Age=${ options.maxAge }`)
-	if (options.expires) parts.push(`Expires=${ options.expires.toUTCString() }`)
-	if (options.domain) parts.push(`Domain=${ options.domain }`)
-	if (options.path) parts.push(`Path=${ options.path }`)
+	if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`)
+	if (options.expires) parts.push(`Expires=${options.expires.toUTCString()}`)
+	if (options.domain) parts.push(`Domain=${options.domain}`)
+	if (options.path) parts.push(`Path=${options.path}`)
 	if (options.sameSite) {
 		const sameSiteValue =
-			options.sameSite === 'lax' ? 'Lax'
-				: options.sameSite === 'strict' ? 'Strict'
-					: 'None'
-		parts.push(`SameSite=${ sameSiteValue }`)
+			options.sameSite === 'lax' ? 'Lax' : options.sameSite === 'strict' ? 'Strict' : 'None'
+		parts.push(`SameSite=${sameSiteValue}`)
 	}
 	if (options.httpOnly) parts.push('HttpOnly')
 	if (options.secure) parts.push('Secure')

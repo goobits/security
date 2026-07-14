@@ -11,11 +11,10 @@ import { type Logger, resolveLogger } from './logger.js'
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
-const DEFAULT_LOOPBACK_HOSTS = [ '127.0.0.1', '::1', 'localhost', '0.0.0.0' ]
+const DEFAULT_LOOPBACK_HOSTS = ['127.0.0.1', '::1', 'localhost', '0.0.0.0']
 
 /** Options for `verifyTurnstile()`. */
 export interface TurnstileOptions {
-
 	/**
 	 * Turnstile secret key. If omitted, falls back to `TURNSTILE_SECRET_KEY`
 	 * env var. If both are missing, verification fails unless
@@ -80,24 +79,24 @@ export interface TurnstileApiResponse {
 /** Discriminated-union result type returned by `verifyTurnstile()`. */
 export type TurnstileResult =
 	| {
-		success: true
-		action?: string
-		hostname?: string
-		raw: TurnstileApiResponse
-	}
+			success: true
+			action?: string
+			hostname?: string
+			raw: TurnstileApiResponse
+	  }
 	| {
-		success: false
-		reason:
-			| 'missing-token'
-			| 'missing-secret'
-			| 'api-error'
-			| 'verification-failed'
-			| 'action-mismatch'
-			| 'hostname-mismatch'
-		errorCodes?: string[]
-		statusCode?: number
-		raw?: TurnstileApiResponse
-	}
+			success: false
+			reason:
+				| 'missing-token'
+				| 'missing-secret'
+				| 'api-error'
+				| 'verification-failed'
+				| 'action-mismatch'
+				| 'hostname-mismatch'
+			errorCodes?: string[]
+			statusCode?: number
+			raw?: TurnstileApiResponse
+	  }
 
 /**
  * Verify a Turnstile token against Cloudflare's siteverify endpoint.
@@ -148,7 +147,9 @@ export async function verifyTurnstile(
 	if (!secretKey) {
 		log.error('TURNSTILE_SECRET_KEY is not set')
 		if (!isProduction() && allowInDevelopment) {
-			log.warn('Allowing Turnstile verification to pass (allowInDevelopment=true, NODE_ENV !== production)')
+			log.warn(
+				'Allowing Turnstile verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
+			)
 			return { success: true, raw: { success: true } }
 		}
 		return { success: false, reason: 'missing-secret' }
@@ -173,7 +174,7 @@ export async function verifyTurnstile(
 			return { success: false, reason: 'api-error', statusCode: response.status }
 		}
 
-		const data = await response.json() as TurnstileApiResponse
+		const data = (await response.json()) as TurnstileApiResponse
 
 		if (!data.success) {
 			log.warn('Turnstile verification failed', { errorCodes: data['error-codes'] })
@@ -208,7 +209,7 @@ export async function verifyTurnstile(
 		if (data.action !== undefined) result.action = data.action
 		if (data.hostname !== undefined) result.hostname = data.hostname
 		return result
-	} catch(error) {
+	} catch (error) {
 		log.error('Turnstile API request failed', { error: String(error) })
 		return { success: false, reason: 'api-error' }
 	} finally {

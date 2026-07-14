@@ -3,11 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { verifyRecaptcha } from '../src/recaptcha.js'
 
 function mockFetch(response: { ok?: boolean; status?: number; body: object }): void {
-	vi.stubGlobal('fetch', vi.fn(async () => ({
-		ok: response.ok ?? true,
-		status: response.status ?? 200,
-		json: async () => response.body
-	}) as unknown as Response))
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(
+			async () =>
+				({
+					ok: response.ok ?? true,
+					status: response.status ?? 200,
+					json: async () => response.body
+				}) as unknown as Response
+		)
+	)
 }
 
 beforeEach(() => {
@@ -69,13 +75,19 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns api-error when the API response is not valid JSON', async () => {
-		vi.stubGlobal('fetch', vi.fn(async () => ({
-			ok: true,
-			status: 200,
-			json: async () => {
-				throw new SyntaxError('not json')
-			}
-		}) as unknown as Response))
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					({
+						ok: true,
+						status: 200,
+						json: async () => {
+							throw new SyntaxError('not json')
+						}
+					}) as unknown as Response
+			)
+		)
 
 		const result = await verifyRecaptcha('token', { secretKey: 'sk' })
 		expect(result.success).toBe(false)
@@ -83,12 +95,18 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns api-error when the request times out', async () => {
-		vi.stubGlobal('fetch', vi.fn((_url, init) => new Promise<Response>((_resolve, reject) => {
-			const signal = (init as RequestInit | undefined)?.signal
-			signal?.addEventListener('abort', () => {
-				reject(new DOMException('Aborted', 'AbortError'))
-			})
-		})))
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				(_url, init) =>
+					new Promise<Response>((_resolve, reject) => {
+						const signal = (init as RequestInit | undefined)?.signal
+						signal?.addEventListener('abort', () => {
+							reject(new DOMException('Aborted', 'AbortError'))
+						})
+					})
+			)
+		)
 
 		const result = await verifyRecaptcha('token', { secretKey: 'sk', timeoutMs: 1 })
 		expect(result.success).toBe(false)
@@ -96,12 +114,12 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns verification-failed on Google success=false', async () => {
-		mockFetch({ body: { success: false, 'error-codes': [ 'invalid-input-response' ] } })
+		mockFetch({ body: { success: false, 'error-codes': ['invalid-input-response'] } })
 		const result = await verifyRecaptcha('token', { secretKey: 'sk' })
 		expect(result.success).toBe(false)
 		if (!result.success) {
 			expect(result.reason).toBe('verification-failed')
-			expect(result.errorCodes).toEqual([ 'invalid-input-response' ])
+			expect(result.errorCodes).toEqual(['invalid-input-response'])
 		}
 	})
 

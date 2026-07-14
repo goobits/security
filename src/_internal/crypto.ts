@@ -17,7 +17,7 @@ function getCryptoImpl(): CryptoLike {
 	}
 	throw new Error(
 		'@goobits/security: Web Crypto API not available on globalThis.crypto. ' +
-		'Requires Node.js >= 22, Bun, Deno, or Cloudflare Workers runtime.'
+			'Requires Node.js >= 22, Bun, Deno, or Cloudflare Workers runtime.'
 	)
 }
 

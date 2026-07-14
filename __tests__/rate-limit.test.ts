@@ -33,14 +33,12 @@ class FakeD1RateLimitDatabase {
 							if (typeof current.count === 'string' && current.count.startsWith('[')) {
 								timestamps = JSON.parse(current.count) as number[]
 							} else {
-								timestamps = Array.from(
-									{ length: Number(current.count ?? 0) },
-									() => timestamp - 1
-								)
+								timestamps = Array.from({ length: Number(current.count ?? 0) }, () => timestamp - 1)
 							}
 						}
-						timestamps = timestamps.filter(value => value > cutoff)
-						if (retainedLimit >= 0) timestamps = timestamps.slice(-retainedLimit || timestamps.length)
+						timestamps = timestamps.filter((value) => value > cutoff)
+						if (retainedLimit >= 0)
+							timestamps = timestamps.slice(-retainedLimit || timestamps.length)
 						timestamps.push(timestamp)
 						this.rows.set(key, { count: JSON.stringify(timestamps), reset_at: resetAt })
 						return this.rows.get(key) as T
@@ -66,7 +64,7 @@ describe('createRateLimiter', () => {
 
 	it('allows requests within the limit', async () => {
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 3 } ]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 3 }]
 		})
 
 		expect((await limiter.check('alice')).allowed).toBe(true)
@@ -76,7 +74,7 @@ describe('createRateLimiter', () => {
 
 	it('blocks the request that exceeds the limit', async () => {
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 2 } ]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }]
 		})
 
 		await limiter.check('alice')
@@ -92,7 +90,7 @@ describe('createRateLimiter', () => {
 
 	it('isolates identifiers', async () => {
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 1 }]
 		})
 
 		expect((await limiter.check('alice')).allowed).toBe(true)
@@ -119,7 +117,7 @@ describe('createRateLimiter', () => {
 
 	it('reset clears the identifier', async () => {
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 1 }]
 		})
 		await limiter.check('alice')
 		expect((await limiter.check('alice')).allowed).toBe(false)
@@ -129,7 +127,7 @@ describe('createRateLimiter', () => {
 
 	it('exposes remaining when allowed', async () => {
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 3 } ]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 3 }]
 		})
 		const v = await limiter.check('alice')
 		expect(v.allowed).toBe(true)
@@ -139,12 +137,12 @@ describe('createRateLimiter', () => {
 	it('respects keyPrefix isolation', async () => {
 		const store = new MemoryRateLimitStore()
 		const a = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ],
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 1 }],
 			store,
 			keyPrefix: 'a'
 		})
 		const b = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ],
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 1 }],
 			store,
 			keyPrefix: 'b'
 		})
@@ -157,7 +155,7 @@ describe('createRateLimiter', () => {
 	it('bounds per-identifier timestamp storage to maxEvents + 1', async () => {
 		const store = new MemoryRateLimitStore({ cleanupProbability: 0 })
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 2 } ],
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
 			store
 		})
 
@@ -172,7 +170,7 @@ describe('createRateLimiter', () => {
 	it('supports D1-backed sliding-window limits', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 2 } ],
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
 			store: new D1RateLimitStore(db),
 			keyPrefix: 'auth'
 		})
@@ -218,7 +216,7 @@ describe('createRateLimiter', () => {
 		const store = new D1RateLimitStore(db)
 		const now = Date.now()
 		const resetAt = Math.ceil((now + 60_000) / 1000)
-		const timestamps = [ now - 2_000, now - 1_000 ]
+		const timestamps = [now - 2_000, now - 1_000]
 		db.rows.set('json', { count: JSON.stringify(timestamps), reset_at: resetAt })
 		db.rows.set('legacy', { count: 2, reset_at: resetAt })
 
@@ -231,18 +229,18 @@ describe('createRateLimiter', () => {
 		const store = new D1RateLimitStore(db)
 		const futureReset = Math.ceil((Date.now() + 60_000) / 1000)
 		const invalidRows: Array<[string, FakeRateLimitRow]> = [
-			[ 'expired', { count: '[1]', reset_at: 0 } ],
-			[ 'invalid-json', { count: '{', reset_at: futureReset } ],
-			[ 'invalid-array', { count: '[1,"bad"]', reset_at: futureReset } ],
-			[ 'zero-count', { count: 0, reset_at: futureReset } ],
-			[ 'null-count', { count: null, reset_at: futureReset } ],
-			[ 'invalid-reset', { count: 1, reset_at: 'not-a-number' } ]
+			['expired', { count: '[1]', reset_at: 0 }],
+			['invalid-json', { count: '{', reset_at: futureReset }],
+			['invalid-array', { count: '[1,"bad"]', reset_at: futureReset }],
+			['zero-count', { count: 0, reset_at: futureReset }],
+			['null-count', { count: null, reset_at: futureReset }],
+			['invalid-reset', { count: 1, reset_at: 'not-a-number' }]
 		]
 
-		for (const [ key, row ] of invalidRows) db.rows.set(key, row)
+		for (const [key, row] of invalidRows) db.rows.set(key, row)
 
 		expect(await store.getEntry('missing')).toBeNull()
-		for (const [ key ] of invalidRows) {
+		for (const [key] of invalidRows) {
 			expect(await store.getEntry(key)).toBeNull()
 			expect(db.rows.has(key)).toBe(false)
 		}
@@ -251,8 +249,9 @@ describe('createRateLimiter', () => {
 	it('rejects unsafe D1 table identifiers', () => {
 		const db = new FakeD1RateLimitDatabase()
 
-		expect(() => new D1RateLimitStore(db, { table: 'rate-limits; DROP TABLE users' }))
-			.toThrowError(/invalid SQL identifier/)
+		expect(() => new D1RateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })).toThrowError(
+			/invalid SQL identifier/
+		)
 	})
 
 	it('fails loudly when a D1 increment returns no counter row', async () => {
@@ -261,7 +260,9 @@ describe('createRateLimiter', () => {
 				return {
 					bind() {
 						return {
-							async first<T>(): Promise<T | null> { return null },
+							async first<T>(): Promise<T | null> {
+								return null
+							},
 							async run(): Promise<void> {}
 						}
 					}
@@ -270,8 +271,9 @@ describe('createRateLimiter', () => {
 		}
 		const store = new D1RateLimitStore(db)
 
-		await expect(store.incrementEntry('auth:alice', Date.now(), 60_000))
-			.rejects.toThrowError(/increment did not return a valid entry/)
+		await expect(store.incrementEntry('auth:alice', Date.now(), 60_000)).rejects.toThrowError(
+			/increment did not return a valid entry/
+		)
 	})
 
 	it('removes only stale in-memory entries during explicit cleanup', () => {
@@ -295,7 +297,7 @@ describe('createRateLimiter', () => {
 	it('peeks at new and exhausted quotas without consuming another event', async () => {
 		const store = new MemoryRateLimitStore({ cleanupProbability: 0 })
 		const limiter = createRateLimiter({
-			windows: [ { name: 'burst', windowMs: 60_000, maxEvents: 1 } ],
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 1 }],
 			store
 		})
 
@@ -326,8 +328,7 @@ describe('getClientIP', () => {
 		})
 
 		expect(getClientIP(request)).toBe('unknown')
-		expect(getClientIP(request, { trustHeaders: [ 'cf-connecting-ip' ] }))
-			.toBe('203.0.113.1')
+		expect(getClientIP(request, { trustHeaders: ['cf-connecting-ip'] })).toBe('203.0.113.1')
 	})
 
 	it('uses the first available trusted header and first forwarded address', () => {
@@ -335,9 +336,11 @@ describe('getClientIP', () => {
 			headers: { 'x-forwarded-for': ' 198.51.100.2, 10.0.0.1 ' }
 		})
 
-		expect(getClientIP(request, {
-			trustHeaders: [ 'x-real-ip', 'x-forwarded-for' ]
-		})).toBe('198.51.100.2')
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-real-ip', 'x-forwarded-for']
+			})
+		).toBe('198.51.100.2')
 	})
 
 	it('rejects a trusted forwarding chain with no first address', () => {
@@ -345,7 +348,6 @@ describe('getClientIP', () => {
 			headers: { 'x-forwarded-for': ', 198.51.100.2' }
 		})
 
-		expect(getClientIP(request, { trustHeaders: [ 'x-forwarded-for' ] }))
-			.toBe('unknown')
+		expect(getClientIP(request, { trustHeaders: ['x-forwarded-for'] })).toBe('unknown')
 	})
 })

@@ -1,10 +1,4 @@
-import {
-	base64UrlToBytes,
-	bytesToBase64Url,
-	constantTimeEqual,
-	textToBytes
-} from './encoding.js'
-
+import { base64UrlToBytes, bytesToBase64Url, constantTimeEqual, textToBytes } from './encoding.js'
 
 /** Supported HMAC signing algorithm. */
 export type HmacAlgorithm = 'HS256' | 'HS384' | 'HS512'
@@ -34,7 +28,7 @@ async function importHmacKey(
 		secretToBytes(secret) as never,
 		{ name: 'HMAC', hash: HMAC_HASH[algorithm] },
 		false,
-		[ 'sign', 'verify' ]
+		['sign', 'verify']
 	)
 }
 

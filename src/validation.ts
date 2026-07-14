@@ -9,11 +9,7 @@ import type { z } from 'zod'
 import { type Logger, resolveLogger } from './logger.js'
 
 /** Validation Schemas request or option shape for security middleware. */
-export interface ValidationSchemas<
-	Body = unknown,
-	Query = unknown,
-	Params = unknown
-> {
+export interface ValidationSchemas<Body = unknown, Query = unknown, Params = unknown> {
 	/** Zod schema for a JSON body. */
 	body?: z.ZodType<Body>
 	/** Zod schema for parsed query input. */

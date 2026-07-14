@@ -15,12 +15,7 @@
  * @module @goobits/security/csrf
  */
 
-import {
-	getRandomBytes,
-	timingSafeEqualBytes,
-	toBytes,
-	toHex
-} from './_internal/crypto.js'
+import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_internal/crypto.js'
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
 import { isProduction, readEnv } from './_internal/env.js'
 import { type Logger, resolveLogger } from './logger.js'
@@ -119,7 +114,7 @@ export class MemoryCsrfStore implements CsrfTokenStore {
 	cleanup(): number {
 		const now = Date.now()
 		let count = 0
-		for (const [ token, expires ] of this.map.entries()) {
+		for (const [token, expires] of this.map.entries()) {
 			if (expires < now) {
 				this.map.delete(token)
 				count++
@@ -173,8 +168,8 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 	if (disabled && isProduction()) {
 		throw new Error(
 			'@goobits/security/csrf: DISABLE_CSRF is set in production. ' +
-			'This config is for tests only. Unset DISABLE_CSRF and remove ' +
-			'`disabled: true` from createCsrf() config before deploying.'
+				'This config is for tests only. Unset DISABLE_CSRF and remove ' +
+				'`disabled: true` from createCsrf() config before deploying.'
 		)
 	}
 
@@ -189,7 +184,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 			// Best-effort opportunistic cleanup for in-memory store.
 			if (store instanceof MemoryCsrfStore && Math.random() < 0.1) {
 				const cleaned = store.cleanup()
-				if (cleaned > 0) log.debug(`Cleaned up ${ cleaned } expired CSRF tokens`)
+				if (cleaned > 0) log.debug(`Cleaned up ${cleaned} expired CSRF tokens`)
 			}
 		}
 
@@ -214,7 +209,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		let expires: number | undefined
 		try {
 			expires = await store.get(token)
-		} catch(err) {
+		} catch (err) {
 			log.error('Error checking CSRF token expiration', { error: String(err) })
 			// failClosed=true treats store errors as expired (fail-safe);
 			// failClosed=false treats them as not-expired (fail-open for availability).
@@ -227,7 +222,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		if (expired) {
 			try {
 				await store.delete(token)
-			} catch(err) {
+			} catch (err) {
 				log.error('Error deleting expired CSRF token', { error: String(err) })
 			}
 			log.warn('CSRF token expired')
@@ -247,7 +242,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		const headerToken = request.headers.get(headerName)
 		if (!headerToken) return false
 
-		if (options.checkExpiry && await isTokenExpired(cookieToken)) {
+		if (options.checkExpiry && (await isTokenExpired(cookieToken))) {
 			return false
 		}
 
@@ -257,7 +252,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 	async function cleanup(): Promise<number> {
 		if (store instanceof MemoryCsrfStore) {
 			const count = store.cleanup()
-			if (count > 0) log.info(`Cleaned up ${ count } expired CSRF tokens`)
+			if (count > 0) log.info(`Cleaned up ${count} expired CSRF tokens`)
 			return count
 		}
 		log.debug('Cleanup not needed for non-memory store (TTL handles expiration)')

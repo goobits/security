@@ -126,12 +126,12 @@ Each module is independently importable. Import only what you need.
 import { verifyDidWbaIdentity } from '@goobits/security/identity'
 
 const result = await verifyDidWbaIdentity({
-  header: request.headers.get('authorization'),
-  expectedDomain: 'example.com',
-  verifySignature: async ({ did, verificationMethod, message, signature }) => {
-    const key = await resolvePublicKey(did, verificationMethod)
-    return verifyWithYourProtocolKey(key, message, signature)
-  }
+	header: request.headers.get('authorization'),
+	expectedDomain: 'example.com',
+	verifySignature: async ({ did, verificationMethod, message, signature }) => {
+		const key = await resolvePublicKey(did, verificationMethod)
+		return verifyWithYourProtocolKey(key, message, signature)
+	}
 })
 ```
 
@@ -145,17 +145,17 @@ Identity adapters answer "which decentralized principal signed this request?" Th
 import { createPrincipalAuth } from '@goobits/security/principal-auth'
 
 const auth = createPrincipalAuth({
-  jwtSecret: process.env.JWT_SECRET!,
-  audience: 'my-app',
-  issuer: 'my-auth-service',
-  apiKeys: [
-    { key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }
-  ]
+	jwtSecret: process.env.JWT_SECRET!,
+	audience: 'my-app',
+	issuer: 'my-auth-service',
+	apiKeys: [
+		{ key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }
+	]
 })
 
 const result = await auth.requirePrincipal(request)
 if (!result.authenticated) {
-  return new Response('Unauthorized', { status: 401 })
+	return new Response('Unauthorized', { status: 401 })
 }
 
 // result.principal is the authenticated caller.
@@ -173,26 +173,29 @@ the same underlying principal-auth implementation.
 
 ```ts
 import {
-  createSecurityProof,
-  randomHex,
-  sealJson,
-  verifySecurityProof
+	createSecurityProof,
+	randomHex,
+	sealJson,
+	verifySecurityProof
 } from '@goobits/security/crypto'
 
 const key = randomHex(32)
 const sealed = await sealJson({ refreshToken: 'secret' }, { key })
 
-const proof = await createSecurityProof({ id: 'message-1' }, {
-  secret: process.env.PROOF_SECRET!,
-  verificationMethod: 'hmac:app',
-  domain: 'example.com',
-  challenge: 'nonce-123'
-})
+const proof = await createSecurityProof(
+	{ id: 'message-1' },
+	{
+		secret: process.env.PROOF_SECRET!,
+		verificationMethod: 'hmac:app',
+		domain: 'example.com',
+		challenge: 'nonce-123'
+	}
+)
 
 const result = await verifySecurityProof({ id: 'message-1' }, proof, {
-  secret: process.env.PROOF_SECRET!,
-  domain: 'example.com',
-  challenge: 'nonce-123'
+	secret: process.env.PROOF_SECRET!,
+	domain: 'example.com',
+	challenge: 'nonce-123'
 })
 ```
 
@@ -217,7 +220,7 @@ return response
 
 // In a form action:
 if (!(await csrf.validate(event.request))) {
-  return new Response('Invalid CSRF token', { status: 403 })
+	return new Response('Invalid CSRF token', { status: 403 })
 }
 ```
 
@@ -232,7 +235,7 @@ import { createRedisCsrfStore } from '@goobits/security/csrf-redis'
 
 const client = new Redis(process.env.REDIS_URL!)
 const csrf = createCsrf({
-  tokenStore: createRedisCsrfStore({ client })
+	tokenStore: createRedisCsrfStore({ client })
 })
 ```
 
@@ -249,7 +252,7 @@ const csrf = createCsrf({ failClosed: true })
 
 // On a route that explicitly checks expiration:
 if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
-  return new Response('CSRF validation failed', { status: 403 })
+	return new Response('CSRF validation failed', { status: 403 })
 }
 ```
 
@@ -271,15 +274,18 @@ import { buildCsp } from '@goobits/security/csp'
 const isProd = process.env.NODE_ENV === 'production'
 // In SvelteKit/Vite, use `import.meta.env.PROD` instead.
 
-response.headers.set('Content-Security-Policy', buildCsp({
-  mode: isProd ? 'production' : 'development',
-  nonce: locals.cspNonce,
-  extraSources: {
-    'script-src': ['https://js.stripe.com'],
-    'connect-src': ['https://api.stripe.com'],
-    'img-src':    ['https://cdn.example.com', 'data:']
-  }
-}))
+response.headers.set(
+	'Content-Security-Policy',
+	buildCsp({
+		mode: isProd ? 'production' : 'development',
+		nonce: locals.cspNonce,
+		extraSources: {
+			'script-src': ['https://js.stripe.com'],
+			'connect-src': ['https://api.stripe.com'],
+			'img-src': ['https://cdn.example.com', 'data:']
+		}
+	})
+)
 ```
 
 The package has no hardcoded vendor list. You supply your own `extraSources`.
@@ -291,25 +297,25 @@ import { createRateLimiter } from '@goobits/security/rate-limit'
 import { createRateLimitHandle } from '@goobits/security/rate-limit/sveltekit'
 
 const limiter = createRateLimiter({
-  windows: [
-    { name: 'burst', windowMs:    60_000, maxEvents:  5 },
-    { name: 'hour',  windowMs: 3_600_000, maxEvents: 60 }
-  ]
+	windows: [
+		{ name: 'burst', windowMs: 60_000, maxEvents: 5 },
+		{ name: 'hour', windowMs: 3_600_000, maxEvents: 60 }
+	]
 })
 
 // As a SvelteKit Handle:
 export const handle = createRateLimitHandle({
-  limiter,
-  identifier: (event) => event.getClientAddress()
+	limiter,
+	identifier: (event) => event.getClientAddress()
 })
 
 // Or imperatively:
 const verdict = await limiter.check(clientId)
 if (!verdict.allowed) {
-  return new Response('Too Many Requests', {
-    status: 429,
-    headers: { 'Retry-After': String(verdict.retryAfterSec) }
-  })
+	return new Response('Too Many Requests', {
+		status: 429,
+		headers: { 'Retry-After': String(verdict.retryAfterSec) }
+	})
 }
 ```
 
@@ -333,13 +339,13 @@ Pre-baked auth flow limiters (login, registration, password reset) live in `@goo
 
 ```ts
 import {
-  createLoginRateLimiter,
-  createRegistrationRateLimiter,
-  createPasswordResetRateLimiter
+	createLoginRateLimiter,
+	createRegistrationRateLimiter,
+	createPasswordResetRateLimiter
 } from '@goobits/security/rate-limit/auth'
 
-const loginLimiter        = createLoginRateLimiter()         // 5/min, 15/15min
-const registrationLimiter = createRegistrationRateLimiter()  // 3/10min, 5/hour
+const loginLimiter = createLoginRateLimiter() // 5/min, 15/15min
+const registrationLimiter = createRegistrationRateLimiter() // 3/10min, 5/hour
 const passwordResetLimiter = createPasswordResetRateLimiter() // 3/15min, 5/hour
 ```
 
@@ -360,13 +366,13 @@ const limiter = createRateLimiter({ windows: [...], store })
 import { verifyRecaptcha } from '@goobits/security/recaptcha'
 
 const result = await verifyRecaptcha(token, {
-  action: 'submit_contact_form',
-  minScore: 0.7
+	action: 'submit_contact_form',
+	minScore: 0.7
 })
 
 if (!result.success) {
-  console.error('reCAPTCHA failed:', result.reason)
-  return new Response('Captcha failed', { status: 400 })
+	console.error('reCAPTCHA failed:', result.reason)
+	return new Response('Captcha failed', { status: 400 })
 }
 console.log('Score:', result.score)
 ```
@@ -395,15 +401,15 @@ import { z } from 'zod'
 import { withValidation } from '@goobits/security/validation/sveltekit'
 
 export const POST = withValidation(
-  {
-    body: z.object({ email: z.email(), name: z.string().min(1) }),  // Zod v4 syntax
-    query: z.object({ source: z.string().optional() })
-  },
-  async (event) => {
-    const { body, query } = event.locals.validatedData
-    // ...
-    return new Response('OK')
-  }
+	{
+		body: z.object({ email: z.email(), name: z.string().min(1) }), // Zod v4 syntax
+		query: z.object({ source: z.string().optional() })
+	},
+	async (event) => {
+		const { body, query } = event.locals.validatedData
+		// ...
+		return new Response('OK')
+	}
 )
 ```
 
@@ -415,9 +421,9 @@ import { getInputValidator } from '@goobits/security/validation'
 const validate = getInputValidator(z.object({ email: z.email() }))
 const result = validate({ email: 'a@b.com' })
 if (result.success) {
-  console.log(result.data.email)
+	console.log(result.data.email)
 } else {
-  console.error(result.issues)
+	console.error(result.issues)
 }
 ```
 
@@ -429,20 +435,20 @@ Note: `@goobits/security` peer-depends on `zod ^4.0.0` (optional). If you don't 
 import { createAdminAuth, generateAdminApiKey } from '@goobits/security/admin-auth'
 
 const adminAuth = createAdminAuth({
-  jwtSecret: process.env.JWT_SECRET!,   // >= 32 chars  -  throws otherwise
-  apiKey:    process.env.ADMIN_API_KEY, // optional fallback
-  algorithms: ['HS256'],                // default: ['HS256'] (pinned tight)
-  audience:  'my-app',                  // optional  -  rejected if token aud differs
-  issuer:    'my-auth-service',         // optional  -  rejected if token iss differs
-  clockTolerance: 30                    // optional  -  seconds of skew tolerated on exp/nbf
+	jwtSecret: process.env.JWT_SECRET!, // >= 32 chars  -  throws otherwise
+	apiKey: process.env.ADMIN_API_KEY, // optional fallback
+	algorithms: ['HS256'], // default: ['HS256'] (pinned tight)
+	audience: 'my-app', // optional  -  rejected if token aud differs
+	issuer: 'my-auth-service', // optional  -  rejected if token iss differs
+	clockTolerance: 30 // optional  -  seconds of skew tolerated on exp/nbf
 })
 
 export async function POST({ request }) {
-  const result = await adminAuth.requireAdmin(request)
-  if (!result.authenticated) {
-    return new Response('Unauthorized', { status: 401 })
-  }
-  // result.user.id, result.method ('jwt' | 'apikey')
+	const result = await adminAuth.requireAdmin(request)
+	if (!result.authenticated) {
+		return new Response('Unauthorized', { status: 401 })
+	}
+	// result.user.id, result.method ('jwt' | 'apikey')
 }
 
 // Issue a new token (NOTE: async since the v2.0.0 jose swap):
@@ -474,42 +480,44 @@ import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 
 const auditor = createAuditLogger({
-  sink: {
-    async record(event) {
-      await db.insert('audit_log').values(event)
-    }
-  }
+	sink: {
+		async record(event) {
+			await db.insert('audit_log').values(event)
+		}
+	}
 })
 
 // Wrap a handler:
 export const POST = withAudit(
-  { action: 'admin.delete-user', auditor, actorId: (e) => e.locals.user?.id },
-  async (event) => {
-    // ... your logic ...
-    return new Response('OK')
-  }
+	{ action: 'admin.delete-user', auditor, actorId: (e) => e.locals.user?.id },
+	async (event) => {
+		// ... your logic ...
+		return new Response('OK')
+	}
 )
 
 // Capture the request body (e.g. for a contact form audit) with redaction:
 export const POST = withAudit(
-  {
-    action: 'contact.submit',
-    auditor,
-    includeRequestBody: true,
-    // Defaults: ['password', 'token', 'secret', 'apiKey', 'authorization',
-    // 'creditCard', 'cvv']. Override with your own set (case-insensitive,
-    // recurses into nested objects and arrays). Pass `redactKeys: []` to
-    // disable redaction entirely (NOT recommended for routes with credentials).
-    redactKeys: ['password', 'token', 'creditCard', 'ssn']
-  },
-  async (event) => { /* ... */ return new Response('OK') }
+	{
+		action: 'contact.submit',
+		auditor,
+		includeRequestBody: true,
+		// Defaults: ['password', 'token', 'secret', 'apiKey', 'authorization',
+		// 'creditCard', 'cvv']. Override with your own set (case-insensitive,
+		// recurses into nested objects and arrays). Pass `redactKeys: []` to
+		// disable redaction entirely (NOT recommended for routes with credentials).
+		redactKeys: ['password', 'token', 'creditCard', 'ssn']
+	},
+	async (event) => {
+		/* ... */ return new Response('OK')
+	}
 )
 
 // Or call directly:
 await auditor.log({
-  action: 'user.login',
-  outcome: 'success',
-  actorId: user.id
+	action: 'user.login',
+	outcome: 'success',
+	actorId: user.id
 })
 ```
 
@@ -519,37 +527,38 @@ await auditor.log({
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
 
 const slack = createWebhookChannel({
-  url: process.env.SLACK_WEBHOOK_URL!,
-  transform: (a) => ({
-    text: `*[${ a.severity.toUpperCase() }]* ${ a.title }\n${ a.message }`
-  })
+	url: process.env.SLACK_WEBHOOK_URL!,
+	transform: (a) => ({
+		text: `*[${a.severity.toUpperCase()}]* ${a.title}\n${a.message}`
+	})
 })
 
 const alerter = createSecurityAlerter({
-  channels: [ slack ],
-  rules: [
-    // Alert on any admin-route denial:
-    (event) => event.action.startsWith('admin.') && event.outcome === 'denied'
-      ? {
-          severity: 'critical',
-          title: 'Admin access denied',
-          message: event.action,
-          source: 'goobits/security',
-          timestamp: event.timestamp,
-          context: { actorId: event.actorId, clientIp: event.clientIp }
-        }
-      : null
-  ]
+	channels: [slack],
+	rules: [
+		// Alert on any admin-route denial:
+		(event) =>
+			event.action.startsWith('admin.') && event.outcome === 'denied'
+				? {
+						severity: 'critical',
+						title: 'Admin access denied',
+						message: event.action,
+						source: 'goobits/security',
+						timestamp: event.timestamp,
+						context: { actorId: event.actorId, clientIp: event.clientIp }
+					}
+				: null
+	]
 })
 
 // Plug into the audit sink:
 const auditor = createAuditLogger({
-  sink: {
-    async record(event) {
-      await db.insert('audit_log').values(event)
-      await alerter.process(event)
-    }
-  }
+	sink: {
+		async record(event) {
+			await db.insert('audit_log').values(event)
+			await alerter.process(event)
+		}
+	}
 })
 ```
 
@@ -577,24 +586,24 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 
 ### Per-module runtime compatibility
 
-| Module | Node ≥22 | Bun | Deno | Cloudflare Workers |
-|---|---|---|---|---|
-| `csrf` | ✅ | ✅ | ✅ | ✅ |
-| `csrf-redis` ‡ | client-dependent | client-dependent | client-dependent | client-dependent |
-| `csp` | ✅ | ✅ | ✅ | ✅ |
-| `recaptcha` | ✅ | ✅ | ✅ | ✅ |
-| `crypto` | ✅ | ✅ | ✅ | ✅ |
-| `identity` | ✅ | ✅ | ✅ | ✅ |
-| `validation` † | ✅ | ✅ | ✅ | ✅ |
-| `rate-limit` | ✅ | ✅ | ✅ | ✅ |
-| `rate-limit/auth` | ✅ | ✅ | ✅ | ✅ |
-| `rate-limit/sveltekit` † | ✅ | ✅ | ✅ | ✅ |
-| `principal-auth` | ✅ | ✅ | ✅ | ✅ (uses `jose`, Web Crypto-based) |
-| `admin-auth` | ✅ | ✅ | ✅ | ✅ (uses `jose`, Web Crypto-based) |
-| `audit` | ✅ | ✅ | ✅ | ✅ |
-| `audit/sveltekit` † | ✅ | ✅ | ✅ | ✅ |
-| `alerting` | ✅ | ✅ | ✅ | ✅ |
-| `logger` | ✅ | ✅ | ✅ | ✅ |
+| Module                   | Node ≥22         | Bun              | Deno             | Cloudflare Workers                 |
+| ------------------------ | ---------------- | ---------------- | ---------------- | ---------------------------------- |
+| `csrf`                   | ✅               | ✅               | ✅               | ✅                                 |
+| `csrf-redis` ‡           | client-dependent | client-dependent | client-dependent | client-dependent                   |
+| `csp`                    | ✅               | ✅               | ✅               | ✅                                 |
+| `recaptcha`              | ✅               | ✅               | ✅               | ✅                                 |
+| `crypto`                 | ✅               | ✅               | ✅               | ✅                                 |
+| `identity`               | ✅               | ✅               | ✅               | ✅                                 |
+| `validation` †           | ✅               | ✅               | ✅               | ✅                                 |
+| `rate-limit`             | ✅               | ✅               | ✅               | ✅                                 |
+| `rate-limit/auth`        | ✅               | ✅               | ✅               | ✅                                 |
+| `rate-limit/sveltekit` † | ✅               | ✅               | ✅               | ✅                                 |
+| `principal-auth`         | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |
+| `admin-auth`             | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |
+| `audit`                  | ✅               | ✅               | ✅               | ✅                                 |
+| `audit/sveltekit` †      | ✅               | ✅               | ✅               | ✅                                 |
+| `alerting`               | ✅               | ✅               | ✅               | ✅                                 |
+| `logger`                 | ✅               | ✅               | ✅               | ✅                                 |
 
 † SvelteKit adapter: types reference `@sveltejs/kit`. Use the parent subpath (`validation`'s `getInputValidator`, `rate-limit`'s `createRateLimiter`, `audit`'s `createAuditLogger`) directly for framework-agnostic usage.
 
@@ -606,13 +615,13 @@ All modules use the Web Crypto API on `globalThis.crypto` for randomness and sig
 
 ### Required env vars (when used)
 
-| Module | Variable | Required? |
-|---|---|---|
-| `recaptcha` | `RECAPTCHA_SECRET_KEY` | Yes (or pass `secretKey` via options) |
-| `admin-auth` | (none; `jwtSecret` passed via config) | n/a |
-| `csrf` | `DISABLE_CSRF=true` | Tests only; **throws at startup if set in production** |
-| `csrf` | `NODE_ENV=production` | Read for cookie `Secure` flag default |
-| `recaptcha` | `NODE_ENV` | Read to gate `allowInDevelopment` (default off) |
+| Module       | Variable                              | Required?                                              |
+| ------------ | ------------------------------------- | ------------------------------------------------------ |
+| `recaptcha`  | `RECAPTCHA_SECRET_KEY`                | Yes (or pass `secretKey` via options)                  |
+| `admin-auth` | (none; `jwtSecret` passed via config) | n/a                                                    |
+| `csrf`       | `DISABLE_CSRF=true`                   | Tests only; **throws at startup if set in production** |
+| `csrf`       | `NODE_ENV=production`                 | Read for cookie `Secure` flag default                  |
+| `recaptcha`  | `NODE_ENV`                            | Read to gate `allowInDevelopment` (default off)        |
 
 The package never reads env vars except via these explicit fallbacks. **Best practice**: pass secrets explicitly via config and don't rely on env-var fallbacks in production code.
 

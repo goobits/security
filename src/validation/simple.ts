@@ -38,10 +38,7 @@ export type ValidationResult<T = unknown> =
 	| { isValid: true; value: T | undefined }
 	| { isValid: false; issue: ValidationIssue }
 
-export type FieldValidator<T = unknown> = (
-	value: unknown,
-	fieldName: string
-) => ValidationResult<T>
+export type FieldValidator<T = unknown> = (value: unknown, fieldName: string) => ValidationResult<T>
 
 export class RequestValidationError extends Error {
 	constructor(readonly issue: ValidationIssue) {
@@ -86,9 +83,7 @@ export function validateString(
 	if (customResult !== undefined && customResult !== true) {
 		return invalidFormat(
 			fieldName,
-			typeof customResult === 'string'
-				? customResult
-				: 'custom validation failed'
+			typeof customResult === 'string' ? customResult : 'custom validation failed'
 		)
 	}
 
@@ -132,9 +127,7 @@ export function validateNumber(
 	if (customResult !== undefined && customResult !== true) {
 		return invalidFormat(
 			fieldName,
-			typeof customResult === 'string'
-				? customResult
-				: 'custom validation failed'
+			typeof customResult === 'string' ? customResult : 'custom validation failed'
 		)
 	}
 
@@ -199,10 +192,7 @@ export function validateArray<T>(
 	for (let index = 0; index < value.length; index++) {
 		const itemResult = itemValidator(value[index], index)
 		if (!itemResult.isValid) {
-			return invalidFormat(
-				fieldName,
-				`item at index ${index}: ${itemResult.issue.message}`
-			)
+			return invalidFormat(fieldName, `item at index ${index}: ${itemResult.issue.message}`)
 		}
 		validatedItems.push(itemResult.value as T)
 	}
@@ -253,9 +243,14 @@ export async function validateRequestBody<T extends Record<string, unknown>>(
 		data = await request.json()
 	} catch {
 		throw new RequestValidationError(
-			createIssue('invalid_format', 'request body', 'request body has invalid format: must be valid JSON', {
-				format: 'must be valid JSON'
-			})
+			createIssue(
+				'invalid_format',
+				'request body',
+				'request body has invalid format: must be valid JSON',
+				{
+					format: 'must be valid JSON'
+				}
+			)
 		)
 	}
 
@@ -291,12 +286,9 @@ function isOptionalEmpty(value: unknown, options: ValidationOptions): boolean {
 function invalidFormat(fieldName: string, format: string): ValidationResult<never> {
 	return {
 		isValid: false,
-		issue: createIssue(
-			'invalid_format',
-			fieldName,
-			`${fieldName} has invalid format: ${format}`,
-			{ format }
-		)
+		issue: createIssue('invalid_format', fieldName, `${fieldName} has invalid format: ${format}`, {
+			format
+		})
 	}
 }
 
@@ -338,12 +330,11 @@ function invalidRange(
 
 	return {
 		isValid: false,
-		issue: createIssue(
-			'invalid_range',
-			fieldName,
-			`${fieldName} has invalid format: ${format}`,
-			{ format, min, max }
-		)
+		issue: createIssue('invalid_range', fieldName, `${fieldName} has invalid format: ${format}`, {
+			format,
+			min,
+			max
+		})
 	}
 }
 

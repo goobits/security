@@ -10,13 +10,15 @@ import {
 
 describe('simple validation helpers', () => {
 	it('validates strings with required, length, pattern, and enum constraints', () => {
-		expect(validateString('draft', 'status', {
-			required: true,
-			minLength: 2,
-			maxLength: 10,
-			pattern: /^[a-z]+$/,
-			enum: ['draft', 'published']
-		})).toEqual({ isValid: true, value: 'draft' })
+		expect(
+			validateString('draft', 'status', {
+				required: true,
+				minLength: 2,
+				maxLength: 10,
+				pattern: /^[a-z]+$/,
+				enum: ['draft', 'published']
+			})
+		).toEqual({ isValid: true, value: 'draft' })
 
 		const result = validateString('', 'status', { required: true })
 		expect(result.isValid).toBe(false)

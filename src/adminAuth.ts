@@ -7,10 +7,7 @@
  * @module @goobits/security/admin-auth
  */
 
-import {
-	getRandomBytes,
-	toHex
-} from './_internal/crypto.js'
+import { getRandomBytes, toHex } from './_internal/crypto.js'
 import { type Logger, resolveLogger } from './logger.js'
 import {
 	createPrincipalAuth,
@@ -129,7 +126,7 @@ export function createAdminAuth(config: AdminAuthConfig): AdminAuth {
 		clockTolerance: config.clockTolerance,
 		logger: config.logger,
 		apiKeys: config.apiKey
-			? [ { key: config.apiKey, principal: { id: 'api-key-admin', role: 'admin' } } ]
+			? [{ key: config.apiKey, principal: { id: 'api-key-admin', role: 'admin' } }]
 			: [],
 		apiKeyHeader: 'x-admin-api-key',
 		authorizePrincipal: (principal) => isAdminClaim(principal)

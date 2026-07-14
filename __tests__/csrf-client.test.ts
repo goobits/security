@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import {
-	createCsrfFetch,
-	isSameOriginRequest,
-	readBrowserCookie
-} from '../src/csrfClient.js'
+import { createCsrfFetch, isSameOriginRequest, readBrowserCookie } from '../src/csrfClient.js'
 
 function createFetchSpy() {
 	const calls: Array<[RequestInfo | URL, RequestInit | undefined]> = []
@@ -23,8 +19,12 @@ describe('csrf client helpers', () => {
 
 	it('detects same-origin requests against a base URL', () => {
 		expect(isSameOriginRequest('/api/test', 'https://example.test/page')).toBe(true)
-		expect(isSameOriginRequest('https://example.test/api/test', 'https://example.test/page')).toBe(true)
-		expect(isSameOriginRequest('https://elsewhere.test/api/test', 'https://example.test/page')).toBe(false)
+		expect(isSameOriginRequest('https://example.test/api/test', 'https://example.test/page')).toBe(
+			true
+		)
+		expect(
+			isSameOriginRequest('https://elsewhere.test/api/test', 'https://example.test/page')
+		).toBe(false)
 	})
 
 	it('adds the CSRF header to unsafe same-origin requests', async () => {

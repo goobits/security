@@ -50,7 +50,7 @@ export function createRateLimitHandle(options: RateLimitHandleOptions): Handle {
 	const build = options.buildResponse ?? defaultRateLimitResponse
 
 	return async ({ event, resolve }) => {
-		if (options.skip && await options.skip(event)) {
+		if (options.skip && (await options.skip(event))) {
 			return resolve(event)
 		}
 
@@ -74,9 +74,7 @@ export function createRateLimitHandle(options: RateLimitHandleOptions): Handle {
 	}
 }
 
-function defaultRateLimitResponse(
-	verdict: Extract<RateLimitResult, { allowed: false }>
-): Response {
+function defaultRateLimitResponse(verdict: Extract<RateLimitResult, { allowed: false }>): Response {
 	return new Response(
 		JSON.stringify({
 			error: 'Too many requests',

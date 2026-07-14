@@ -32,7 +32,9 @@ export type HttpSignatureVerificationResult =
 	| { ok: false; reason: HttpSignatureVerificationError }
 
 /** Parses an HTTP Signature header into structured fields. */
-export function parseHttpSignatureHeader(value: string | null | undefined): HttpSignatureHeader | null {
+export function parseHttpSignatureHeader(
+	value: string | null | undefined
+): HttpSignatureHeader | null {
 	if (!value) return null
 	const params: Record<string, string> = {}
 	const pattern = /\s*([\w-]+)\s*=\s*("[^"]*"|[^,]+)\s*(?:,|$)/g
@@ -60,9 +62,8 @@ export function parseHttpSignatureHeader(value: string | null | undefined): Http
 export async function verifyHttpSignatureIdentity(
 	options: VerifyHttpSignatureOptions
 ): Promise<HttpSignatureVerificationResult> {
-	const header = typeof options.header === 'string'
-		? parseHttpSignatureHeader(options.header)
-		: options.header
+	const header =
+		typeof options.header === 'string' ? parseHttpSignatureHeader(options.header) : options.header
 	if (!header) {
 		return { ok: false, reason: options.header ? 'invalid-header' : 'missing-header' }
 	}

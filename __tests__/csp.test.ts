@@ -5,10 +5,10 @@ import { buildCsp, buildCspHeader, createCspDirectives, createCspNonce } from '.
 describe('createCspDirectives', () => {
 	it('emits a production baseline', () => {
 		const d = createCspDirectives({ mode: 'production' })
-		expect(d['default-src']).toEqual([ "'self'" ])
-		expect(d['script-src']).toEqual([ "'self'" ])
-		expect(d['frame-ancestors']).toEqual([ "'none'" ])
-		expect(d['object-src']).toEqual([ "'none'" ])
+		expect(d['default-src']).toEqual(["'self'"])
+		expect(d['script-src']).toEqual(["'self'"])
+		expect(d['frame-ancestors']).toEqual(["'none'"])
+		expect(d['object-src']).toEqual(["'none'"])
 		// upgrade-insecure-requests is a flag directive with no values.
 		expect(d['upgrade-insecure-requests']).toEqual([])
 	})
@@ -23,20 +23,20 @@ describe('createCspDirectives', () => {
 		const d = createCspDirectives({
 			mode: 'production',
 			extraSources: {
-				'script-src': [ 'https://js.stripe.com' ],
-				'connect-src': [ 'https://api.stripe.com' ]
+				'script-src': ['https://js.stripe.com'],
+				'connect-src': ['https://api.stripe.com']
 			}
 		})
-		expect(d['script-src']).toEqual([ "'self'", 'https://js.stripe.com' ])
-		expect(d['connect-src']).toEqual([ "'self'", 'https://api.stripe.com' ])
+		expect(d['script-src']).toEqual(["'self'", 'https://js.stripe.com'])
+		expect(d['connect-src']).toEqual(["'self'", 'https://api.stripe.com'])
 	})
 
 	it('dedupes overlapping sources', () => {
 		const d = createCspDirectives({
 			mode: 'production',
-			extraSources: { 'script-src': [ "'self'", "'self'", 'https://x.com' ] }
+			extraSources: { 'script-src': ["'self'", "'self'", 'https://x.com'] }
 		})
-		expect(d['script-src']).toEqual([ "'self'", 'https://x.com' ])
+		expect(d['script-src']).toEqual(["'self'", 'https://x.com'])
 	})
 
 	it('adds nonce to script-src and style-src', () => {
@@ -55,16 +55,16 @@ describe('createCspDirectives', () => {
 			reportUri: 'https://csp.example/report',
 			reportTo: 'csp-endpoint'
 		})
-		expect(d['report-uri']).toEqual([ 'https://csp.example/report' ])
-		expect(d['report-to']).toEqual([ 'csp-endpoint' ])
+		expect(d['report-uri']).toEqual(['https://csp.example/report'])
+		expect(d['report-to']).toEqual(['csp-endpoint'])
 	})
 })
 
 describe('buildCspHeader', () => {
 	it('serializes directive map into header value', () => {
 		const header = buildCspHeader({
-			'default-src': [ "'self'" ],
-			'script-src': [ "'self'", 'https://x.com' ]
+			'default-src': ["'self'"],
+			'script-src': ["'self'", 'https://x.com']
 		})
 		expect(header).toBe("default-src 'self'; script-src 'self' https://x.com")
 	})
@@ -79,7 +79,7 @@ describe('buildCsp', () => {
 	it('one-shot: build directives + serialize', () => {
 		const header = buildCsp({
 			mode: 'production',
-			extraSources: { 'script-src': [ 'https://js.stripe.com' ] }
+			extraSources: { 'script-src': ['https://js.stripe.com'] }
 		})
 		expect(header).toContain("script-src 'self' https://js.stripe.com")
 	})

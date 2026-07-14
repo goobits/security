@@ -22,7 +22,7 @@ describe('createAdminAuth', () => {
 	it('issues + verifies an admin JWT', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET })
 		const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' })
-		const request = makeRequest({ authorization: `Bearer ${ token }` })
+		const request = makeRequest({ authorization: `Bearer ${token}` })
 		const result = await adminAuth.requireAdmin(request)
 
 		expect(result.authenticated).toBe(true)
@@ -38,7 +38,7 @@ describe('createAdminAuth', () => {
 			.setProtectedHeader({ alg: 'HS256' })
 			.setExpirationTime('1h')
 			.sign(toBytes(SECRET))
-		const request = makeRequest({ authorization: `Bearer ${ nonAdminToken }` })
+		const request = makeRequest({ authorization: `Bearer ${nonAdminToken}` })
 		const result = await adminAuth.requireAdmin(request)
 
 		expect(result.authenticated).toBe(false)
@@ -53,13 +53,13 @@ describe('createAdminAuth', () => {
 	})
 
 	it('rejects tokens signed with a different algorithm', async () => {
-		const adminAuth = createAdminAuth({ jwtSecret: SECRET, algorithms: [ 'HS256' ] })
+		const adminAuth = createAdminAuth({ jwtSecret: SECRET, algorithms: ['HS256'] })
 		// Forge a token with HS512, should be rejected because only HS256 is allowed
 		const hs512Token = await new SignJWT({ id: 'user-1', role: 'admin' })
 			.setProtectedHeader({ alg: 'HS512' })
 			.setExpirationTime('1h')
 			.sign(toBytes(SECRET))
-		const request = makeRequest({ authorization: `Bearer ${ hs512Token }` })
+		const request = makeRequest({ authorization: `Bearer ${hs512Token}` })
 		const result = await adminAuth.requireAdmin(request)
 		expect(result.authenticated).toBe(false)
 	})
@@ -70,7 +70,7 @@ describe('createAdminAuth', () => {
 			.setProtectedHeader({ alg: 'HS256' })
 			.setExpirationTime(Math.floor(Date.now() / 1000) - 10) // 10s ago
 			.sign(toBytes(SECRET))
-		const request = makeRequest({ authorization: `Bearer ${ expiredToken }` })
+		const request = makeRequest({ authorization: `Bearer ${expiredToken}` })
 		const result = await adminAuth.requireAdmin(request)
 		expect(result.authenticated).toBe(false)
 	})
@@ -107,7 +107,7 @@ describe('createAdminAuth numeric tokenTtl (regression: jose absolute-vs-relativ
 	it('numeric tokenTtl is treated as RELATIVE seconds, not absolute UNIX seconds', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET, tokenTtl: 3600 }) // 1 hour
 		const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' })
-		const request = makeRequest({ authorization: `Bearer ${ token }` })
+		const request = makeRequest({ authorization: `Bearer ${token}` })
 		const result = await adminAuth.requireAdmin(request)
 		// If jose's absolute-seconds semantics leaked through, the token would
 		// claim exp=3600 (epoch second ≈ Jan 1970) and verification would fail
@@ -118,7 +118,7 @@ describe('createAdminAuth numeric tokenTtl (regression: jose absolute-vs-relativ
 	it('overrideTtl numeric value is also treated as relative seconds', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET })
 		const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' }, 7200)
-		const request = makeRequest({ authorization: `Bearer ${ token }` })
+		const request = makeRequest({ authorization: `Bearer ${token}` })
 		const result = await adminAuth.requireAdmin(request)
 		expect(result.authenticated).toBe(true)
 	})
@@ -129,14 +129,14 @@ describe('createAdminAuth audience / issuer / clockTolerance', () => {
 		const issuer = createAdminAuth({ jwtSecret: SECRET, audience: 'app-a' })
 		const verifier = createAdminAuth({ jwtSecret: SECRET, audience: 'app-b' })
 		const token = await issuer.createAdminToken({ id: 'user-1', role: 'admin' })
-		const result = await verifier.requireAdmin(makeRequest({ authorization: `Bearer ${ token }` }))
+		const result = await verifier.requireAdmin(makeRequest({ authorization: `Bearer ${token}` }))
 		expect(result.authenticated).toBe(false)
 	})
 
 	it('accepts tokens with matching audience', async () => {
 		const adminAuth = createAdminAuth({ jwtSecret: SECRET, audience: 'app-a' })
 		const token = await adminAuth.createAdminToken({ id: 'user-1', role: 'admin' })
-		const result = await adminAuth.requireAdmin(makeRequest({ authorization: `Bearer ${ token }` }))
+		const result = await adminAuth.requireAdmin(makeRequest({ authorization: `Bearer ${token}` }))
 		expect(result.authenticated).toBe(true)
 	})
 
@@ -144,7 +144,7 @@ describe('createAdminAuth audience / issuer / clockTolerance', () => {
 		const issuer = createAdminAuth({ jwtSecret: SECRET, issuer: 'svc-a' })
 		const verifier = createAdminAuth({ jwtSecret: SECRET, issuer: 'svc-b' })
 		const token = await issuer.createAdminToken({ id: 'user-1', role: 'admin' })
-		const result = await verifier.requireAdmin(makeRequest({ authorization: `Bearer ${ token }` }))
+		const result = await verifier.requireAdmin(makeRequest({ authorization: `Bearer ${token}` }))
 		expect(result.authenticated).toBe(false)
 	})
 

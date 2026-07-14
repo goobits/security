@@ -6,13 +6,15 @@ import { createRedisCsrfStore, type RedisLike } from '../src/csrfRedis.js'
  * In-memory stand-in for ioredis that satisfies the `RedisLike` interface.
  * Mirrors the `set ... PX ttlMs` semantic, keys auto-expire client-side.
  */
-function makeFakeRedis(): RedisLike & { _state: Map<string, { value: string; expiresAt: number }> } {
+function makeFakeRedis(): RedisLike & {
+	_state: Map<string, { value: string; expiresAt: number }>
+} {
 	const state = new Map<string, { value: string; expiresAt: number }>()
 	let scanKeys: string[] | null = null
 
 	function gc(): void {
 		const now = Date.now()
-		for (const [ k, v ] of state.entries()) {
+		for (const [k, v] of state.entries()) {
 			if (v.expiresAt <= now) state.delete(k)
 		}
 	}
@@ -39,9 +41,11 @@ function makeFakeRedis(): RedisLike & { _state: Map<string, { value: string; exp
 		): Promise<[string, string[]]> {
 			gc()
 			// Trivial pattern-to-regex (only `*` is supported here).
-			const re = new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$')
+			const re = new RegExp(
+				'^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'
+			)
 			if (cursor === '0' && scanKeys === null) {
-				scanKeys = Array.from(state.keys()).filter(k => re.test(k))
+				scanKeys = Array.from(state.keys()).filter((k) => re.test(k))
 			}
 			const matchingKeys = scanKeys ?? []
 			const offset = Number(cursor)
@@ -49,7 +53,7 @@ function makeFakeRedis(): RedisLike & { _state: Map<string, { value: string; exp
 			const nextCursor = nextOffset >= matchingKeys.length ? '0' : String(nextOffset)
 			const batch = matchingKeys.slice(offset, nextOffset)
 			if (nextCursor === '0') scanKeys = null
-			return [ nextCursor, batch ]
+			return [nextCursor, batch]
 		}
 	}
 }
@@ -115,10 +119,18 @@ describe('createRedisCsrfStore', () => {
 
 	it('re-throws on get failure (so failClosed downstream can act)', async () => {
 		const client: RedisLike = {
-			async get() { throw new Error('connection refused') },
-			async set() { throw new Error('connection refused') },
-			async del() { throw new Error('connection refused') },
-			async scan() { throw new Error('connection refused') }
+			async get() {
+				throw new Error('connection refused')
+			},
+			async set() {
+				throw new Error('connection refused')
+			},
+			async del() {
+				throw new Error('connection refused')
+			},
+			async scan() {
+				throw new Error('connection refused')
+			}
 		}
 		const store = createRedisCsrfStore({ client })
 

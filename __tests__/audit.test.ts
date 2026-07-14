@@ -1,13 +1,22 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { type AuditEvent, type AuditSink, createAuditLogger, createLoggerSink } from '../src/audit.js'
+import {
+	type AuditEvent,
+	type AuditSink,
+	createAuditLogger,
+	createLoggerSink
+} from '../src/audit.js'
 import { withAudit } from '../src/audit/sveltekit.js'
 import type { Logger } from '../src/logger.js'
 
 function makeSink(): { sink: AuditSink; records: AuditEvent[] } {
 	const records: AuditEvent[] = []
 	return {
-		sink: { record(event) { records.push(event) } },
+		sink: {
+			record(event) {
+				records.push(event)
+			}
+		},
 		records
 	}
 }
@@ -38,12 +47,20 @@ describe('createAuditLogger', () => {
 	it('catches sink errors and continues', async () => {
 		const errors: string[] = []
 		const log: Logger = {
-			debug() {}, info() {}, warn() {},
-			error(msg) { errors.push(msg) }
+			debug() {},
+			info() {},
+			warn() {},
+			error(msg) {
+				errors.push(msg)
+			}
 		}
 		const auditor = createAuditLogger({
 			logger: log,
-			sink: { record() { throw new Error('sink boom') } }
+			sink: {
+				record() {
+					throw new Error('sink boom')
+				}
+			}
 		})
 
 		await expect(auditor.log({ action: 'x', outcome: 'success' })).resolves.not.toThrow()
@@ -64,10 +81,13 @@ describe('createLoggerSink', () => {
 		})
 
 		expect(info).toHaveBeenCalledTimes(1)
-		expect(info).toHaveBeenCalledWith('audit:user.login', expect.objectContaining({
-			action: 'user.login',
-			outcome: 'success'
-		}))
+		expect(info).toHaveBeenCalledWith(
+			'audit:user.login',
+			expect.objectContaining({
+				action: 'user.login',
+				outcome: 'success'
+			})
+		)
 	})
 })
 
@@ -135,9 +155,7 @@ describe('withAudit redaction', () => {
 					password: 'secret123'
 				}
 			},
-			tokens: [
-				{ token: 'abc' }
-			]
+			tokens: [{ token: 'abc' }]
 		})
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		await handler(event as any)

@@ -61,11 +61,7 @@ export interface PrincipalAuthConfig {
 export type PrincipalAuthMethod = 'jwt' | 'apikey'
 
 /** Principal Auth Failure Reason shape used for signed principals, API keys, and request authentication. */
-export type PrincipalAuthFailureReason =
-	| 'missing'
-	| 'invalid-jwt'
-	| 'invalid-apikey'
-	| 'forbidden'
+export type PrincipalAuthFailureReason = 'missing' | 'invalid-jwt' | 'invalid-apikey' | 'forbidden'
 
 /** Principal Auth Result shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthResult =
@@ -82,7 +78,9 @@ export interface PrincipalAuth {
 function normalizeRoles(value: unknown): string[] | undefined {
 	if (value === undefined) return undefined
 	if (!Array.isArray(value)) return undefined
-	const roles = value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+	const roles = value.filter(
+		(entry): entry is string => typeof entry === 'string' && entry.length > 0
+	)
 	return roles.length === value.length ? roles : undefined
 }
 
@@ -104,11 +102,11 @@ function extractBearer(authHeader: string | null): string | null {
 }
 
 function normalizeApiKeys(config: PrincipalAuthConfig): PrincipalApiKey[] {
-	const keys = [ ...(config.apiKeys ?? []) ]
+	const keys = [...(config.apiKeys ?? [])]
 	if (config.apiKey) {
 		keys.push({
 			key: config.apiKey,
-			principal: { id: 'api-key-principal', roles: [ 'service' ] }
+			principal: { id: 'api-key-principal', roles: ['service'] }
 		})
 	}
 	return keys
@@ -124,9 +122,7 @@ function verifyApiKey(presentedKey: string, keys: PrincipalApiKey[]): AuthPrinci
 }
 
 function resolveExpirationTime(ttl: string | number): string | number {
-	return typeof ttl === 'number'
-		? Math.floor(Date.now() / 1000) + ttl
-		: ttl
+	return typeof ttl === 'number' ? Math.floor(Date.now() / 1000) + ttl : ttl
 }
 
 /** Create Principal Auth shape used for signed principals, API keys, and request authentication. */
@@ -134,7 +130,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 	const {
 		jwtSecret,
 		tokenTtl = '24h',
-		algorithms = [ 'HS256' ],
+		algorithms = ['HS256'],
 		audience,
 		issuer,
 		clockTolerance,
@@ -151,7 +147,9 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 		)
 	}
 	if (algorithms.length === 0) {
-		throw new Error('@goobits/security/principal-auth: algorithms must include at least one algorithm')
+		throw new Error(
+			'@goobits/security/principal-auth: algorithms must include at least one algorithm'
+		)
 	}
 
 	const secretBytes = toBytes(jwtSecret)
@@ -178,7 +176,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 				return null
 			}
 			return principal
-		} catch(err) {
+		} catch (err) {
 			if (err instanceof errors.JWTExpired) {
 				log.warn('Principal JWT expired')
 			} else if (err instanceof errors.JOSEError) {

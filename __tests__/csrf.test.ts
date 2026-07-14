@@ -22,7 +22,7 @@ describe('createCsrf', () => {
 		const response = makeResponse()
 		const token = await csrf.generate({ trackExpiry: false })
 		csrf.setCookie(response, token)
-		expect(response.headers.get('Set-Cookie')).toContain(`csrf-token=${ token }`)
+		expect(response.headers.get('Set-Cookie')).toContain(`csrf-token=${token}`)
 		expect(response.headers.get('X-CSRF-Token')).toBe(token)
 	})
 
@@ -30,7 +30,7 @@ describe('createCsrf', () => {
 		const csrf = createCsrf()
 		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 		expect(await csrf.validate(request)).toBe(true)
@@ -67,7 +67,9 @@ describe('createCsrf', () => {
 	it('rejects expired tokens when checkExpiry is true', async () => {
 		const csrf = createCsrf({
 			tokenStore: {
-				get() { return Date.now() - 1 },
+				get() {
+					return Date.now() - 1
+				},
 				set() {},
 				delete() {},
 				clear() {}
@@ -75,7 +77,7 @@ describe('createCsrf', () => {
 		})
 		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
@@ -85,7 +87,7 @@ describe('createCsrf', () => {
 		const csrf = createCsrf()
 		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 
@@ -95,7 +97,9 @@ describe('createCsrf', () => {
 	it('allows expired tokens when checkExpiry is false (default)', async () => {
 		const csrf = createCsrf({
 			tokenStore: {
-				get() { return Date.now() - 1 },
+				get() {
+					return Date.now() - 1
+				},
 				set() {},
 				delete() {},
 				clear() {}
@@ -103,7 +107,7 @@ describe('createCsrf', () => {
 		})
 		const token = await csrf.generate({ trackExpiry: false })
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 		expect(await csrf.validate(request)).toBe(true)
@@ -125,7 +129,7 @@ describe('createCsrf', () => {
 		const token = await csrf.generate()
 		const response = makeResponse()
 		csrf.setCookie(response, token)
-		expect(response.headers.get('Set-Cookie')).toContain(`my_csrf=${ token }`)
+		expect(response.headers.get('Set-Cookie')).toContain(`my_csrf=${token}`)
 		expect(response.headers.get('My-CSRF')).toBe(token)
 	})
 
@@ -133,14 +137,16 @@ describe('createCsrf', () => {
 		const token = 'a'.repeat(64)
 		const csrf = createCsrf({
 			tokenStore: {
-				get() { throw new Error('store down') },
+				get() {
+					throw new Error('store down')
+				},
 				set() {},
 				delete() {},
 				clear() {}
 			}
 		})
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 
@@ -152,14 +158,16 @@ describe('createCsrf', () => {
 		const csrf = createCsrf({
 			failClosed: true,
 			tokenStore: {
-				get() { throw new Error('store down') },
+				get() {
+					throw new Error('store down')
+				},
 				set() {},
 				delete() {},
 				clear() {}
 			}
 		})
 		const request = makeRequest({
-			cookie: `csrf-token=${ token }`,
+			cookie: `csrf-token=${token}`,
 			'X-CSRF-Token': token
 		})
 
@@ -169,8 +177,12 @@ describe('createCsrf', () => {
 	it('surfaces store write errors during token generation', async () => {
 		const csrf = createCsrf({
 			tokenStore: {
-				get() { return undefined },
-				set() { throw new Error('store down') },
+				get() {
+					return undefined
+				},
+				set() {
+					throw new Error('store down')
+				},
 				delete() {},
 				clear() {}
 			}

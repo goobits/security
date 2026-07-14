@@ -24,7 +24,7 @@ describe('createConsoleLogger', () => {
 		vi.spyOn(console, 'info').mockImplementation(spies.info)
 		vi.spyOn(console, 'warn').mockImplementation(spies.warn)
 		vi.spyOn(console, 'error').mockImplementation(spies.error)
-		Object.values(spies).forEach(s => s.mockClear())
+		Object.values(spies).forEach((s) => s.mockClear())
 	})
 
 	afterEach(() => {

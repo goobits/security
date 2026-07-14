@@ -1,10 +1,4 @@
-import {
-	getRandomBytes,
-	timingSafeEqualBytes,
-	toBytes,
-	toHex
-} from '../_internal/crypto.js'
-
+import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from '../_internal/crypto.js'
 
 export { getRandomBytes as randomBytes, toBytes as textToBytes, toHex as bytesToHex }
 
@@ -40,16 +34,13 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
 	for (let i = 0; i < bytes.length; i += 1) {
 		binary += String.fromCharCode(bytes[i] ?? 0)
 	}
-	return btoa(binary)
-		.replaceAll('+', '-')
-		.replaceAll('/', '_')
-		.replace(/=+$/u, '')
+	return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/u, '')
 }
 
 /** Decodes unpadded base64url into bytes. */
 export function base64UrlToBytes(value: string): Uint8Array {
 	const normalized = value.replaceAll('-', '+').replaceAll('_', '/')
-	const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+	const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
 	const binary = atob(padded)
 	const bytes = new Uint8Array(binary.length)
 	for (let i = 0; i < binary.length; i += 1) {

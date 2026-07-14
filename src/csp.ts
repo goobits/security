@@ -99,38 +99,32 @@ export interface CspConfig {
 }
 
 const PRODUCTION_BASE: CspDirectives = {
-	'default-src': [ "'self'" ],
-	'script-src': [ "'self'" ],
-	'style-src': [ "'self'" ],
-	'img-src': [ "'self'", 'data:' ],
-	'font-src': [ "'self'" ],
-	'connect-src': [ "'self'" ],
-	'frame-ancestors': [ "'none'" ],
-	'object-src': [ "'none'" ],
-	'base-uri': [ "'self'" ],
-	'form-action': [ "'self'" ],
+	'default-src': ["'self'"],
+	'script-src': ["'self'"],
+	'style-src': ["'self'"],
+	'img-src': ["'self'", 'data:'],
+	'font-src': ["'self'"],
+	'connect-src': ["'self'"],
+	'frame-ancestors': ["'none'"],
+	'object-src': ["'none'"],
+	'base-uri': ["'self'"],
+	'form-action': ["'self'"],
 	'upgrade-insecure-requests': []
 }
 
 const DEVELOPMENT_BASE: CspDirectives = {
-	'default-src': [ "'self'" ],
+	'default-src': ["'self'"],
 	// HMR needs unsafe-inline + unsafe-eval; blob: for module workers.
-	'script-src': [ "'self'", "'unsafe-inline'", "'unsafe-eval'", 'blob:' ],
-	'style-src': [ "'self'", "'unsafe-inline'" ],
-	'img-src': [ "'self'", 'data:', 'blob:' ],
-	'font-src': [ "'self'" ],
-	'connect-src': [
-		"'self'",
-		'ws:',
-		'wss:',
-		'http://localhost:*',
-		'http://0.0.0.0:*'
-	],
-	'frame-ancestors': [ "'none'" ],
-	'object-src': [ "'none'" ],
-	'base-uri': [ "'self'" ],
-	'form-action': [ "'self'" ],
-	'worker-src': [ "'self'", 'blob:' ]
+	'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'blob:'],
+	'style-src': ["'self'", "'unsafe-inline'"],
+	'img-src': ["'self'", 'data:', 'blob:'],
+	'font-src': ["'self'"],
+	'connect-src': ["'self'", 'ws:', 'wss:', 'http://localhost:*', 'http://0.0.0.0:*'],
+	'frame-ancestors': ["'none'"],
+	'object-src': ["'none'"],
+	'base-uri': ["'self'"],
+	'form-action': ["'self'"],
+	'worker-src': ["'self'", 'blob:']
 }
 
 function dedupe(values: string[]): string[] {
@@ -152,7 +146,7 @@ function mergeDirectives(base: CspDirectives, extra: CspDirectives): CspDirectiv
 		...(Object.keys(extra) as CspDirective[])
 	])
 	for (const key of keys) {
-		const merged = [ ...(base[key] ?? []), ...(extra[key] ?? []) ]
+		const merged = [...(base[key] ?? []), ...(extra[key] ?? [])]
 		result[key] = dedupe(merged)
 	}
 	return result
@@ -176,9 +170,9 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
 	const log = resolveLogger(logger)
 	if (mode === 'development' && isProduction()) {
 		log.warn(
-			'CSP mode=\'development\' requested while NODE_ENV=production. ' +
-			'this relaxes script-src/style-src to allow \'unsafe-inline\' and \'unsafe-eval\'. ' +
-			'If unintentional, pass mode=\'production\' or omit the mode option.'
+			"CSP mode='development' requested while NODE_ENV=production. " +
+				"this relaxes script-src/style-src to allow 'unsafe-inline' and 'unsafe-eval'. " +
+				"If unintentional, pass mode='production' or omit the mode option."
 		)
 	}
 
@@ -186,11 +180,11 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
 	let directives = mergeDirectives(base, extraSources)
 
 	if (nonce) {
-		const nonceValue = `'nonce-${ nonce }'`
+		const nonceValue = `'nonce-${nonce}'`
 		directives = {
 			...directives,
-			'script-src': dedupe([ ...(directives['script-src'] ?? []), nonceValue ]),
-			'style-src': dedupe([ ...(directives['style-src'] ?? []), nonceValue ])
+			'script-src': dedupe([...(directives['script-src'] ?? []), nonceValue]),
+			'style-src': dedupe([...(directives['style-src'] ?? []), nonceValue])
 		}
 	}
 
@@ -199,8 +193,8 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
 		directives = rest
 	}
 
-	if (reportUri) directives = { ...directives, 'report-uri': [ reportUri ] }
-	if (reportTo) directives = { ...directives, 'report-to': [ reportTo ] }
+	if (reportUri) directives = { ...directives, 'report-uri': [reportUri] }
+	if (reportTo) directives = { ...directives, 'report-to': [reportTo] }
 
 	return directives
 }
@@ -210,11 +204,11 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
  */
 export function buildCspHeader(directives: CspDirectives): string {
 	const parts: string[] = []
-	for (const [ name, values ] of Object.entries(directives) as Array<[CspDirective, string[]]>) {
+	for (const [name, values] of Object.entries(directives) as Array<[CspDirective, string[]]>) {
 		if (values.length === 0) {
 			parts.push(name)
 		} else {
-			parts.push(`${ name } ${ values.join(' ') }`)
+			parts.push(`${name} ${values.join(' ')}`)
 		}
 	}
 	return parts.join('; ')

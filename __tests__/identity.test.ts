@@ -13,7 +13,7 @@ import {
 
 describe('DID-WBA identity helpers', () => {
 	it('builds and resolves DID-WBA identifiers', () => {
-		const did = buildDidWba('example.com', [ 'agents', 'scout' ])
+		const did = buildDidWba('example.com', ['agents', 'scout'])
 
 		expect(did).toBe('did:wba:example.com:agents:scout')
 		expect(didWbaToUrl(did)).toBe('https://example.com/agents/scout/did.json')
@@ -55,7 +55,7 @@ describe('DID-WBA identity helpers', () => {
 			header,
 			expectedDomain: 'example.com',
 			now: new Date('2026-06-13T12:00:30.000Z'),
-			verifySignature: input =>
+			verifySignature: (input) =>
 				input.message === didWbaSignatureMessage(header) && input.signature === 'sig'
 		})
 
@@ -77,41 +77,51 @@ describe('DID-WBA identity helpers', () => {
 			signature: 'sig'
 		}
 
-		await expect(verifyDidWbaIdentity({
-			header,
-			expectedDomain: 'other.example',
-			verifySignature: () => true
-		})).resolves.toEqual({ ok: false, reason: 'domain-mismatch' })
-		await expect(verifyDidWbaIdentity({
-			header,
-			now: new Date('2026-06-13T12:02:00.000Z'),
-			maxSkewMs: 60_000,
-			verifySignature: () => true
-		})).resolves.toEqual({ ok: false, reason: 'expired' })
-		await expect(verifyDidWbaIdentity({
-			header,
-			now: new Date('2026-06-13T12:00:00.000Z'),
-			verifySignature: () => false
-		})).resolves.toEqual({ ok: false, reason: 'invalid-signature' })
+		await expect(
+			verifyDidWbaIdentity({
+				header,
+				expectedDomain: 'other.example',
+				verifySignature: () => true
+			})
+		).resolves.toEqual({ ok: false, reason: 'domain-mismatch' })
+		await expect(
+			verifyDidWbaIdentity({
+				header,
+				now: new Date('2026-06-13T12:02:00.000Z'),
+				maxSkewMs: 60_000,
+				verifySignature: () => true
+			})
+		).resolves.toEqual({ ok: false, reason: 'expired' })
+		await expect(
+			verifyDidWbaIdentity({
+				header,
+				now: new Date('2026-06-13T12:00:00.000Z'),
+				verifySignature: () => false
+			})
+		).resolves.toEqual({ ok: false, reason: 'invalid-signature' })
 	})
 })
 
 describe('HTTP signature identity helpers', () => {
 	it('parses HTTP Signature headers', () => {
-		expect(parseHttpSignatureHeader('keyId="did:wba:example.com#key-1",algorithm="ed25519",headers="date digest",signature="sig"'))
-			.toEqual({
-				keyId: 'did:wba:example.com#key-1',
-				algorithm: 'ed25519',
-				headers: [ 'date', 'digest' ],
-				signature: 'sig'
-			})
+		expect(
+			parseHttpSignatureHeader(
+				'keyId="did:wba:example.com#key-1",algorithm="ed25519",headers="date digest",signature="sig"'
+			)
+		).toEqual({
+			keyId: 'did:wba:example.com#key-1',
+			algorithm: 'ed25519',
+			headers: ['date', 'digest'],
+			signature: 'sig'
+		})
 	})
 
 	it('verifies HTTP Signature identity with caller-supplied verifier', async () => {
 		const result = await verifyHttpSignatureIdentity({
 			header: 'keyId="did:wba:example.com#key-1",signature="sig"',
 			message: 'request-target: /',
-			verifySignature: input => input.keyId === 'did:wba:example.com#key-1' && input.signature === 'sig'
+			verifySignature: (input) =>
+				input.keyId === 'did:wba:example.com#key-1' && input.signature === 'sig'
 		})
 
 		expect(result.ok).toBe(true)

@@ -49,20 +49,26 @@ interface RecaptchaApiResponse {
 /** Recaptcha Result typed model for security middleware. */
 export type RecaptchaResult =
 	| {
-		success: true
-		score?: number
-		action?: string
-		raw: RecaptchaApiResponse
-	}
+			success: true
+			score?: number
+			action?: string
+			raw: RecaptchaApiResponse
+	  }
 	| {
-		success: false
-		reason: 'missing-token' | 'missing-secret' | 'api-error' | 'verification-failed' | 'score-too-low' | 'action-mismatch'
-		errorCodes?: string[]
-		statusCode?: number
-		score?: number
-		action?: string
-		raw?: RecaptchaApiResponse
-	}
+			success: false
+			reason:
+				| 'missing-token'
+				| 'missing-secret'
+				| 'api-error'
+				| 'verification-failed'
+				| 'score-too-low'
+				| 'action-mismatch'
+			errorCodes?: string[]
+			statusCode?: number
+			score?: number
+			action?: string
+			raw?: RecaptchaApiResponse
+	  }
 
 /**
  * Verify a reCAPTCHA token. Returns a discriminated-union result describing
@@ -102,7 +108,9 @@ export async function verifyRecaptcha(
 	if (!secretKey) {
 		log.error('RECAPTCHA_SECRET_KEY is not set')
 		if (!isProduction() && allowInDevelopment) {
-			log.warn('Allowing reCAPTCHA verification to pass (allowInDevelopment=true, NODE_ENV !== production)')
+			log.warn(
+				'Allowing reCAPTCHA verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
+			)
 			return { success: true, raw: { success: true } }
 		}
 		return { success: false, reason: 'missing-secret' }
@@ -124,7 +132,7 @@ export async function verifyRecaptcha(
 			return { success: false, reason: 'api-error', statusCode: response.status }
 		}
 
-		const data = await response.json() as RecaptchaApiResponse
+		const data = (await response.json()) as RecaptchaApiResponse
 
 		if (!data.success) {
 			log.warn('reCAPTCHA verification failed', { errorCodes: data['error-codes'] })
@@ -145,7 +153,12 @@ export async function verifyRecaptcha(
 					minimum: minScore,
 					action: data.action
 				})
-				const result: RecaptchaResult = { success: false, reason: 'score-too-low', score: data.score, raw: data }
+				const result: RecaptchaResult = {
+					success: false,
+					reason: 'score-too-low',
+					score: data.score,
+					raw: data
+				}
 				if (data.action !== undefined) result.action = data.action
 				return result
 			}
@@ -156,7 +169,12 @@ export async function verifyRecaptcha(
 					actual: data.action,
 					score: data.score
 				})
-				const result: RecaptchaResult = { success: false, reason: 'action-mismatch', score: data.score, raw: data }
+				const result: RecaptchaResult = {
+					success: false,
+					reason: 'action-mismatch',
+					score: data.score,
+					raw: data
+				}
 				if (data.action !== undefined) result.action = data.action
 				return result
 			}
@@ -166,7 +184,7 @@ export async function verifyRecaptcha(
 		if (data.score !== undefined) result.score = data.score
 		if (data.action !== undefined) result.action = data.action
 		return result
-	} catch(error) {
+	} catch (error) {
 		log.error('reCAPTCHA API request failed', { error: String(error) })
 		return { success: false, reason: 'api-error' }
 	} finally {

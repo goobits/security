@@ -32,9 +32,4 @@ export {
 	verifyAttachedSecurityProof,
 	verifySecurityProof
 } from './proof.js'
-export {
-	type HmacAlgorithm,
-	type HmacSignature,
-	signHmac,
-	verifyHmac
-} from './signatures.js'
+export { type HmacAlgorithm, type HmacSignature, signHmac, verifyHmac } from './signatures.js'

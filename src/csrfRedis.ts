@@ -56,7 +56,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 	const clearBatchSize = options.clearBatchSize ?? 100
 	const log = resolveLogger(options.logger)
 
-	const key = (token: string): string => `${ keyPrefix }:${ token }`
+	const key = (token: string): string => `${keyPrefix}:${token}`
 
 	return {
 		async get(token: string): Promise<number | undefined> {
@@ -65,7 +65,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 				if (raw === null) return undefined
 				const parsed = Number(raw)
 				return Number.isFinite(parsed) ? parsed : undefined
-			} catch(err) {
+			} catch (err) {
 				log.error('Redis CSRF store: get failed', { error: String(err) })
 				throw err
 			}
@@ -75,7 +75,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 			const effectiveTtl = ttlMs ?? Math.max(1, expiresAt - Date.now())
 			try {
 				await client.set(key(token), String(expiresAt), 'PX', effectiveTtl)
-			} catch(err) {
+			} catch (err) {
 				log.error('Redis CSRF store: set failed', { error: String(err) })
 				throw err
 			}
@@ -84,7 +84,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 		async delete(token: string): Promise<void> {
 			try {
 				await client.del(key(token))
-			} catch(err) {
+			} catch (err) {
 				log.error('Redis CSRF store: delete failed', { error: String(err) })
 				throw err
 			}
@@ -94,20 +94,20 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 			try {
 				let cursor = '0'
 				do {
-					const [ nextCursor, keys ] = await client.scan(
+					const [nextCursor, keys] = await client.scan(
 						cursor,
 						'MATCH',
-						`${ keyPrefix }:*`,
+						`${keyPrefix}:*`,
 						'COUNT',
 						clearScanCount
 					)
 					cursor = nextCursor
 					for (let i = 0; i < keys.length; i += clearBatchSize) {
 						const batch = keys.slice(i, i + clearBatchSize)
-						await Promise.all(batch.map(k => client.del(k)))
+						await Promise.all(batch.map((k) => client.del(k)))
 					}
 				} while (cursor !== '0')
-			} catch(err) {
+			} catch (err) {
 				log.error('Redis CSRF store: clear failed', { error: String(err) })
 				throw err
 			}
