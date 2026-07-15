@@ -11,7 +11,8 @@
 
 import { getRandomBytes } from './_internal/crypto.js'
 import { isProduction } from './_internal/env.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Standard CSP fetch + navigation directives, plus CSP3 + Trusted Types. */
 export type CspDirective =

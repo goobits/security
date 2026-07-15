@@ -4,7 +4,8 @@
  * @module @goobits/security/audit
  */
 
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Audit Outcome typed model for audit logging. */
 export type AuditOutcome = 'success' | 'failure' | 'denied' | 'error'

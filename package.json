@@ -1,6 +1,6 @@
 {
 	"name": "@goobits/security",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "Server-side security primitives for modern JavaScript runtimes: CSRF, rate limiting, reCAPTCHA, CSP, validation, admin auth, audit logging, and alerting",
 	"type": "module",
 	"main": "./src/index.ts",
@@ -34,7 +34,9 @@
 		"./audit": "./src/audit.ts",
 		"./audit/sveltekit": "./src/audit/sveltekit.ts",
 		"./alerting": "./src/alerting.ts",
-		"./logger": "./src/logger.ts"
+		"./logger": "./src/logger.ts",
+		"./redaction": "./src/redaction.ts",
+		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [
 		"security",

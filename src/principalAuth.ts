@@ -10,7 +10,8 @@
 import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
 
 import { timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Principal Auth Algorithm shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'

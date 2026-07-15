@@ -18,7 +18,8 @@
 import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_internal/crypto.js'
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
 import { isProduction, readEnv } from './_internal/env.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'

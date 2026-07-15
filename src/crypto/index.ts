@@ -1,10 +1,19 @@
 export {
 	type AesGcmOpenOptions,
 	type AesGcmOptions,
+	type AesGcmKeyring,
+	type AesGcmKeyringConfig,
+	type AesGcmKeyringOpenOptions,
+	type AesGcmKeyringSeal,
+	type AesGcmKeyringSealOptions,
 	type AesGcmSeal,
+	createAesGcmKeyring,
+	hasAesGcmKey,
 	openAesGcm,
+	openAesGcmWithKeyring,
 	openJson,
 	sealAesGcm,
+	sealAesGcmWithKeyring,
 	sealJson
 } from './aead.js'
 export {

@@ -6,12 +6,16 @@ import {
 	bytesToHex,
 	bytesToText,
 	constantTimeEqual,
+	createAesGcmKeyring,
+	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
+	openAesGcmWithKeyring,
 	openJson,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
+	sealAesGcmWithKeyring,
 	sealJson,
 	sha256Hex,
 	signHmac,
@@ -94,5 +98,53 @@ describe('crypto AEAD helpers', () => {
 		const seal = await sealJson({ token: 'abc' }, { key })
 
 		await expect(openJson<{ token: string }>({ key, seal })).resolves.toEqual({ token: 'abc' })
+	})
+
+	it('rotates opaque keyrings without exposing key material', async () => {
+		const oldKey = randomHex(32)
+		const currentKey = randomHex(32)
+		const oldKeyring = createAesGcmKeyring({ activeKeyId: 'old', keys: { old: oldKey } })
+		const sealed = await sealAesGcmWithKeyring({
+			keyring: oldKeyring,
+			plaintext: 'secret',
+			associatedData: 'context'
+		})
+		const rotatedKeyring = createAesGcmKeyring({
+			activeKeyId: 'current',
+			keys: { old: oldKey, current: currentKey }
+		})
+
+		expect(rotatedKeyring).toEqual({ activeKeyId: 'current' })
+		expect(hasAesGcmKey(rotatedKeyring, 'old')).toBe(true)
+		expect(
+			bytesToText(
+				await openAesGcmWithKeyring({
+					keyring: rotatedKeyring,
+					sealed,
+					associatedData: 'context'
+				})
+			)
+		).toBe('secret')
+	})
+
+	it('rejects duplicate and unconfigured keyring keys', async () => {
+		const key = randomHex(32)
+		expect(() => createAesGcmKeyring({ activeKeyId: 'missing', keys: { current: key } })).toThrow(
+			/active AES-GCM key ID/
+		)
+		expect(() => createAesGcmKeyring({ activeKeyId: 'a', keys: { a: key, b: key } })).toThrow(
+			/must be distinct/
+		)
+
+		const keyring = createAesGcmKeyring({ activeKeyId: 'current', keys: { current: key } })
+		await expect(
+			openAesGcmWithKeyring({
+				keyring,
+				sealed: {
+					keyId: 'retired',
+					seal: { algorithm: 'AES-GCM', iv: 'invalid', ciphertext: 'invalid' }
+				}
+			})
+		).rejects.toThrow(/not configured/)
 	})
 })

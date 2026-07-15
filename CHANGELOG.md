@@ -6,6 +6,10 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Breaking
+
+- The internal `resolveLogger()` fallback is no longer exported from `@goobits/security/logger`. Consumers should pass a logger to public factories or use the exported `noopLogger` explicitly. This closes the logger surface around stable public contracts ahead of v3.
+
 ### Removed
 
 - Removed legacy boolean CAPTCHA helpers. Use `verifyRecaptcha()` and `verifyTurnstile()` directly so callers can branch on structured failure reasons instead of flattening security decisions to `true`/`false`.
@@ -14,6 +18,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - Stopped exporting the private request-body and cookie parser helper types.
 
 ### ✨ Added
+
+- **`http-credentials`**: Strict, bounded parsers for Basic, Bearer, and explicit API-key authorization headers; constant-work Basic password verification; HMAC-bound API-key verifiers; secure key generation; and sanitized challenge responses.
+- **`redaction`**: Recursive, cycle-safe structured-value redaction with conservative secret-key defaults and consumer-provided string scrubbing for application PII policy.
+- **`crypto`**: Opaque, rotation-ready AES-GCM keyrings that expose key IDs without exposing key material.
+- **`rate-limit`**: HMAC-backed store wrapper that keeps raw emails, usernames, IP addresses, and tokens out of rate-limit persistence while propagating backing-store failures for explicit consumer policy.
 
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
 - 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.

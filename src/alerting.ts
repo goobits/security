@@ -9,7 +9,8 @@
  */
 
 import type { AuditEvent } from './audit.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Alert Severity typed model for security alerting. */
 export type AlertSeverity = 'info' | 'warning' | 'critical'

@@ -8,6 +8,7 @@ import {
 } from '../src/audit.js'
 import { withAudit } from '../src/audit/sveltekit.js'
 import type { Logger } from '../src/logger.js'
+import { redactSensitive } from '../src/redaction.js'
 
 function makeSink(): { sink: AuditSink; records: AuditEvent[] } {
 	const records: AuditEvent[] = []
@@ -203,5 +204,26 @@ describe('withAudit redaction', () => {
 
 		expect(records[0]?.outcome).toBe('denied')
 		expect(records[0]?.status).toBe(403)
+	})
+})
+
+describe('redactSensitive', () => {
+	it('handles cycles, errors, application key patterns, and string scrubbing', () => {
+		const payload: Record<string, unknown> = {
+			password: 'secret',
+			email: 'member@example.test',
+			error: new Error('failed for member@example.test')
+		}
+		payload['self'] = payload
+
+		const redacted = redactSensitive(payload, {
+			keyPattern: /^email$/i,
+			redactString: (value) => value.replaceAll('member@example.test', '[email]')
+		}) as Record<string, unknown>
+
+		expect(redacted['password']).toBe('[redacted]')
+		expect(redacted['email']).toBe('[redacted]')
+		expect(redacted['self']).toBe('[circular]')
+		expect(redacted['error']).toMatchObject({ message: 'failed for [email]' })
 	})
 })

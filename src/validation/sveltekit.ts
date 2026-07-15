@@ -11,7 +11,8 @@ import {
 	readJsonBody,
 	readRequestBodyBytes
 } from '../_internal/BodyTooLargeError.js'
-import { type Logger, resolveLogger } from '../logger.js'
+import { resolveLogger } from '../_internal/resolveLogger.js'
+import type { Logger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'
 
 export { BodyTooLargeError, readJsonBody, readRequestBodyBytes }

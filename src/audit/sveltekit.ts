@@ -8,7 +8,9 @@ import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 
 import { BodyTooLargeError, readJsonBody } from '../_internal/BodyTooLargeError.js'
 import type { AuditEvent, AuditLogger, AuditOutcome } from '../audit.js'
-import { type Logger, resolveLogger } from '../logger.js'
+import { resolveLogger } from '../_internal/resolveLogger.js'
+import type { Logger } from '../logger.js'
+import { DEFAULT_REDACT_KEYS, redactSensitive } from '../redaction.js'
 
 /** With Audit Options request or option shape for audit logging. */
 export interface WithAuditOptions {
@@ -37,39 +39,6 @@ export interface WithAuditOptions {
 	detail?(event: RequestEvent): Record<string, unknown> | undefined
 	/** Pluggable logger. Default: silent. */
 	logger?: Logger
-}
-
-const DEFAULT_REDACT_KEYS = [
-	'password',
-	'token',
-	'secret',
-	'apiKey',
-	'authorization',
-	'creditCard',
-	'cvv'
-]
-
-function redactSensitive(body: unknown, keys: ReadonlyArray<string>): unknown {
-	const normalizedKeys = new Set(keys.map((key) => key.toLowerCase()))
-	const seen = new WeakSet<object>()
-
-	function redact(value: unknown): unknown {
-		if (!value || typeof value !== 'object') return value
-		if (seen.has(value)) return '[Circular]'
-		seen.add(value)
-
-		if (Array.isArray(value)) {
-			return value.map((item) => redact(item))
-		}
-
-		const out: Record<string, unknown> = {}
-		for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
-			out[key] = normalizedKeys.has(key.toLowerCase()) ? '[redacted]' : redact(nested)
-		}
-		return out
-	}
-
-	return redact(body)
 }
 
 /**
@@ -114,7 +83,7 @@ export function withAudit(options: WithAuditOptions, handler: RequestHandler): R
 				const raw = await readJsonBody(event.request.clone(), {
 					maxBytes: options.maxRequestBodyBytes ?? 65_536
 				})
-				requestBody = redactSensitive(raw, redactKeys)
+				requestBody = redactSensitive(raw, { keys: redactKeys })
 			} catch (err) {
 				log.debug('audit: could not capture request body', {
 					error: err instanceof BodyTooLargeError ? 'body-too-large' : String(err)

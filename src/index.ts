@@ -21,6 +21,30 @@ export {
 	noopLogger
 } from './logger.js'
 
+/* Secret-safe logging and audit payloads. */
+export {
+	type RedactionOptions,
+	DEFAULT_REDACT_KEYS,
+	REDACTED_VALUE,
+	redactSensitive
+} from './redaction.js'
+
+/* Generic HTTP credential parsing and verification. */
+export {
+	type ApiKeyVerifierOptions,
+	type BasicAuthCredentials,
+	type BasicAuthPasswordVerifier,
+	type VerifyBasicAuthOptions,
+	createApiKey,
+	createBasicAuthResponse,
+	hashApiKey,
+	parseApiKeyHeader,
+	parseBasicAuthHeader,
+	parseBearerToken,
+	verifyApiKey,
+	verifyBasicAuthHeader
+} from './httpCredentials.js'
+
 /* CSRF protection. */
 export {
 	type CsrfConfig,
@@ -54,6 +78,11 @@ export { type RecaptchaOptions, type RecaptchaResult, verifyRecaptcha } from './
 export {
 	type AesGcmOpenOptions,
 	type AesGcmOptions,
+	type AesGcmKeyring,
+	type AesGcmKeyringConfig,
+	type AesGcmKeyringOpenOptions,
+	type AesGcmKeyringSeal,
+	type AesGcmKeyringSealOptions,
 	type AesGcmSeal,
 	type CreateSecurityProofOptions,
 	type HmacAlgorithm,
@@ -69,13 +98,17 @@ export {
 	bytesToText,
 	canonicalizeJson,
 	constantTimeEqual,
+	createAesGcmKeyring,
 	createSecurityProof,
+	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
+	openAesGcmWithKeyring,
 	openJson,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
+	sealAesGcmWithKeyring,
 	sealJson,
 	sha256Bytes,
 	sha256Hex,
@@ -117,6 +150,7 @@ export {
 	type D1RateLimitDatabase,
 	type D1RateLimitStoreOptions,
 	type GetClientIpOptions,
+	type HmacRateLimitStoreOptions,
 	type RateLimitConfig,
 	type RateLimitEntry,
 	type RateLimitResult,
@@ -125,6 +159,7 @@ export {
 	type RateLimiter,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
+	createHmacRateLimitStore,
 	createRateLimiter,
 	getClientIP
 } from './rate-limit/index.js'

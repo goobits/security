@@ -5,7 +5,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 ## TL;DR
 
 - Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
-- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `audit`, `alerting`, `crypto`, `identity`.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `http-credentials`, `redaction`, `audit`, `alerting`, `crypto`, `identity`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
@@ -13,12 +13,15 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 - **CSRF:** double-submit cookie pattern with timing-safe comparison, pluggable token store (in-memory or Redis)
 - **Rate limiting:** sliding-window counter with multi-window support, pluggable store
+- **Private rate-limit keys:** optional HMAC store wrapper keeps raw identifiers out of backing stores
 - **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
 - **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
 - **Validation:** Zod v4 middleware for request body / query / params
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
-- **Crypto:** Web Crypto encoding, HMAC, AES-GCM, SHA-256, and deterministic proof helpers
+- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
+- **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
+- **Redaction:** recursive, cycle-safe removal of secret-bearing fields before structured values reach logs or audit sinks
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
@@ -81,8 +84,8 @@ The same submodule layout works. Just declare the workspace in the format your p
 
 ```bash
 # Pin to a tag (recommended for releases):
-cd packages/security && git checkout v2.0.0 && cd ../..
-git add packages/security && git commit -m "chore: pin @goobits/security to v2.0.0"
+cd packages/security && git checkout <version-tag> && cd ../..
+git add packages/security && git commit -m "chore: pin @goobits/security"
 
 # Or pin to a specific commit SHA:
 cd packages/security && git checkout <sha> && cd ../..
@@ -109,6 +112,8 @@ import { getInputValidator } from '@goobits/security/validation'
 import { withValidation } from '@goobits/security/validation/sveltekit'
 import { createPrincipalAuth } from '@goobits/security/principal-auth'
 import { createAdminAuth } from '@goobits/security/admin-auth'
+import { parseBearerToken, verifyApiKey } from '@goobits/security/http-credentials'
+import { redactSensitive } from '@goobits/security/redaction'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
@@ -199,7 +204,7 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 })
 ```
 
-The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, and deterministic `SecurityProof` envelopes. Product permissions, roles, and app-specific authorization remain outside this package.
+The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, rotation-ready opaque keyrings, and deterministic `SecurityProof` envelopes. Product permissions, roles, key-distribution policy, and app-specific authorization remain outside this package.
 
 Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
 

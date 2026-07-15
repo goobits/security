@@ -14,14 +14,20 @@ describe('@goobits/security public API', () => {
 	})
 
 	it('resolves framework and provider subpath exports', async () => {
-		const [turnstile, rateLimit, validation] = await Promise.all([
+		const [turnstile, rateLimit, validation, redaction, credentials, logger] = await Promise.all([
 			import('@goobits/security/turnstile'),
 			import('@goobits/security/rate-limit/sveltekit'),
-			import('@goobits/security/validation/sveltekit')
+			import('@goobits/security/validation/sveltekit'),
+			import('@goobits/security/redaction'),
+			import('@goobits/security/http-credentials'),
+			import('@goobits/security/logger')
 		])
 
 		expect(turnstile.verifyTurnstile).toBeTypeOf('function')
 		expect(rateLimit).toBeTypeOf('object')
 		expect(validation.withValidation).toBeTypeOf('function')
+		expect(redaction.redactSensitive).toBeTypeOf('function')
+		expect(credentials.parseBearerToken).toBeTypeOf('function')
+		expect(logger).not.toHaveProperty('resolveLogger')
 	})
 })
