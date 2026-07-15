@@ -34,6 +34,8 @@ export interface AlertChannel {
 export interface WebhookChannelOptions {
 	url: string
 	headers?: Record<string, string>
+	/** Network timeout in milliseconds. Default: 5000. */
+	timeoutMs?: number
 	/** Custom JSON body shape. Default: passes the `Alert` as-is. */
 	transform?(alert: Alert): unknown
 	logger?: Logger
@@ -53,9 +55,15 @@ export interface WebhookChannelOptions {
 export function createWebhookChannel(options: WebhookChannelOptions): AlertChannel {
 	const log = resolveLogger(options.logger)
 	const transform = options.transform ?? ((alert: Alert) => alert)
+	const timeoutMs = options.timeoutMs ?? 5000
+	if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+		throw new RangeError('Webhook timeoutMs must be a positive finite number')
+	}
 
 	return {
 		async send(alert: Alert): Promise<void> {
+			const controller = new AbortController()
+			const timeout = setTimeout(() => controller.abort(), timeoutMs)
 			try {
 				const body = transform(alert)
 				const response = await fetch(options.url, {
@@ -64,13 +72,16 @@ export function createWebhookChannel(options: WebhookChannelOptions): AlertChann
 						'Content-Type': 'application/json',
 						...(options.headers ?? {})
 					},
-					body: JSON.stringify(body)
+					body: JSON.stringify(body),
+					signal: controller.signal
 				})
 				if (!response.ok) {
 					log.error('Webhook alert failed', { status: response.status, title: alert.title })
 				}
 			} catch (err) {
 				log.error('Webhook alert threw', { error: String(err), title: alert.title })
+			} finally {
+				clearTimeout(timeout)
 			}
 		}
 	}

@@ -24,6 +24,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### 🔧 Changed
 
+- 🔔 **`alerting`**: Webhook delivery now aborts after a configurable timeout
+  (`5000ms` by default) instead of waiting indefinitely on an unavailable receiver.
 - 📦 **`validation/sveltekit`**: Validation options now satisfy exact optional property types without weakening public option shapes.
 
 ### 🏠 Internal

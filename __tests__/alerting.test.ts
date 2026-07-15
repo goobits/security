@@ -4,6 +4,7 @@ import { type AlertChannel, createSecurityAlerter, createWebhookChannel } from '
 import type { AuditEvent } from '../src/audit.js'
 
 afterEach(() => {
+	vi.useRealTimers()
 	vi.unstubAllGlobals()
 })
 
@@ -167,5 +168,57 @@ describe('createWebhookChannel', () => {
 		})
 
 		expect(fetched[0]?.body).toEqual({ text: '[warning] Hi' })
+	})
+
+	it('aborts webhook delivery after the configured timeout', async () => {
+		vi.useFakeTimers()
+		let signal: AbortSignal | undefined
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async (_url: unknown, init: unknown) =>
+					new Promise<Response>((_resolve, reject) => {
+						signal = (init as RequestInit).signal ?? undefined
+						signal?.addEventListener('abort', () =>
+							reject(new DOMException('Aborted', 'AbortError'))
+						)
+					})
+			)
+		)
+		const logger = {
+			debug: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+			error: vi.fn()
+		}
+		const channel = createWebhookChannel({
+			url: 'https://hook.test',
+			timeoutMs: 25,
+			logger
+		})
+		const sending = channel.send({
+			severity: 'warning',
+			title: 'Slow webhook',
+			message: 'm',
+			source: 'test',
+			timestamp: 'now'
+		})
+
+		await vi.advanceTimersByTimeAsync(25)
+		await expect(sending).resolves.toBeUndefined()
+		expect(signal?.aborted).toBe(true)
+		expect(logger.error).toHaveBeenCalledWith(
+			'Webhook alert threw',
+			expect.objectContaining({ title: 'Slow webhook' })
+		)
+	})
+
+	it('rejects invalid webhook timeouts at configuration time', () => {
+		expect(() => createWebhookChannel({ url: 'https://hook.test', timeoutMs: 0 })).toThrow(
+			'Webhook timeoutMs must be a positive finite number'
+		)
+		expect(() => createWebhookChannel({ url: 'https://hook.test', timeoutMs: Number.NaN })).toThrow(
+			'Webhook timeoutMs must be a positive finite number'
+		)
 	})
 })

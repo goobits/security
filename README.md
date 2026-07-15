@@ -528,6 +528,7 @@ import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/a
 
 const slack = createWebhookChannel({
 	url: process.env.SLACK_WEBHOOK_URL!,
+	timeoutMs: 5000,
 	transform: (a) => ({
 		text: `*[${a.severity.toUpperCase()}]* ${a.title}\n${a.message}`
 	})
@@ -561,6 +562,10 @@ const auditor = createAuditLogger({
 	}
 })
 ```
+
+Webhook delivery aborts after five seconds by default so an unavailable alert
+receiver cannot hold the calling security pipeline open. Set `timeoutMs` to a
+positive finite duration when a different bound is required.
 
 ## Pluggable logger
 
