@@ -361,6 +361,21 @@ export function createRateLimiter(config: RateLimitConfig): RateLimiter {
 	if (config.windows.length === 0) {
 		throw new Error('createRateLimiter: at least one window required')
 	}
+	for (const [index, window] of config.windows.entries()) {
+		if (typeof window.name !== 'string' || !window.name.trim()) {
+			throw new Error(`createRateLimiter: windows[${index}].name must not be empty`)
+		}
+		if (!Number.isSafeInteger(window.windowMs) || window.windowMs <= 0) {
+			throw new Error(
+				`createRateLimiter: windows[${index}].windowMs must be a positive safe integer`
+			)
+		}
+		if (!Number.isSafeInteger(window.maxEvents) || window.maxEvents <= 0) {
+			throw new Error(
+				`createRateLimiter: windows[${index}].maxEvents must be a positive safe integer`
+			)
+		}
+	}
 
 	const log = resolveLogger(config.logger)
 	const store = config.store ?? new MemoryRateLimitStore()

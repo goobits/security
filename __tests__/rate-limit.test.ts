@@ -62,6 +62,37 @@ describe('createRateLimiter', () => {
 		expect(() => createRateLimiter({ windows: [] })).toThrowError(/at least one window/)
 	})
 
+	it.each([
+		['windowMs', 0],
+		['windowMs', -1],
+		['windowMs', Number.NaN],
+		['windowMs', Number.POSITIVE_INFINITY],
+		['windowMs', 1.5],
+		['maxEvents', 0],
+		['maxEvents', -1],
+		['maxEvents', Number.NaN],
+		['maxEvents', Number.POSITIVE_INFINITY],
+		['maxEvents', 1.5]
+	] as const)('rejects invalid %s values', (field, value) => {
+		expect(() =>
+			createRateLimiter({
+				windows: [
+					{
+						name: 'invalid',
+						windowMs: field === 'windowMs' ? value : 60_000,
+						maxEvents: field === 'maxEvents' ? value : 10
+					}
+				]
+			})
+		).toThrow(`.${field} must be a positive safe integer`)
+	})
+
+	it('rejects empty window names', () => {
+		expect(() =>
+			createRateLimiter({ windows: [{ name: ' ', windowMs: 60_000, maxEvents: 10 }] })
+		).toThrow('.name must not be empty')
+	})
+
 	it('allows requests within the limit', async () => {
 		const limiter = createRateLimiter({
 			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 3 }]

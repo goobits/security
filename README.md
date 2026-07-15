@@ -319,6 +319,9 @@ if (!verdict.allowed) {
 }
 ```
 
+Window names must be non-empty, and `windowMs`/`maxEvents` must be positive
+safe integers. Invalid or non-finite policy values fail at construction time.
+
 ⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments. The package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
 
 ⚠️ **`getClientIP` trusts NO proxy headers by default.** This is intentional: blindly trusting `x-forwarded-for` lets attackers spoof the identifier. To enable header trust:
