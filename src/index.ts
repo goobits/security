@@ -25,6 +25,8 @@ export {
 export {
 	type RedactionOptions,
 	DEFAULT_REDACT_KEYS,
+	isSensitiveKey,
+	omitSensitive,
 	REDACTED_VALUE,
 	redactSensitive
 } from './redaction.js'

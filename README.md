@@ -21,7 +21,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
 - **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
 - **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
-- **Redaction:** recursive, cycle-safe removal of secret-bearing fields before structured values reach logs or audit sinks
+- **Redaction:** recursive, cycle-safe redaction or omission of normalized secret-bearing fields before structured values reach logs, audit sinks, or public projections
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events

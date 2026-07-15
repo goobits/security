@@ -1,11 +1,20 @@
 /** Default secret-bearing field names removed from logs and audit payloads. */
 export const DEFAULT_REDACT_KEYS = [
 	'password',
+	'password_hash',
 	'passphrase',
 	'token',
+	'token_hash',
 	'access_token',
 	'refresh_token',
+	'id_token',
+	'session_token',
+	'reset_token',
+	'magic_link_token',
 	'secret',
+	'private_key',
+	'encryption_key',
+	'signing_key',
 	'authorization',
 	'cookie',
 	'api_key',
@@ -18,7 +27,11 @@ export const DEFAULT_REDACT_KEYS = [
 	'verification_token',
 	'verificationtoken',
 	'totp',
-	'otp'
+	'otp',
+	'otp_hash',
+	'backup_codes',
+	'recovery_codes',
+	'webauthn_challenge'
 ] as const
 
 /** Stable replacement used for secret-bearing values. */
@@ -30,6 +43,8 @@ export interface RedactionOptions {
 	keyPattern?: RegExp
 	replacement?: string
 	redactString?: (value: string) => string
+	/** Remove matching object fields instead of retaining a replacement value. */
+	omit?: boolean
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -46,12 +61,25 @@ function patternMatches(pattern: RegExp | undefined, value: string): boolean {
 	return matches
 }
 
+function normalizeSensitiveKey(key: string): string {
+	return key.toLowerCase().replaceAll(/[^a-z0-9]/g, '')
+}
+
+/** Returns whether a field name belongs to a configured secret-bearing class. */
+export function isSensitiveKey(
+	key: string,
+	options: Pick<RedactionOptions, 'keys' | 'keyPattern'> = {}
+): boolean {
+	const normalizedKeys = new Set((options.keys ?? DEFAULT_REDACT_KEYS).map(normalizeSensitiveKey))
+	return normalizedKeys.has(normalizeSensitiveKey(key)) || patternMatches(options.keyPattern, key)
+}
+
 /** Recursively copies a value while removing configured secret-bearing fields. */
 export function redactSensitive(input: unknown, options: RedactionOptions = {}): unknown {
 	const replacement = options.replacement ?? REDACTED_VALUE
-	const normalizedKeys = new Set(
-		(options.keys ?? DEFAULT_REDACT_KEYS).map((key) => key.toLowerCase())
-	)
+	const normalizedKeys = new Set((options.keys ?? DEFAULT_REDACT_KEYS).map(normalizeSensitiveKey))
+	const matchesSensitiveKey = (key: string): boolean =>
+		normalizedKeys.has(normalizeSensitiveKey(key)) || patternMatches(options.keyPattern, key)
 	const seen = new WeakSet<object>()
 
 	const visit = (value: unknown): unknown => {
@@ -72,13 +100,22 @@ export function redactSensitive(input: unknown, options: RedactionOptions = {}):
 
 		const output: Record<string, unknown> = {}
 		for (const [key, nested] of Object.entries(value)) {
-			output[key] =
-				normalizedKeys.has(key.toLowerCase()) || patternMatches(options.keyPattern, key)
-					? replacement
-					: visit(nested)
+			if (matchesSensitiveKey(key)) {
+				if (!options.omit) output[key] = replacement
+				continue
+			}
+			output[key] = visit(nested)
 		}
 		return output
 	}
 
 	return visit(input)
+}
+
+/** Recursively copies a value while omitting secret-bearing object fields. */
+export function omitSensitive(
+	input: unknown,
+	options: Omit<RedactionOptions, 'omit' | 'replacement'> = {}
+): unknown {
+	return redactSensitive(input, { ...options, omit: true })
 }

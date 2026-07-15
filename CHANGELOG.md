@@ -19,6 +19,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### ✨ Added
 
+- **`redaction`**: Normalized secret-key detection and recursive omission for
+  public projections, including common camel-case, snake-case, and kebab-case
+  variants.
 - **`http-credentials`**: Strict, bounded parsers for Basic, Bearer, and explicit API-key authorization headers; constant-work Basic password verification; HMAC-bound API-key verifiers; secure key generation; and sanitized challenge responses.
 - **`redaction`**: Recursive, cycle-safe structured-value redaction with conservative secret-key defaults and consumer-provided string scrubbing for application PII policy.
 - **`crypto`**: Opaque, rotation-ready AES-GCM keyrings that expose key IDs without exposing key material.

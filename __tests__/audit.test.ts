@@ -8,7 +8,7 @@ import {
 } from '../src/audit.js'
 import { withAudit } from '../src/audit/sveltekit.js'
 import type { Logger } from '../src/logger.js'
-import { redactSensitive } from '../src/redaction.js'
+import { isSensitiveKey, omitSensitive, redactSensitive } from '../src/redaction.js'
 
 function makeSink(): { sink: AuditSink; records: AuditEvent[] } {
 	const records: AuditEvent[] = []
@@ -225,5 +225,23 @@ describe('redactSensitive', () => {
 		expect(redacted['email']).toBe('[redacted]')
 		expect(redacted['self']).toBe('[circular]')
 		expect(redacted['error']).toMatchObject({ message: 'failed for [email]' })
+	})
+
+	it('normalizes secret field naming and can omit nested secrets', () => {
+		const payload = {
+			id: 'u1',
+			passwordHash: 'encoded',
+			settings: {
+				refresh_token: 'refresh',
+				theme: 'dark'
+			}
+		}
+
+		expect(isSensitiveKey('PASSWORD-HASH')).toBe(true)
+		expect(isSensitiveKey('displayName')).toBe(false)
+		expect(omitSensitive(payload)).toEqual({
+			id: 'u1',
+			settings: { theme: 'dark' }
+		})
 	})
 })
