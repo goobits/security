@@ -43,6 +43,12 @@ export interface AesGcmKeyringConfig {
 	keys: Readonly<Record<string, Uint8Array | string>>
 }
 
+/** JSON representation accepted by `createAesGcmKeyringFromJson`. */
+export interface AesGcmKeyringJsonConfig {
+	activeKeyId: string
+	keys: Readonly<Record<string, string>>
+}
+
 /** AES-GCM seal paired with the key ID needed to open it. */
 export interface AesGcmKeyringSeal {
 	keyId: string
@@ -106,6 +112,37 @@ export function createAesGcmKeyring(config: AesGcmKeyringConfig): AesGcmKeyring 
 	const keyring = Object.freeze({ activeKeyId: config.activeKeyId })
 	keyringEntries.set(keyring, keys)
 	return keyring
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Parses a strict JSON keyring whose key values are hex-encoded AES keys. */
+export function createAesGcmKeyringFromJson(json: string): AesGcmKeyring {
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(json)
+	} catch {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM keyring JSON')
+	}
+	if (!isRecord(parsed) || typeof parsed['activeKeyId'] !== 'string' || !isRecord(parsed['keys'])) {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM keyring JSON')
+	}
+	const unknownFields = Object.keys(parsed).filter(
+		(field) => field !== 'activeKeyId' && field !== 'keys'
+	)
+	if (unknownFields.length > 0) {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM keyring JSON')
+	}
+	const keys: Record<string, string> = {}
+	for (const [keyId, value] of Object.entries(parsed['keys'])) {
+		if (typeof value !== 'string') {
+			throw new Error('@goobits/security/crypto: invalid AES-GCM keyring JSON')
+		}
+		keys[keyId] = value
+	}
+	return createAesGcmKeyring({ activeKeyId: parsed['activeKeyId'], keys })
 }
 
 /** Returns whether a key ID is present without exposing its key material. */

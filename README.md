@@ -206,6 +206,11 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 
 The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, rotation-ready opaque keyrings, and deterministic `SecurityProof` envelopes. Product permissions, roles, key-distribution policy, and app-specific authorization remain outside this package.
 
+For environment-backed rotation, `createAesGcmKeyringFromJson` accepts a strict
+JSON object with `activeKeyId` and a `keys` map of hex-encoded AES keys. The
+returned keyring exposes only the active key ID; applications retain ownership
+of the environment variable name and rotation policy.
+
 Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
 
 ---

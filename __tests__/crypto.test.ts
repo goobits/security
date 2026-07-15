@@ -7,6 +7,7 @@ import {
 	bytesToText,
 	constantTimeEqual,
 	createAesGcmKeyring,
+	createAesGcmKeyringFromJson,
 	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
@@ -125,6 +126,38 @@ describe('crypto AEAD helpers', () => {
 				})
 			)
 		).toBe('secret')
+	})
+
+	it('builds the same opaque keyring from strict JSON configuration', async () => {
+		const oldKey = randomHex(32)
+		const currentKey = randomHex(32)
+		const keyring = createAesGcmKeyringFromJson(
+			JSON.stringify({
+				activeKeyId: 'current',
+				keys: { old: oldKey, current: currentKey }
+			})
+		)
+		const sealed = await sealAesGcmWithKeyring({ keyring, plaintext: 'secret' })
+
+		expect(keyring).toEqual({ activeKeyId: 'current' })
+		expect(sealed.keyId).toBe('current')
+		expect(bytesToText(await openAesGcmWithKeyring({ keyring, sealed }))).toBe('secret')
+	})
+
+	it('rejects malformed or ambiguous keyring JSON without echoing secrets', () => {
+		for (const input of [
+			'not-json-secret-value',
+			'[]',
+			JSON.stringify({ activeKeyId: 'current', keys: { current: 123 } }),
+			JSON.stringify({ activeKeyId: 'current', keys: {}, typo: 'secret-value' })
+		]) {
+			expect(() => createAesGcmKeyringFromJson(input)).toThrow(/invalid AES-GCM keyring JSON/)
+			try {
+				createAesGcmKeyringFromJson(input)
+			} catch (error) {
+				expect(String(error)).not.toContain('secret-value')
+			}
+		}
 	})
 
 	it('rejects duplicate and unconfigured keyring keys', async () => {
