@@ -13,6 +13,8 @@ import {
 	openAesGcm,
 	openAesGcmWithKeyring,
 	openJson,
+	parseAesGcmKeyringSeal,
+	parseAesGcmSeal,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
@@ -70,11 +72,7 @@ describe('crypto signatures', () => {
 			verifyHmac('payload', { algorithm: 'HS256', value: 'not+base64url' }, 'secret')
 		).resolves.toBe(false)
 		await expect(
-			verifyHmac(
-				'payload',
-				{ algorithm: 'invalid' as 'HS256', value: 'abc' },
-				'secret'
-			)
+			verifyHmac('payload', { algorithm: 'invalid' as 'HS256', value: 'abc' }, 'secret')
 		).resolves.toBe(false)
 	})
 })
@@ -198,5 +196,23 @@ describe('crypto AEAD helpers', () => {
 				}
 			})
 		).rejects.toThrow(/not configured/)
+	})
+
+	it('strictly parses AES-GCM and keyring seals', async () => {
+		const keyring = createAesGcmKeyring({
+			activeKeyId: 'current',
+			keys: { current: randomHex(32) }
+		})
+		const sealed = await sealAesGcmWithKeyring({ keyring, plaintext: 'secret' })
+
+		expect(parseAesGcmSeal(sealed.seal)).toEqual(sealed.seal)
+		expect(parseAesGcmKeyringSeal(sealed)).toEqual(sealed)
+		for (const malformed of [
+			{ ...sealed, extra: true },
+			{ ...sealed, keyId: '../current' },
+			{ ...sealed, seal: { ...sealed.seal, algorithm: 'AES-CBC' } }
+		]) {
+			expect(() => parseAesGcmKeyringSeal(malformed)).toThrow(/invalid AES-GCM keyring seal/)
+		}
 	})
 })

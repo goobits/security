@@ -14,6 +14,8 @@ export {
 	openAesGcm,
 	openAesGcmWithKeyring,
 	openJson,
+	parseAesGcmKeyringSeal,
+	parseAesGcmSeal,
 	sealAesGcm,
 	sealAesGcmWithKeyring,
 	sealJson

@@ -118,6 +118,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** Parses a strict AES-GCM seal without accepting extra or mistyped fields. */
+export function parseAesGcmSeal(value: unknown): AesGcmSeal {
+	if (
+		!isRecord(value) ||
+		Object.keys(value).some((key) => key !== 'algorithm' && key !== 'iv' && key !== 'ciphertext') ||
+		value['algorithm'] !== 'AES-GCM' ||
+		typeof value['iv'] !== 'string' ||
+		typeof value['ciphertext'] !== 'string'
+	) {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM seal')
+	}
+	return value as unknown as AesGcmSeal
+}
+
+/** Parses a strict keyring seal and validates its public key identifier. */
+export function parseAesGcmKeyringSeal(value: unknown): AesGcmKeyringSeal {
+	if (
+		!isRecord(value) ||
+		Object.keys(value).some((key) => key !== 'keyId' && key !== 'seal') ||
+		typeof value['keyId'] !== 'string'
+	) {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM keyring seal')
+	}
+	try {
+		assertKeyId(value['keyId'])
+		return { keyId: value['keyId'], seal: parseAesGcmSeal(value['seal']) }
+	} catch {
+		throw new Error('@goobits/security/crypto: invalid AES-GCM keyring seal')
+	}
+}
+
 /** Parses a strict JSON keyring whose key values are hex-encoded AES keys. */
 export function createAesGcmKeyringFromJson(json: string): AesGcmKeyring {
 	let parsed: unknown

@@ -115,6 +115,8 @@ export {
 	openAesGcm,
 	openAesGcmWithKeyring,
 	openJson,
+	parseAesGcmKeyringSeal,
+	parseAesGcmSeal,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
