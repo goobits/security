@@ -31,6 +31,8 @@ src/
 │   ├── index.ts      # createRateLimiter + MemoryRateLimitStore (framework-agnostic)
 │   ├── auth.ts       # pre-baked auth-endpoint factories
 │   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
+├── csrf/
+│   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
 ├── audit/
 │   └── sveltekit.ts  # withAudit handler wrapper (SvelteKit adapter)
 ├── MemoryCsrfStore.ts # double-submit CSRF, pluggable token store

@@ -14,13 +14,15 @@ describe('@goobits/security public API', () => {
 	})
 
 	it('resolves framework and provider subpath exports', async () => {
-		const [turnstile, rateLimit, validation] = await Promise.all([
+		const [turnstile, csrf, rateLimit, validation] = await Promise.all([
 			import('@goobits/security/turnstile'),
+			import('@goobits/security/csrf/sveltekit'),
 			import('@goobits/security/rate-limit/sveltekit'),
 			import('@goobits/security/validation/sveltekit')
 		])
 
 		expect(turnstile.verifyTurnstile).toBeTypeOf('function')
+		expect(csrf.createSvelteKitCsrf).toBeTypeOf('function')
 		expect(rateLimit).toBeTypeOf('object')
 		expect(validation.withValidation).toBeTypeOf('function')
 	})

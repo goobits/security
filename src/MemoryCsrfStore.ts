@@ -87,9 +87,24 @@ export interface ValidateOptions {
 	checkExpiry?: boolean
 }
 
+/** Configures the bounded in-memory CSRF token store. */
+export interface MemoryCsrfStoreOptions {
+	/** Maximum number of tracked tokens. Default: 10,000. */
+	maxKeys?: number
+}
+
 /** Describes the CSRF store or request options used by the in-memory guard. */
 export class MemoryCsrfStore implements CsrfTokenStore {
 	private readonly map = new Map<string, number>()
+	private readonly maxKeys: number
+
+	constructor(options: MemoryCsrfStoreOptions = {}) {
+		const maxKeys = options.maxKeys ?? 10_000
+		if (!Number.isSafeInteger(maxKeys) || maxKeys <= 0) {
+			throw new Error('MemoryCsrfStore: maxKeys must be a positive safe integer')
+		}
+		this.maxKeys = maxKeys
+	}
 
 	get size(): number {
 		return this.map.size
@@ -100,6 +115,14 @@ export class MemoryCsrfStore implements CsrfTokenStore {
 	}
 
 	set(token: string, expiresAt: number): void {
+		if (!this.map.has(token) && this.map.size >= this.maxKeys) {
+			this.cleanup()
+			while (this.map.size >= this.maxKeys) {
+				const oldest = this.map.keys().next()
+				if (oldest.done) break
+				this.map.delete(oldest.value)
+			}
+		}
 		this.map.set(token, expiresAt)
 	}
 

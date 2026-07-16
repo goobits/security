@@ -15,6 +15,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### ✨ Added
 
+- **`csrf/sveltekit`**: New SvelteKit adapter for stateless double-submit
+  cookies, bounded form/JSON token extraction, and unsafe-method middleware.
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
 - 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.
 - 📦 **`rate-limit`**: `peek()` exposes limiter state without incrementing counters.
@@ -24,6 +26,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### 🔧 Changed
 
+- **`csrf` / `rate-limit`**: In-memory stores now enforce deterministic
+  configurable `maxKeys` bounds, cleaning stale entries before evicting the
+  oldest active key.
+- **Request bodies**: Oversized cloned-body cancellation is non-blocking so a
+  rejected inspection cannot deadlock while the original request remains
+  available to the host framework.
 - 🔔 **`alerting`**: Webhook delivery now aborts after a configurable timeout
   (`5000ms` by default) instead of waiting indefinitely on an unavailable receiver.
 - 🧮 **`rate-limit`**: Limiter construction now rejects empty names and
