@@ -534,6 +534,24 @@ await auditor.log({
 })
 ```
 
+Cloudflare D1 consumers can use the canonical sink and add product-specific PII
+field names to the default secret redaction set:
+
+```ts
+import { createD1AuditSink } from '@goobits/security/audit/d1'
+
+const sink = createD1AuditSink({
+	db: env.DB,
+	tableName: 'security_audit_events',
+	redactKeys: ['email']
+})
+```
+
+Custom redaction keys extend Security's default secret set. The D1 sink validates
+its table identifier, caps structured detail and scalar fields, serializes
+bigints safely, omits arbitrary error messages by default, and reports storage
+failures without logging database error messages or event values.
+
 ## Alerting
 
 ```ts

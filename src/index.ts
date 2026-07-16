@@ -206,6 +206,7 @@ export {
 	createAuditLogger,
 	createLoggerSink
 } from './audit.js'
+export { type D1AuditDatabase, type D1AuditSinkOptions, createD1AuditSink } from './audit/d1.js'
 
 /* Security alerting. */
 export {

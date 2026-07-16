@@ -32,6 +32,7 @@
 		"./rate-limit/auth": "./src/rate-limit/auth.ts",
 		"./admin-auth": "./src/adminAuth.ts",
 		"./audit": "./src/audit.ts",
+		"./audit/d1": "./src/audit/d1.ts",
 		"./audit/sveltekit": "./src/audit/sveltekit.ts",
 		"./alerting": "./src/alerting.ts",
 		"./logger": "./src/logger.ts",
