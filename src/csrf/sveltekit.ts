@@ -4,7 +4,7 @@
  * @module @goobits/security/csrf/sveltekit
  */
 
-import type { Handle, RequestEvent } from '@sveltejs/kit'
+import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit'
 
 import { isProduction } from '../_internal/env.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
@@ -32,15 +32,22 @@ export interface SvelteKitCsrfConfig extends CsrfConfig {
 	buildFailureResponse?(event: RequestEvent): Response
 }
 
+/** Minimal SvelteKit cookie surface needed by the CSRF adapter. */
+export type SvelteKitCsrfCookies = Pick<Cookies, 'get' | 'set'>
+
 /** CSRF operations bound to SvelteKit's request and cookie APIs. */
 export interface SvelteKitCsrf {
 	readonly cookieName: string
 	readonly headerName: string
 	readonly protection: CsrfProtection
+	/** Generate a token and set its cookie without requiring a full request event. */
+	issue(cookies: SvelteKitCsrfCookies, options?: GenerateOptions): Promise<string>
 	/** Generate a token and set its HttpOnly cookie on the event. */
 	generate(event: RequestEvent, options?: GenerateOptions): Promise<string>
 	/** Return the current cookie token, creating one when absent. */
 	getOrCreate(event: RequestEvent): Promise<string>
+	/** Validate a request against a SvelteKit-compatible cookie reader. */
+	validateRequest(request: Request, cookies: Pick<Cookies, 'get'>): Promise<boolean>
 	/** Validate the request's header or bounded body token against its cookie. */
 	validate(event: RequestEvent): Promise<boolean>
 	/** SvelteKit handle that enforces validation for unsafe methods. */
@@ -118,32 +125,46 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 		}
 	}
 
-	async function generate(event: RequestEvent, options: GenerateOptions = {}): Promise<string> {
+	async function issue(
+		cookies: SvelteKitCsrfCookies,
+		options: GenerateOptions = {}
+	): Promise<string> {
 		const token = await protection.generate({ trackExpiry, ...options })
-		event.cookies.set(protection.cookieName, token, {
+		cookies.set(protection.cookieName, token, {
 			...cookieOptions,
 			path: cookieOptions.path ?? '/'
 		})
 		return token
 	}
 
+	async function generate(event: RequestEvent, options: GenerateOptions = {}): Promise<string> {
+		return issue(event.cookies, options)
+	}
+
 	async function getOrCreate(event: RequestEvent): Promise<string> {
 		return event.cookies.get(protection.cookieName) ?? generate(event)
 	}
 
-	async function validate(event: RequestEvent): Promise<boolean> {
-		const cookieToken = event.cookies.get(protection.cookieName)
+	async function validateRequest(
+		request: Request,
+		cookies: Pick<Cookies, 'get'>
+	): Promise<boolean> {
+		const cookieToken = cookies.get(protection.cookieName)
 		if (!cookieToken) return false
 
 		const requestToken =
-			event.request.headers.get(protection.headerName) ?? (await readBodyToken(event.request))
+			request.headers.get(protection.headerName) ?? (await readBodyToken(request))
 		if (!requestToken) return false
 
 		const headers = new Headers({
 			cookie: `${protection.cookieName}=${cookieToken}`,
 			[protection.headerName]: requestToken
 		})
-		return protection.validate(new Request(event.url, { headers }), { checkExpiry })
+		return protection.validate(new Request(request.url, { headers }), { checkExpiry })
+	}
+
+	async function validate(event: RequestEvent): Promise<boolean> {
+		return validateRequest(event.request, event.cookies)
 	}
 
 	const handle: Handle = async ({ event, resolve }) => {
@@ -166,8 +187,10 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 		cookieName: protection.cookieName,
 		headerName: protection.headerName,
 		protection,
+		issue,
 		generate,
 		getOrCreate,
+		validateRequest,
 		validate,
 		handle
 	}
