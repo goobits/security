@@ -20,6 +20,19 @@ describe('DID-WBA identity helpers', () => {
 		expect(didWbaDomain(did)).toBe('example.com')
 	})
 
+	it('rejects hosts and paths that could escape DID-WBA domain binding', () => {
+		for (const did of [
+			'did:wba:trusted.example%2Fuploads',
+			'did:wba:trusted.example%3Fredirect',
+			'did:wba:user%40trusted.example',
+			'did:wba:trusted.example:..',
+			'did:wba:trusted.example:uploads%2Fpublic'
+		]) {
+			expect(() => didWbaToUrl(did)).toThrow(/invalid DID-WBA/)
+		}
+		expect(() => buildDidWba('trusted.example', [], 65_536)).toThrow(/invalid DID-WBA port/)
+	})
+
 	it('parses DID-WBA authorization headers', () => {
 		const parsed = parseDidWbaAuthorizationHeader(
 			'DIDWba did="did:wba:example.com", nonce="n1", timestamp="2026-06-13T12:00:00.000Z", verification_method="did:wba:example.com#key-1", signature="sig"'
@@ -99,6 +112,29 @@ describe('DID-WBA identity helpers', () => {
 				verifySignature: () => false
 			})
 		).resolves.toEqual({ ok: false, reason: 'invalid-signature' })
+	})
+
+	it('maps malformed DID-WBA identifiers to invalid-did without invoking verification', async () => {
+		for (const did of ['did:wba:%zz', 'did:wba:trusted.example%2Fuploads']) {
+			let signatureChecked = false
+			await expect(
+				verifyDidWbaIdentity({
+					header: {
+						did,
+						nonce: 'n1',
+						timestamp: '2026-06-13T12:00:00.000Z',
+						verificationMethod: `${did}#key-1`,
+						signature: 'sig'
+					},
+					now: new Date('2026-06-13T12:00:00.000Z'),
+					verifySignature: () => {
+						signatureChecked = true
+						return true
+					}
+				})
+			).resolves.toEqual({ ok: false, reason: 'invalid-did' })
+			expect(signatureChecked).toBe(false)
+		}
 	})
 })
 

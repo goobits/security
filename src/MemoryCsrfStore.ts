@@ -66,10 +66,10 @@ export interface CsrfConfig {
 	 */
 	disabled?: boolean
 	/**
-	 * If true, errors from the token store (e.g. Redis connection failure) cause
-	 * `validate()` to return false. If false (default), validation continues and
-	 * the constant-time compare still has to succeed against the cookie. Set to
-	 * `true` for high-security routes where availability < correctness.
+	 * If true (default), errors from the token store (e.g. Redis connection
+	 * failure) cause `validate()` to return false. Set to false only when an
+	 * explicit availability-over-correctness policy accepts fail-open expiry
+	 * checks; the cookie/header constant-time comparison still applies.
 	 */
 	failClosed?: boolean
 }
@@ -164,7 +164,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 
 	const envDisabled = readEnv('DISABLE_CSRF') === 'true'
 	const disabled = config.disabled === true || envDisabled
-	const failClosed = config.failClosed === true
+	const failClosed = config.failClosed !== false
 
 	if (disabled && isProduction()) {
 		throw new Error(

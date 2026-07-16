@@ -53,6 +53,18 @@ export async function verifyHmac(
 	signature: HmacSignature,
 	secret: Uint8Array | string
 ): Promise<boolean> {
+	if (
+		typeof signature.value !== 'string' ||
+		!Object.hasOwn(HMAC_HASH, signature.algorithm)
+	) {
+		return false
+	}
+	let provided: Uint8Array
+	try {
+		provided = base64UrlToBytes(signature.value)
+	} catch {
+		return false
+	}
 	const expected = await signHmac(payload, secret, signature.algorithm)
-	return constantTimeEqual(base64UrlToBytes(expected.value), base64UrlToBytes(signature.value))
+	return constantTimeEqual(base64UrlToBytes(expected.value), provided)
 }

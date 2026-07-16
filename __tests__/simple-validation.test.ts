@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	RequestValidationError,
 	validateArray,
+	validateBoolean,
 	validateNumber,
 	validateRequestBody,
 	validateString
@@ -37,6 +38,18 @@ describe('simple validation helpers', () => {
 			expect(result.issue.code).toBe('invalid_range')
 			expect(result.issue.min).toBe(1)
 			expect(result.issue.max).toBe(10)
+		}
+	})
+
+	it('rejects blank numeric strings and non-boolean values without coercion', () => {
+		for (const value of [' ', '\t', '\n']) {
+			expect(validateNumber(value, 'limit').isValid).toBe(false)
+		}
+
+		expect(validateBoolean(true, 'enabled')).toEqual({ isValid: true, value: true })
+		expect(validateBoolean('false', 'enabled')).toEqual({ isValid: true, value: false })
+		for (const value of [{}, [], 0, 1, Number.NaN]) {
+			expect(validateBoolean(value, 'enabled').isValid).toBe(false)
 		}
 	})
 

@@ -39,12 +39,23 @@ export function bytesToBase64Url(bytes: Uint8Array): string {
 
 /** Decodes unpadded base64url into bytes. */
 export function base64UrlToBytes(value: string): Uint8Array {
+	if (!/^[A-Za-z0-9_-]*$/u.test(value) || value.length % 4 === 1) {
+		throw new Error('@goobits/security/crypto: invalid base64url value')
+	}
 	const normalized = value.replaceAll('-', '+').replaceAll('_', '/')
 	const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
-	const binary = atob(padded)
+	let binary: string
+	try {
+		binary = atob(padded)
+	} catch {
+		throw new Error('@goobits/security/crypto: invalid base64url value')
+	}
 	const bytes = new Uint8Array(binary.length)
 	for (let i = 0; i < binary.length; i += 1) {
 		bytes[i] = binary.charCodeAt(i)
+	}
+	if (bytesToBase64Url(bytes) !== value) {
+		throw new Error('@goobits/security/crypto: invalid base64url value')
 	}
 	return bytes
 }

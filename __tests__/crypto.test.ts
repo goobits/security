@@ -33,6 +33,12 @@ describe('crypto encoding helpers', () => {
 		expect(base64UrlToBytes(bytesToBase64Url(bytes))).toEqual(bytes)
 	})
 
+	it('rejects malformed and non-canonical base64url values', () => {
+		for (const value of ['a', 'abc=', 'abc+', 'abc/', 'ab c', 'AB==']) {
+			expect(() => base64UrlToBytes(value)).toThrow(/invalid base64url/)
+		}
+	})
+
 	it('generates random bytes and hex', () => {
 		expect(randomBytes(16)).toHaveLength(16)
 		expect(randomHex(16)).toMatch(/^[0-9a-f]{32}$/)
@@ -57,6 +63,19 @@ describe('crypto signatures', () => {
 		expect(signature.algorithm).toBe('HS256')
 		expect(await verifyHmac('payload', signature, 'secret')).toBe(true)
 		expect(await verifyHmac('tampered', signature, 'secret')).toBe(false)
+	})
+
+	it('treats malformed HMAC signatures as invalid instead of throwing', async () => {
+		await expect(
+			verifyHmac('payload', { algorithm: 'HS256', value: 'not+base64url' }, 'secret')
+		).resolves.toBe(false)
+		await expect(
+			verifyHmac(
+				'payload',
+				{ algorithm: 'invalid' as 'HS256', value: 'abc' },
+				'secret'
+			)
+		).resolves.toBe(false)
 	})
 })
 

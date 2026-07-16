@@ -106,6 +106,9 @@ export function validateNumber(
 	if (typeof value === 'number') {
 		numberValue = value
 	} else if (typeof value === 'string') {
+		if (value.trim().length === 0) {
+			return invalidFormat(fieldName, 'must be a number')
+		}
 		numberValue = Number(value)
 	} else {
 		return invalidFormat(fieldName, 'must be a number')
@@ -156,7 +159,7 @@ export function validateBoolean(
 		return invalidFormat(fieldName, 'must be a boolean')
 	}
 
-	return { isValid: true, value: Boolean(value) }
+	return invalidFormat(fieldName, 'must be a boolean')
 }
 
 export function validateArray<T>(

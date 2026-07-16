@@ -42,7 +42,7 @@ describe('createAdminAuth', () => {
 		const result = await adminAuth.requireAdmin(request)
 
 		expect(result.authenticated).toBe(false)
-		if (!result.authenticated) expect(result.reason).toBe('invalid-jwt')
+		if (!result.authenticated) expect(result.reason).toBe('not-admin')
 	})
 
 	it('rejects malformed bearer tokens', async () => {

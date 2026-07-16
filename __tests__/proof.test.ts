@@ -49,6 +49,21 @@ describe('security proofs', () => {
 		expect(result).toEqual({ ok: false, reason: 'invalid-signature' })
 	})
 
+	it('returns invalid-signature for malformed proof encodings', async () => {
+		const proof = await createSecurityProof(
+			{ id: 'msg-1' },
+			{ secret: SECRET, verificationMethod: 'hmac:test' }
+		)
+
+		await expect(
+			verifySecurityProof(
+				{ id: 'msg-1' },
+				{ ...proof, proofValue: 'not+base64url' },
+				{ secret: SECRET }
+			)
+		).resolves.toEqual({ ok: false, reason: 'invalid-signature' })
+	})
+
 	it('checks domain and challenge before signature verification', async () => {
 		const proof = await createSecurityProof(
 			{ id: 'msg-1' },

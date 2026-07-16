@@ -90,7 +90,7 @@ function toAdminResult(result: PrincipalAuthResult): AdminAuthResult {
 	}
 	return {
 		authenticated: false,
-		reason: result.reason === 'forbidden' ? 'invalid-jwt' : result.reason
+		reason: result.reason === 'forbidden' ? 'not-admin' : result.reason
 	}
 }
 

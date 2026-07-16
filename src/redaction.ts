@@ -47,12 +47,6 @@ export interface RedactionOptions {
 	omit?: boolean
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-	if (typeof value !== 'object' || value === null) return false
-	const prototype = Object.getPrototypeOf(value)
-	return prototype === Object.prototype || prototype === null
-}
-
 function patternMatches(pattern: RegExp | undefined, value: string): boolean {
 	if (!pattern) return false
 	pattern.lastIndex = 0
@@ -96,7 +90,10 @@ export function redactSensitive(input: unknown, options: RedactionOptions = {}):
 			}
 		}
 		if (Array.isArray(value)) return value.map(visit)
-		if (!isPlainObject(value)) return value
+		if (value instanceof Date) {
+			return Number.isNaN(value.getTime()) ? null : value.toISOString()
+		}
+		if (value instanceof URL) return value.toString()
 
 		const output: Record<string, unknown> = {}
 		for (const [key, nested] of Object.entries(value)) {

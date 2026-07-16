@@ -244,4 +244,16 @@ describe('redactSensitive', () => {
 			settings: { theme: 'dark' }
 		})
 	})
+
+	it('redacts enumerable fields on class instances before audit serialization', () => {
+		class AuditDetail {
+			readonly password = 'plaintext'
+			readonly profile = { accessToken: 'token-value', displayName: 'Member' }
+		}
+
+		expect(redactSensitive(new AuditDetail())).toEqual({
+			password: '[redacted]',
+			profile: { accessToken: '[redacted]', displayName: 'Member' }
+		})
+	})
 })
