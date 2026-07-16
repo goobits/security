@@ -251,6 +251,12 @@ const csrf = createCsrf({
 
 The returned `CsrfProtection` object also exposes `getToken(request)`, `cleanup()` (for the in-memory store; periodically drops expired tokens), `clear()` (purges the store), and `storeSize` (debug-only). For long-running processes with the default in-memory store, schedule `csrf.cleanup()` on a 5-minute interval. Redis stores handle expiry via TTL with no manual cleanup needed.
 
+The default `MemoryCsrfStore` retains at most 10,000 tracked tokens. Configure a
+different deterministic bound with `new MemoryCsrfStore({ maxKeys })`. When the
+store reaches that bound it removes expired tokens first, then evicts the oldest
+active token rather than allowing attacker-controlled identifiers to grow memory
+without limit.
+
 ⚠️ **`cookieOptions` replaces defaults, doesn't merge.** If you supply your own `cookieOptions`, you also lose the sensible defaults (`HttpOnly`, `SameSite=Lax`, etc.). Copy the defaults first if you only want to tweak one field.
 
 ### `failClosed`: expiry checks fail closed by default
@@ -268,6 +274,35 @@ if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
 ```
 
 ℹ️ **Scope**: `failClosed` is consulted inside the expiry-check path (`isTokenExpired`). It takes effect when you pass `{ checkExpiry: true }` to `validate()`. Without `checkExpiry`, the store isn't queried at all so `failClosed` has nothing to gate.
+
+### SvelteKit adapter
+
+```ts
+import { createSvelteKitCsrf } from '@goobits/security/csrf/sveltekit'
+
+export const csrf = createSvelteKitCsrf({
+	cookieName: 'csrf_token',
+	tokenFieldName: 'csrf_token',
+	cookieOptions: {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		path: '/',
+		maxAge: 60 * 60 * 24
+	}
+})
+
+// src/hooks.server.ts
+export const handle = csrf.handle
+
+// A token endpoint or page server load:
+const token = await csrf.getOrCreate(event)
+```
+
+The adapter checks headers, URL-encoded forms, multipart forms, and JSON bodies.
+Body inspection is bounded to 64 KiB by default. It uses stateless double-submit
+cookies by default, so cookie expiry owns the token lifecycle without requiring
+replica-local memory. Set `trackExpiry: true` only with a shared token store.
 
 ### `disabled`: tests only
 
@@ -364,12 +399,15 @@ const limiter = createRateLimiter({
 Use a shared `RateLimitStore` (for example Redis or D1) when counters must be
 consistent across application instances.
 
-Custom in-memory store config (e.g. tuning the cleanup probability):
+Custom in-memory store config (e.g. tuning cleanup and identifier bounds):
 
 ```ts
 import { MemoryRateLimitStore, createRateLimiter } from '@goobits/security/rate-limit'
 
-const store = new MemoryRateLimitStore({ cleanupProbability: 0.05 }) // 5% per increment
+const store = new MemoryRateLimitStore({
+	cleanupProbability: 0.05, // 5% per increment
+	maxKeys: 25_000
+})
 const limiter = createRateLimiter({ windows: [...], store })
 ```
 
@@ -625,6 +663,7 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | Module                   | Node ≥22         | Bun              | Deno             | Cloudflare Workers                 |
 | ------------------------ | ---------------- | ---------------- | ---------------- | ---------------------------------- |
 | `csrf`                   | ✅               | ✅               | ✅               | ✅                                 |
+| `csrf/sveltekit` †       | ✅               | ✅               | ✅               | ✅                                 |
 | `csrf-redis` ‡           | client-dependent | client-dependent | client-dependent | client-dependent                   |
 | `csp`                    | ✅               | ✅               | ✅               | ✅                                 |
 | `recaptcha`              | ✅               | ✅               | ✅               | ✅                                 |

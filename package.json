@@ -9,6 +9,7 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./csrf": "./src/csrf.ts",
+		"./csrf/sveltekit": "./src/csrf/sveltekit.ts",
 		"./csrf-client": "./src/csrfClient.ts",
 		"./csrf-redis": "./src/csrfRedis.ts",
 		"./csp": "./src/csp.ts",

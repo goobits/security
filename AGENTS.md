@@ -32,6 +32,8 @@ src/
 ├── rate-limit/
 │   ├── index.ts      # createRateLimiter + MemoryRateLimitStore (framework-agnostic)
 │   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
+├── csrf/
+│   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
 ├── audit/
 │   ├── d1.ts         # durable D1 audit sink
 │   └── sveltekit.ts  # request audit adapter

@@ -199,6 +199,46 @@ describe('createRateLimiter', () => {
 		expect(entry?.timestamps).toHaveLength(3)
 	})
 
+	it('bounds in-memory identifiers and retains recently incremented keys', () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 0, maxKeys: 2 })
+		const now = Date.now()
+		store.incrementEntry('oldest', now, 60_000)
+		store.incrementEntry('newer', now, 60_000)
+		store.incrementEntry('oldest', now + 1, 60_000)
+		store.incrementEntry('newest', now + 2, 60_000)
+
+		expect(store.size).toBe(2)
+		expect(store.getEntry('oldest')).not.toBeNull()
+		expect(store.getEntry('newer')).toBeNull()
+		expect(store.getEntry('newest')).not.toBeNull()
+	})
+
+	it('cleans stale identifiers before evicting active ones at capacity', () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 0, maxKeys: 2 })
+		const now = Date.now()
+		store.incrementEntry('stale', 0, 60_000)
+		store.incrementEntry('active', now, 60_000)
+		store.incrementEntry('new', now, 60_000)
+
+		expect(store.getEntry('stale')).toBeNull()
+		expect(store.getEntry('active')).not.toBeNull()
+		expect(store.getEntry('new')).not.toBeNull()
+	})
+
+	it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+		'rejects invalid in-memory maxKeys %s',
+		(maxKeys) => {
+			expect(() => new MemoryRateLimitStore({ maxKeys })).toThrowError(/positive safe integer/)
+		}
+	)
+
+	it.each([-0.1, 1.1, Number.NaN, Number.POSITIVE_INFINITY])(
+		'rejects invalid cleanup probability %s',
+		(cleanupProbability) => {
+			expect(() => new MemoryRateLimitStore({ cleanupProbability })).toThrowError(/between 0 and 1/)
+		}
+	)
+
 	it('supports D1-backed sliding-window limits', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const limiter = createRateLimiter({

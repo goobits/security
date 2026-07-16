@@ -34,7 +34,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - **`redaction`**: Recursive, cycle-safe structured-value redaction with conservative secret-key defaults and consumer-provided string scrubbing for application PII policy.
 - **`crypto`**: Opaque, rotation-ready AES-GCM keyrings that expose key IDs without exposing key material.
 - **`rate-limit`**: HMAC-backed store wrapper that keeps raw emails, usernames, IP addresses, and tokens out of rate-limit persistence while propagating backing-store failures for explicit consumer policy.
-
+- **`csrf/sveltekit`**: New SvelteKit adapter for stateless double-submit
+  cookies, bounded form/JSON token extraction, and unsafe-method middleware.
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
 - 🔒 **`csp`**: CSP3 and Trusted Types directives are now supported by the CSP builder.
 - 📦 **`rate-limit`**: `peek()` exposes limiter state without incrementing counters.
@@ -52,6 +53,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
   honest public module paths (`csrf.ts` and `request-body`) instead of private or
   implementation-named files. Existing `validation/sveltekit` re-exports remain
   available for compatibility.
+- **`csrf` / `rate-limit`**: In-memory stores now enforce deterministic
+  configurable `maxKeys` bounds, cleaning stale entries before evicting the
+  oldest active key.
+- **Request bodies**: Oversized cloned-body cancellation is non-blocking so a
+  rejected inspection cannot deadlock while the original request remains
+  available to the host framework.
 - 🔔 **`alerting`**: Webhook delivery now aborts after a configurable timeout
   (`5000ms` by default) instead of waiting indefinitely on an unavailable receiver.
 - 🧮 **`rate-limit`**: Limiter construction now rejects empty names and

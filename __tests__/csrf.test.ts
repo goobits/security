@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCsrf } from '../src/csrf.js'
+import { createCsrf, MemoryCsrfStore } from '../src/csrf.js'
 
 function makeRequest(headers: Record<string, string>): Request {
 	return new Request('https://example.test/api', { headers })
@@ -63,6 +63,37 @@ describe('createCsrf', () => {
 		await csrf.generate()
 		expect(csrf.storeSize).toBe(2)
 	})
+
+	it('bounds tracked tokens and evicts the oldest active token', () => {
+		const store = new MemoryCsrfStore({ maxKeys: 2 })
+		const expiresAt = Date.now() + 60_000
+		store.set('oldest', expiresAt)
+		store.set('newer', expiresAt)
+		store.set('newest', expiresAt)
+
+		expect(store.size).toBe(2)
+		expect(store.get('oldest')).toBeUndefined()
+		expect(store.get('newer')).toBe(expiresAt)
+		expect(store.get('newest')).toBe(expiresAt)
+	})
+
+	it('cleans expired tokens before evicting active tokens at capacity', () => {
+		const store = new MemoryCsrfStore({ maxKeys: 2 })
+		store.set('expired', Date.now() - 1)
+		store.set('active', Date.now() + 60_000)
+		store.set('new', Date.now() + 60_000)
+
+		expect(store.get('expired')).toBeUndefined()
+		expect(store.get('active')).toBeDefined()
+		expect(store.get('new')).toBeDefined()
+	})
+
+	it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+		'rejects invalid in-memory maxKeys %s',
+		(maxKeys) => {
+			expect(() => new MemoryCsrfStore({ maxKeys })).toThrowError(/positive safe integer/)
+		}
+	)
 
 	it('rejects expired tokens when checkExpiry is true', async () => {
 		const csrf = createCsrf({

@@ -43,7 +43,10 @@ export async function readRequestBodyBytes(
 			if (done) break
 			bytesRead += value.byteLength
 			if (bytesRead > maxBytes) {
-				await reader.cancel()
+				// A cloned Fetch body is a tee'd stream. Awaiting cancellation can
+				// deadlock until the untouched original branch is consumed, so start
+				// cancellation without delaying the bounded-body rejection.
+				void reader.cancel().catch(() => undefined)
 				throw new BodyTooLargeError(maxBytes)
 			}
 			chunks.push(value)

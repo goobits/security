@@ -208,6 +208,9 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
   "csrf-redis": [
     "createRedisCsrfStore",
   ],
+  "csrf/sveltekit": [
+    "createSvelteKitCsrf",
+  ],
   "http-credentials": [
     "createApiKey",
     "createBasicAuthResponse",
