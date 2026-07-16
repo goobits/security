@@ -12,6 +12,10 @@ All notable changes to `@goobits/security` are documented here. The format adher
   `Origin`, and `Referer` checks across browser mutation boundaries.
 - `audit`: explicit `failureMode: 'throw'` support for required durable audit
   pipelines, and `safeErrorContext()` for bounded error logging.
+- `runtime`: public `readRuntimeEnv()` and `isProductionRuntime()` helpers so
+  packages and applications share one production-safe runtime decision.
+- A shared `PrincipalIdentity` base type for verified identity, principal-auth,
+  and admin-auth results.
 
 ### Changed
 
@@ -22,6 +26,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - Trusted client-IP headers are bounded and validated before use.
 - D1 rate-limit storage now accepts only the canonical JSON timestamp format;
   the expired numeric-counter migration bridge was removed.
+- Principal authentication validates and bounds principal IDs, roles, API-key
+  mappings, header names, algorithms, token lifetimes, and expected claims at
+  construction or signing time. API keys must be unique and contain 32-4096
+  bytes.
+- The successful API-key authentication method is consistently named
+  `api-key` instead of `apikey`.
 
 ## [3.0.0] - 2026-07-16
 

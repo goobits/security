@@ -6,7 +6,7 @@
  * @module @goobits/security/turnstile
  */
 
-import { isProduction, readEnv } from './_internal/env.js'
+import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
 import { safeErrorContext } from './logger.js'
@@ -115,7 +115,7 @@ export async function verifyTurnstile(
 	options: TurnstileOptions = {}
 ): Promise<TurnstileResult> {
 	const {
-		secretKey = readEnv('TURNSTILE_SECRET_KEY'),
+		secretKey = readRuntimeEnv('TURNSTILE_SECRET_KEY'),
 		action,
 		hostname,
 		remoteIp,
@@ -134,7 +134,7 @@ export async function verifyTurnstile(
 	}
 
 	// Loopback bypass  -  only outside production, only when explicitly opted in.
-	if (bypassLocalhost && !isProduction() && remoteIp && bypassHosts.includes(remoteIp)) {
+	if (bypassLocalhost && !isProductionRuntime() && remoteIp && bypassHosts.includes(remoteIp)) {
 		log.info('Turnstile bypassed for loopback remoteIp', { remoteIp })
 		return {
 			success: true,
@@ -148,7 +148,7 @@ export async function verifyTurnstile(
 
 	if (!secretKey) {
 		log.error('TURNSTILE_SECRET_KEY is not set')
-		if (!isProduction() && allowInDevelopment) {
+		if (!isProductionRuntime() && allowInDevelopment) {
 			log.warn(
 				'Allowing Turnstile verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
 			)

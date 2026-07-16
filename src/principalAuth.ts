@@ -9,9 +9,10 @@
 
 import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
 
-import { timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
+import { constantTimeEqual, textToBytes } from './crypto/index.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import { parseBearerToken } from './httpCredentials.js'
+import type { PrincipalIdentity } from './identity/principal.js'
 import type { Logger } from './logger.js'
 import { safeErrorContext } from './logger.js'
 
@@ -19,8 +20,7 @@ import { safeErrorContext } from './logger.js'
 export type PrincipalAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'
 
 /** Auth Principal shape used for signed principals, API keys, and request authentication. */
-export interface AuthPrincipal {
-	id: string
+export interface AuthPrincipal extends PrincipalIdentity {
 	roles?: string[]
 	[key: string]: unknown
 }
@@ -61,7 +61,7 @@ export interface PrincipalAuthConfig {
 }
 
 /** Principal Auth Method shape used for signed principals, API keys, and request authentication. */
-export type PrincipalAuthMethod = 'jwt' | 'apikey'
+export type PrincipalAuthMethod = 'jwt' | 'api-key'
 
 /** Principal Auth Failure Reason shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthFailureReason = 'missing' | 'invalid-jwt' | 'invalid-apikey' | 'forbidden'
@@ -78,40 +78,107 @@ export interface PrincipalAuth {
 	createPrincipalToken(principal: AuthPrincipal, overrideTtl?: string | number): Promise<string>
 }
 
-function normalizeRoles(value: unknown): string[] | undefined {
+const MIN_API_KEY_BYTES = 32
+const MAX_API_KEY_BYTES = 4_096
+const MAX_PRINCIPAL_ID_LENGTH = 256
+const MAX_PRINCIPAL_ROLES = 64
+const MAX_ROLE_LENGTH = 128
+
+function normalizeRoles(value: unknown): string[] | undefined | null {
 	if (value === undefined) return undefined
-	if (!Array.isArray(value)) return undefined
-	const roles = value.filter(
-		(entry): entry is string => typeof entry === 'string' && entry.length > 0
-	)
-	return roles.length === value.length ? roles : undefined
+	if (!Array.isArray(value) || value.length > MAX_PRINCIPAL_ROLES) return null
+	const roles: string[] = []
+	for (const entry of value) {
+		if (
+			typeof entry !== 'string' ||
+			entry.length === 0 ||
+			entry.length > MAX_ROLE_LENGTH ||
+			entry.trim() !== entry ||
+			/[\u0000-\u001f\u007f]/.test(entry) ||
+			roles.includes(entry)
+		) {
+			return null
+		}
+		roles.push(entry)
+	}
+	return roles
+}
+
+function normalizePrincipal(value: unknown): AuthPrincipal | null {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+	const principal = value as AuthPrincipal
+	if (
+		typeof principal.id !== 'string' ||
+		principal.id.length === 0 ||
+		principal.id.length > MAX_PRINCIPAL_ID_LENGTH ||
+		principal.id.trim() !== principal.id ||
+		/[\u0000-\u001f\u007f]/.test(principal.id)
+	) {
+		return null
+	}
+	const roles = normalizeRoles(principal.roles)
+	if (roles === null) return null
+	return {
+		...principal,
+		id: principal.id,
+		...(roles === undefined ? {} : { roles })
+	}
 }
 
 function principalFromPayload(payload: JWTPayload): AuthPrincipal | null {
 	const id = (payload as { id?: unknown }).id ?? payload.sub
 	if (typeof id !== 'string' || !id) return null
 	const roles = normalizeRoles(payload['roles'])
-	return {
+	if (roles === null) return null
+	return normalizePrincipal({
 		...payload,
 		id,
 		...(roles ? { roles } : {})
-	}
+	})
 }
 
 function normalizeApiKeys(config: PrincipalAuthConfig): PrincipalApiKey[] {
 	const keys = [...(config.apiKeys ?? [])]
-	if (config.apiKey) {
+	if (config.apiKey !== undefined) {
 		keys.push({
 			key: config.apiKey,
 			principal: { id: 'api-key-principal', roles: ['service'] }
 		})
 	}
-	return keys
+	const seen = new Set<string>()
+	return keys.map((entry) => {
+		if (!entry || typeof entry.key !== 'string') {
+			throw new Error('@goobits/security/principal-auth: API key must be a string')
+		}
+		const keyBytes = textToBytes(entry.key).byteLength
+		if (keyBytes < MIN_API_KEY_BYTES || keyBytes > MAX_API_KEY_BYTES) {
+			throw new Error(
+				`@goobits/security/principal-auth: API keys must contain ${MIN_API_KEY_BYTES}-${MAX_API_KEY_BYTES} bytes`
+			)
+		}
+		if (seen.has(entry.key)) {
+			throw new Error('@goobits/security/principal-auth: API keys must be unique')
+		}
+		seen.add(entry.key)
+		const principal =
+			entry.principal && typeof entry.principal === 'object'
+				? normalizePrincipal(entry.principal)
+				: null
+		if (!principal) {
+			throw new Error('@goobits/security/principal-auth: API-key principal is invalid')
+		}
+		return { key: entry.key, principal }
+	})
 }
 
-function verifyApiKey(presentedKey: string, keys: PrincipalApiKey[]): AuthPrincipal | null {
+function resolveApiKeyPrincipal(
+	presentedKey: string,
+	keys: PrincipalApiKey[]
+): AuthPrincipal | null {
+	const byteLength = textToBytes(presentedKey).byteLength
+	if (byteLength < MIN_API_KEY_BYTES || byteLength > MAX_API_KEY_BYTES) return null
 	for (const entry of keys) {
-		if (timingSafeEqualBytes(toBytes(presentedKey), toBytes(entry.key))) {
+		if (constantTimeEqual(presentedKey, entry.key)) {
 			return entry.principal
 		}
 	}
@@ -120,6 +187,27 @@ function verifyApiKey(presentedKey: string, keys: PrincipalApiKey[]): AuthPrinci
 
 function resolveExpirationTime(ttl: string | number): string | number {
 	return typeof ttl === 'number' ? Math.floor(Date.now() / 1000) + ttl : ttl
+}
+
+function assertExpectedClaim(
+	name: 'audience' | 'issuer',
+	value: string | string[] | undefined
+): void {
+	if (value === undefined) return
+	const values = Array.isArray(value) ? value : [value]
+	if (
+		values.length === 0 ||
+		values.some(
+			(entry) =>
+				typeof entry !== 'string' ||
+				entry.length === 0 ||
+				entry.length > 512 ||
+				entry.trim() !== entry ||
+				/[\u0000-\u001f\u007f]/.test(entry)
+		)
+	) {
+		throw new Error(`@goobits/security/principal-auth: ${name} is invalid`)
+	}
 }
 
 /** Create Principal Auth shape used for signed principals, API keys, and request authentication. */
@@ -138,18 +226,36 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 	if (!jwtSecret) {
 		throw new Error('@goobits/security/principal-auth: jwtSecret is required')
 	}
-	if (jwtSecret.length < 32) {
+	if (textToBytes(jwtSecret).byteLength < 32) {
 		throw new Error(
-			'@goobits/security/principal-auth: jwtSecret must be at least 32 characters. Use a cryptographically random secret.'
+			'@goobits/security/principal-auth: jwtSecret must be at least 32 bytes. Use a cryptographically random secret.'
 		)
 	}
-	if (algorithms.length === 0) {
+	if (
+		algorithms.length === 0 ||
+		new Set(algorithms).size !== algorithms.length ||
+		algorithms.some((algorithm) => !['HS256', 'HS384', 'HS512'].includes(algorithm))
+	) {
 		throw new Error(
-			'@goobits/security/principal-auth: algorithms must include at least one algorithm'
+			'@goobits/security/principal-auth: algorithms must be a non-empty unique HS-family list'
 		)
 	}
+	if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}$/.test(apiKeyHeader)) {
+		throw new Error('@goobits/security/principal-auth: apiKeyHeader is invalid')
+	}
+	if (typeof tokenTtl === 'string' && !tokenTtl.trim()) {
+		throw new Error('@goobits/security/principal-auth: tokenTtl is invalid')
+	}
+	if (
+		clockTolerance !== undefined &&
+		(typeof clockTolerance !== 'number' || !Number.isFinite(clockTolerance) || clockTolerance < 0)
+	) {
+		throw new Error('@goobits/security/principal-auth: clockTolerance must be non-negative')
+	}
+	assertExpectedClaim('audience', audience)
+	assertExpectedClaim('issuer', issuer)
 
-	const secretBytes = toBytes(jwtSecret)
+	const secretBytes = textToBytes(jwtSecret)
 	const apiKeys = normalizeApiKeys(config)
 	const verifyOptions: Parameters<typeof jwtVerify>[2] = { algorithms }
 	if (audience !== undefined) verifyOptions.audience = audience
@@ -198,12 +304,12 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 
 		const presentedApiKey = request.headers.get(apiKeyHeader)
 		if (presentedApiKey) {
-			const principal = verifyApiKey(presentedApiKey, apiKeys)
+			const principal = resolveApiKeyPrincipal(presentedApiKey, apiKeys)
 			if (!principal) return { authenticated: false, reason: 'invalid-apikey' }
-			if (!(await authorize(principal, 'apikey', request))) {
+			if (!(await authorize(principal, 'api-key', request))) {
 				return { authenticated: false, reason: 'forbidden' }
 			}
-			return { authenticated: true, principal, method: 'apikey' }
+			return { authenticated: true, principal, method: 'api-key' }
 		}
 
 		return { authenticated: false, reason: 'missing' }
@@ -221,8 +327,15 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 		principal: AuthPrincipal,
 		overrideTtl?: string | number
 	): Promise<string> {
+		const normalizedPrincipal = normalizePrincipal(principal)
+		if (!normalizedPrincipal) {
+			throw new Error('@goobits/security/principal-auth: principal is invalid')
+		}
 		const ttl = overrideTtl ?? tokenTtl
-		const builder = new SignJWT(principal)
+		if (typeof ttl === 'number' && (!Number.isSafeInteger(ttl) || ttl <= 0)) {
+			throw new Error('@goobits/security/principal-auth: numeric token TTL must be positive')
+		}
+		const builder = new SignJWT(normalizedPrincipal)
 			.setProtectedHeader({ alg: algorithms[0] ?? 'HS256' })
 			.setIssuedAt()
 			.setExpirationTime(resolveExpirationTime(ttl))

@@ -26,7 +26,7 @@ pnpm test:coverage  # vitest run --coverage
 
 ```
 src/
-├── _internal/        # cookie, crypto, env, logger helpers; never exported
+├── _internal/        # cookie, crypto, logger helpers; never exported
 ├── crypto/           # encoding, HMAC, AES-GCM/keyrings, signed proofs
 ├── identity/         # DID-WBA, HTTP signatures, verified principals
 ├── rate-limit/
@@ -54,6 +54,7 @@ src/
 ├── redaction.ts      # secret-safe public/audit projections
 ├── requestBody.ts    # bounded Fetch request-body readers
 ├── requestOrigin.ts  # Fetch Metadata + Origin/Referer verification
+├── runtime.ts        # production-safe cross-runtime environment decisions
 ├── turnstile.ts      # Cloudflare Turnstile verifier
 ├── validation.ts     # framework-agnostic Zod helpers
 └── index.ts          # curated framework-agnostic root barrel
@@ -75,7 +76,9 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 ## Security rules (do not bypass)
 
 - Never log raw tokens, passwords, JWTs, or API keys. The supplied `Logger` may be third-party - assume it captures everything passed to it.
-- All cryptographic comparisons MUST be constant-time. Use `timingSafeEqualBytes` from `_internal/crypto.ts`.
+- All cryptographic comparisons MUST be constant-time. Public modules use
+  `constantTimeEqual()` from `crypto/encoding`; private byte-level primitives
+  may use `timingSafeEqualBytes()` from `_internal/crypto.ts`.
 - All random values for tokens/keys MUST come from `globalThis.crypto.getRandomValues` (via `getRandomBytes`). Never use `Math.random()` for security-sensitive paths.
 - `csp.ts` MUST NOT hardcode any third-party vendor URLs (Stripe, fonts, CDNs, etc.). Consumers supply those via `extraSources`. Adding vendor knowledge to defaults would force every consumer to inherit those policies whether they need them or not.
 - When this package's deps change in `package.json`, verify their licenses remain permissive (MIT / Apache 2.0 / BSD). No GPL-ish copyleft deps.

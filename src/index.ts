@@ -10,6 +10,8 @@
  * @module @goobits/security
  */
 
+export { isProductionRuntime, readRuntimeEnv } from './runtime.js'
+
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
@@ -151,6 +153,7 @@ export {
 	type HttpSignatureVerificationInput,
 	type HttpSignatureVerificationResult,
 	type IdentityMethod,
+	type PrincipalIdentity,
 	type VerifiedPrincipal,
 	type VerifyHttpSignatureOptions,
 	buildDidWba,

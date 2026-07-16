@@ -4,7 +4,7 @@
  * @module @goobits/security/recaptcha
  */
 
-import { isProduction, readEnv } from './_internal/env.js'
+import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
 import { safeErrorContext } from './logger.js'
@@ -92,7 +92,7 @@ export async function verifyRecaptcha(
 	options: RecaptchaOptions = {}
 ): Promise<RecaptchaResult> {
 	const {
-		secretKey = readEnv('RECAPTCHA_SECRET_KEY'),
+		secretKey = readRuntimeEnv('RECAPTCHA_SECRET_KEY'),
 		action,
 		minScore = 0.5,
 		allowInDevelopment = false,
@@ -109,7 +109,7 @@ export async function verifyRecaptcha(
 
 	if (!secretKey) {
 		log.error('RECAPTCHA_SECRET_KEY is not set')
-		if (!isProduction() && allowInDevelopment) {
+		if (!isProductionRuntime() && allowInDevelopment) {
 			log.warn(
 				'Allowing reCAPTCHA verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
 			)

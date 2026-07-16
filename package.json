@@ -39,6 +39,7 @@
 		"./redaction": "./src/redaction.ts",
 		"./request-body": "./src/requestBody.ts",
 		"./request-origin": "./src/requestOrigin.ts",
+		"./runtime": "./src/runtime.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [

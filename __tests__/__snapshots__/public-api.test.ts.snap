@@ -53,6 +53,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "hasAesGcmKey",
     "hashApiKey",
     "hexToBytes",
+    "isProductionRuntime",
     "isSensitiveKey",
     "noopLogger",
     "omitSensitive",
@@ -72,6 +73,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "randomHex",
     "readJsonBody",
     "readRequestBodyBytes",
+    "readRuntimeEnv",
     "redactSensitive",
     "safeErrorContext",
     "sealAesGcm",
@@ -283,6 +285,13 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "BodyTooLargeError",
     "readJsonBody",
     "readRequestBodyBytes",
+  ],
+  "request-origin": [
+    "verifyRequestOrigin",
+  ],
+  "runtime": [
+    "isProductionRuntime",
+    "readRuntimeEnv",
   ],
   "turnstile": [
     "verifyTurnstile",

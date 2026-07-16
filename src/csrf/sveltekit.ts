@@ -6,7 +6,7 @@
 
 import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit'
 
-import { isProduction } from '../_internal/env.js'
+import { isProductionRuntime } from '../runtime.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
 import { createCsrf, type CsrfConfig, type CsrfProtection, type GenerateOptions } from '../csrf.js'
 import { safeErrorContext } from '../logger.js'
@@ -72,7 +72,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 	const checkExpiry = config.checkExpiry ?? trackExpiry
 	const cookieOptions = config.cookieOptions ?? {
 		httpOnly: true,
-		secure: isProduction(),
+		secure: isProductionRuntime(),
 		sameSite: 'lax' as const,
 		path: '/',
 		maxAge: 60 * 60 * 24

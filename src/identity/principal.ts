@@ -1,9 +1,13 @@
 /** Identity method attached to a verified principal. */
 export type IdentityMethod = 'jwt' | 'api-key' | 'did-wba' | 'http-signature' | (string & {})
 
-/** Principal identity returned after authentication verification. */
-export interface VerifiedPrincipal {
+/** Minimal identity shared by every authenticated principal representation. */
+export interface PrincipalIdentity {
 	id: string
+}
+
+/** Principal identity returned after authentication verification. */
+export interface VerifiedPrincipal extends PrincipalIdentity {
 	method: IdentityMethod
 	claims?: Record<string, unknown>
 }

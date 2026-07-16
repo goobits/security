@@ -499,7 +499,7 @@ export async function POST({ request }) {
 	if (!result.authenticated) {
 		return new Response('Unauthorized', { status: 401 })
 	}
-	// result.user.id, result.method ('jwt' | 'apikey')
+	// result.user.id, result.method ('jwt' | 'api-key')
 }
 
 // Issue a new token (NOTE: async since the v2.0.0 jose swap):
@@ -513,7 +513,7 @@ const shortToken = await adminAuth.createAdminToken({ id: 'u1', role: 'admin' },
 const key = generateAdminApiKey()
 ```
 
-⚠️ **`jwtSecret` must be ≥32 characters.** `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
+⚠️ **`jwtSecret` must be ≥32 bytes.** `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
 
 ⚠️ **`algorithms` defaults to `['HS256']`.** Pin tight. Adding `HS384`/`HS512` is fine; mixing in `none` is impossible (the type forbids it).
 
@@ -675,6 +675,20 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 - ESM only: `"type": "module"` consumers required
 - Unknown or absent `NODE_ENV` values use production-safe defaults. Development
   bypasses activate only for explicit `development` or `test` modes.
+
+Apps that need the same decision for secure cookies or other security defaults
+should use the public runtime helper instead of interpreting `NODE_ENV`
+themselves:
+
+```ts
+import { isProductionRuntime } from '@goobits/security/runtime'
+
+const secure = isProductionRuntime(platform?.env?.NODE_ENV)
+```
+
+Pass an explicit deployment binding on runtimes that do not expose
+`process.env`. Omitting the value is deliberately fail-closed and returns
+`true`.
 
 ### Per-module runtime compatibility
 

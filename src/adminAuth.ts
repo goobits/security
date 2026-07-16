@@ -21,10 +21,8 @@ import {
 export type AdminAuthAlgorithm = PrincipalAuthAlgorithm
 
 /** Admin User request or option shape for security middleware. */
-export interface AdminUser {
-	id: string
+export interface AdminUser extends AuthPrincipal {
 	role?: string
-	[key: string]: unknown
 }
 
 /** Admin Auth Config request or option shape for security middleware. */
@@ -70,7 +68,7 @@ export interface AdminAuthConfig {
 
 /** Admin Auth Result typed model for security middleware. */
 export type AdminAuthResult =
-	| { authenticated: true; user: AdminUser; method: 'jwt' | 'apikey' }
+	| { authenticated: true; user: AdminUser; method: 'jwt' | 'api-key' }
 	| { authenticated: false; reason: 'missing' | 'invalid-jwt' | 'not-admin' | 'invalid-apikey' }
 
 function isAdminClaim(principal: AuthPrincipal): boolean {
