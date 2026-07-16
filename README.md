@@ -687,8 +687,9 @@ const secure = isProductionRuntime(platform?.env?.NODE_ENV)
 ```
 
 Pass an explicit deployment binding on runtimes that do not expose
-`process.env`. Omitting the value is deliberately fail-closed and returns
-`true`.
+`process.env`. Calling the helper with no argument reads `process.env.NODE_ENV`;
+passing an explicitly absent binding (`undefined`) is deliberately fail-closed
+and returns `true`.
 
 ### Per-module runtime compatibility
 

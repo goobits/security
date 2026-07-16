@@ -94,6 +94,7 @@ export function createD1AuditSink({
 					action: event.action,
 					error: error instanceof Error ? error.name : 'UnknownError'
 				})
+				throw error
 			}
 		}
 	}

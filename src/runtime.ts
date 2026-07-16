@@ -26,6 +26,7 @@ export function readRuntimeEnv(name: string): string | undefined {
  * Returns false only for an explicitly declared development or test runtime.
  * Unknown runtimes therefore retain production-safe cookies and bypass rules.
  */
-export function isProductionRuntime(mode = readRuntimeEnv('NODE_ENV')): boolean {
-	return mode !== 'development' && mode !== 'test'
+export function isProductionRuntime(mode?: string): boolean {
+	const resolvedMode = arguments.length === 0 ? readRuntimeEnv('NODE_ENV') : mode
+	return resolvedMode !== 'development' && resolvedMode !== 'test'
 }

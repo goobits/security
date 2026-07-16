@@ -25,4 +25,11 @@ describe('runtime environment', () => {
 		vi.stubEnv('SECURITY_RUNTIME_TEST', '')
 		expect(readRuntimeEnv('SECURITY_RUNTIME_TEST')).toBeUndefined()
 	})
+
+	it('treats an explicitly absent deployment binding as production-safe', () => {
+		vi.stubEnv('NODE_ENV', 'test')
+
+		expect(isProductionRuntime()).toBe(false)
+		expect(isProductionRuntime(undefined)).toBe(true)
+	})
 })

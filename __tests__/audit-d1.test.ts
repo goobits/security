@@ -26,7 +26,7 @@ describe('D1 audit sink', () => {
 		expect(run).toHaveBeenCalledOnce()
 	})
 
-	it('rejects unsafe table names and swallows storage failures', async () => {
+	it('rejects unsafe table names and propagates storage failures safely', async () => {
 		expect(() =>
 			createD1AuditSink({
 				db: { prepare: () => ({ bind: () => ({ run: async () => undefined }) }) },
@@ -45,7 +45,7 @@ describe('D1 audit sink', () => {
 		})
 		await expect(
 			sink.record({ action: 'test', outcome: 'error', timestamp: new Date().toISOString() })
-		).resolves.toBeUndefined()
+		).rejects.toThrow('private database error')
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.any(String),
 			expect.not.objectContaining({ error: 'private database error' })

@@ -32,6 +32,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
   bytes.
 - The successful API-key authentication method is consistently named
   `api-key` instead of `apikey`.
+- D1 audit sinks now propagate write failures after bounded logging so the
+  owning `AuditLogger` can honor its configured `report` or `throw` policy.
+- Runtime checks distinguish an omitted argument from an explicitly absent
+  deployment binding; explicit unknown bindings always retain production-safe
+  behavior.
 
 ## [3.0.0] - 2026-07-16
 
