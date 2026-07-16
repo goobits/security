@@ -22,6 +22,8 @@ export {
 } from './aead.js'
 export {
 	base64UrlToBytes,
+	base64ToBytes,
+	bytesToBase64,
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,

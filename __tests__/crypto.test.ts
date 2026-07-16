@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
 	base64UrlToBytes,
+	base64ToBytes,
+	bytesToBase64,
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,
@@ -33,12 +35,21 @@ describe('crypto encoding helpers', () => {
 		expect(bytesToHex(bytes)).toBe('68656c6c6f')
 		expect(hexToBytes('68656c6c6f')).toEqual(bytes)
 		expect(base64UrlToBytes(bytesToBase64Url(bytes))).toEqual(bytes)
+		expect(base64ToBytes(bytesToBase64(bytes))).toEqual(bytes)
 	})
 
 	it('rejects malformed and non-canonical base64url values', () => {
 		for (const value of ['a', 'abc=', 'abc+', 'abc/', 'ab c', 'AB==']) {
 			expect(() => base64UrlToBytes(value)).toThrow(/invalid base64url/)
 		}
+	})
+
+	it('keeps standard base64 and base64url parsing explicit', () => {
+		const bytes = Uint8Array.from([251, 255])
+		expect(bytesToBase64(bytes)).toBe('+/8=')
+		expect(bytesToBase64Url(bytes)).toBe('-_8')
+		expect(() => base64ToBytes('-_8')).toThrow(/invalid base64 value/)
+		expect(() => base64UrlToBytes('+/8=')).toThrow(/invalid base64url value/)
 	})
 
 	it('generates random bytes and hex', () => {

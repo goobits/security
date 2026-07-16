@@ -100,6 +100,8 @@ export {
 	type VerifySecurityProofOptions,
 	attachSecurityProof,
 	base64UrlToBytes,
+	base64ToBytes,
+	bytesToBase64,
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,
