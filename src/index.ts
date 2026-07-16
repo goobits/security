@@ -10,8 +10,6 @@
  * @module @goobits/security
  */
 
-import packageJson from '../package.json' with { type: 'json' }
-
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
@@ -241,7 +239,3 @@ export {
 	validateRequestBody,
 	validateString
 } from './validation/simple.js'
-
-/* Version constant. */
-/** Security Package Version registry entry for security middleware. */
-export const SECURITY_PACKAGE_VERSION = packageJson.version

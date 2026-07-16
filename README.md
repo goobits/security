@@ -253,12 +253,13 @@ The returned `CsrfProtection` object also exposes `getToken(request)`, `cleanup(
 
 ⚠️ **`cookieOptions` replaces defaults, doesn't merge.** If you supply your own `cookieOptions`, you also lose the sensible defaults (`HttpOnly`, `SameSite=Lax`, etc.). Copy the defaults first if you only want to tweak one field.
 
-### `failClosed`: for compliance-sensitive routes
+### `failClosed`: expiry checks fail closed by default
 
-Default behavior on store errors (Redis down, etc.) is **fail-open**: `validate()` will still let requests through if the cookie + header constant-time compare succeeds. For routes where availability is less important than correctness, opt into fail-closed:
+Store errors (Redis down, etc.) make expiry-checked validation fail by default.
+Only an explicit availability-over-correctness policy should opt out:
 
 ```ts
-const csrf = createCsrf({ failClosed: true })
+const csrf = createCsrf({ failClosed: false })
 
 // On a route that explicitly checks expiration:
 if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
