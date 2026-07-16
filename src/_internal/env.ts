@@ -30,14 +30,12 @@ export function readEnv(name: string): string | undefined {
 }
 
 /**
- * Strict production check. Returns true ONLY if `process.env.NODE_ENV === 'production'`.
+ * Returns false only for an explicit development or test runtime.
  *
- * Many runtimes leave `NODE_ENV` unset by default (Cloudflare Workers, Deno,
- * Bun without explicit env loading). Treating "no NODE_ENV" as "non-prod" is
- * a security foot-gun for security-sensitive defaults (CAPTCHA bypass, CSRF
- * disable). Use `isProduction()` to gate dev-only behavior  -  and always
- * default the behavior to its safe (production) variant when in doubt.
+ * Workers, Deno, and other runtimes commonly omit `NODE_ENV`. Unknown modes
+ * therefore use production-safe behavior for cookies and development bypasses.
  */
 export function isProduction(): boolean {
-	return readEnv('NODE_ENV') === 'production'
+	const mode = readEnv('NODE_ENV')
+	return mode !== 'development' && mode !== 'test'
 }

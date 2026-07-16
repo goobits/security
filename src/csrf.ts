@@ -20,6 +20,7 @@ import { type CookieOptions, parseCookies, serializeCookie } from './_internal/c
 import { isProduction, readEnv } from './_internal/env.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
+import { safeErrorContext } from './logger.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
@@ -234,7 +235,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		try {
 			expires = await store.get(token)
 		} catch (err) {
-			log.error('Error checking CSRF token expiration', { error: String(err) })
+			log.error('Error checking CSRF token expiration', safeErrorContext(err))
 			// failClosed=true treats store errors as expired (fail-safe);
 			// failClosed=false treats them as not-expired (fail-open for availability).
 			return failClosed
@@ -247,7 +248,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 			try {
 				await store.delete(token)
 			} catch (err) {
-				log.error('Error deleting expired CSRF token', { error: String(err) })
+				log.error('Error deleting expired CSRF token', safeErrorContext(err))
 			}
 			log.warn('CSRF token expired')
 		}

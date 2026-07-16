@@ -531,6 +531,7 @@ import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 
 const auditor = createAuditLogger({
+	failureMode: 'throw',
 	sink: {
 		async record(event) {
 			await db.insert('audit_log').values(event)
@@ -553,10 +554,8 @@ export const POST = withAudit(
 		action: 'contact.submit',
 		auditor,
 		includeRequestBody: true,
-		// Defaults: ['password', 'token', 'secret', 'apiKey', 'authorization',
-		// 'creditCard', 'cvv']. Override with your own set (case-insensitive,
-		// recurses into nested objects and arrays). Pass `redactKeys: []` to
-		// disable redaction entirely (NOT recommended for routes with credentials).
+		// Additional keys extend Security's mandatory defaults. Matching is
+		// case-insensitive and recurses into nested objects and arrays.
 		redactKeys: ['password', 'token', 'creditCard', 'ssn']
 	},
 	async (event) => {
@@ -587,8 +586,25 @@ const sink = createD1AuditSink({
 
 Custom redaction keys extend Security's default secret set. The D1 sink validates
 its table identifier, caps structured detail and scalar fields, serializes
-bigints safely, omits arbitrary error messages by default, and reports storage
+bigints safely, omits arbitrary error messages, and reports storage
 failures without logging database error messages or event values.
+
+## Request origin
+
+Use `verifyRequestOrigin()` as the shared browser-mutation boundary. Applications
+provide their exact trusted origins; Security owns bounded Fetch Metadata,
+`Origin`, and `Referer` parsing.
+
+```ts
+import { verifyRequestOrigin } from '@goobits/security/request-origin'
+
+const result = verifyRequestOrigin({
+	request: event.request,
+	requestUrl: event.url,
+	allowedOrigins: [env.PUBLIC_SITE_URL]
+})
+if (!result.ok) return new Response('Invalid origin', { status: 403 })
+```
 
 ## Alerting
 
@@ -657,6 +673,8 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 - **Node** ≥22 (for native Web Crypto on `globalThis.crypto`)
 - **Bun**, **Deno**, **Cloudflare Workers**: supported with caveats (see table below)
 - ESM only: `"type": "module"` consumers required
+- Unknown or absent `NODE_ENV` values use production-safe defaults. Development
+  bypasses activate only for explicit `development` or `test` modes.
 
 ### Per-module runtime compatibility
 

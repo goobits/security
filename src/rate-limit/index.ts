@@ -116,8 +116,7 @@ function quoteD1Identifier(identifier: string): string {
  * D1-backed rate limit store.
  *
  * Uses the common `rate_limits(key, count, reset_at)` table by default. The
- * `count` column stores JSON timestamp arrays for sliding-window precision,
- * while numeric legacy counts are still readable during migrations.
+ * `count` column stores JSON timestamp arrays for sliding-window precision.
  */
 export class D1RateLimitStore implements RateLimitStore {
 	private readonly table: string
@@ -158,10 +157,7 @@ export class D1RateLimitStore implements RateLimitStore {
 			}
 		}
 
-		const count = typeof raw === 'number' ? raw : Number(raw ?? 0)
-		if (!Number.isFinite(count) || count <= 0) return null
-		const timestamp = Math.min(now, resetAtMs - 1)
-		return { timestamps: Array.from({ length: count }, () => timestamp) }
+		return null
 	}
 
 	async getEntry(key: string): Promise<RateLimitEntry | null> {
@@ -211,19 +207,6 @@ export class D1RateLimitStore implements RateLimitStore {
 											WHEN CAST(${this.table}.${resetAtColumn} AS INTEGER) * 1000 <= ? THEN json_array()
 											WHEN json_valid(${this.table}.${countColumn}) AND json_type(${this.table}.${countColumn}) = 'array'
 												THEN ${this.table}.${countColumn}
-											WHEN CAST(${this.table}.${countColumn} AS INTEGER) > 0 THEN (
-												WITH RECURSIVE legacy(position, value) AS (
-													SELECT 0, ? - 1
-													UNION ALL
-													SELECT position + 1, value
-													FROM legacy
-													WHERE position + 1 < CASE
-														WHEN ? < 0 THEN CAST(${this.table}.${countColumn} AS INTEGER)
-														ELSE MIN(CAST(${this.table}.${countColumn} AS INTEGER), ?)
-													END
-												)
-												SELECT json_group_array(value) FROM legacy
-											)
 											ELSE json_array()
 										END
 									)
@@ -245,9 +228,6 @@ export class D1RateLimitStore implements RateLimitStore {
 				timestamp,
 				resetAtSeconds,
 				timestamp,
-				timestamp,
-				retainedLimit,
-				retainedLimit,
 				cutoff,
 				retainedLimit,
 				timestamp
@@ -565,6 +545,29 @@ export interface GetClientIpOptions {
 	trustHeaders?: ReadonlyArray<'cf-connecting-ip' | 'x-forwarded-for' | 'x-real-ip'>
 }
 
+function normalizeClientIp(value: string): string | null {
+	const candidate = value.trim()
+	if (!candidate || candidate.length > 64 || /[\s\u0000-\u001f\u007f]/u.test(candidate)) {
+		return null
+	}
+
+	if (/^\d{1,3}(?:\.\d{1,3}){3}$/u.test(candidate)) {
+		return candidate
+			.split('.')
+			.every((part) => Number(part) >= 0 && Number(part) <= 255)
+			? candidate
+			: null
+	}
+
+	if (!candidate.includes(':') || !/^[0-9A-Fa-f:.]+$/u.test(candidate)) return null
+	try {
+		const parsed = new URL(`http://[${candidate}]/`)
+		return parsed.hostname.length > 2 ? candidate : null
+	} catch {
+		return null
+	}
+}
+
 /**
  * Resolve the client IP from a Fetch-API `Request`.
  *
@@ -598,8 +601,8 @@ export function getClientIP(request: Request, options: GetClientIpOptions = {}):
 		// (by convention) the original client.
 		const first = raw.split(',')[0]
 		if (first) {
-			const trimmed = first.trim()
-			if (trimmed) return trimmed
+			const normalized = normalizeClientIp(first)
+			if (normalized) return normalized
 		}
 	}
 

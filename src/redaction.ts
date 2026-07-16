@@ -45,6 +45,10 @@ export interface RedactionOptions {
 	redactString?: (value: string) => string
 	/** Remove matching object fields instead of retaining a replacement value. */
 	omit?: boolean
+	/** Include Error.message after applying redactString. Default: false. */
+	includeErrorMessage?: boolean
+	/** Include Error.stack after applying redactString. Default: false. */
+	includeErrorStack?: boolean
 }
 
 function patternMatches(pattern: RegExp | undefined, value: string): boolean {
@@ -85,8 +89,12 @@ export function redactSensitive(input: unknown, options: RedactionOptions = {}):
 		if (value instanceof Error) {
 			return {
 				name: value.name,
-				message: options.redactString?.(value.message) ?? value.message,
-				...(value.stack ? { stack: options.redactString?.(value.stack) ?? value.stack } : {})
+				...(options.includeErrorMessage
+					? { message: options.redactString?.(value.message) ?? value.message }
+					: {}),
+				...(options.includeErrorStack && value.stack
+					? { stack: options.redactString?.(value.stack) ?? value.stack }
+					: {})
 			}
 		}
 		if (Array.isArray(value)) return value.map(visit)

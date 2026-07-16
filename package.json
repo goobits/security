@@ -38,6 +38,7 @@
 		"./logger": "./src/logger.ts",
 		"./redaction": "./src/redaction.ts",
 		"./request-body": "./src/requestBody.ts",
+		"./request-origin": "./src/requestOrigin.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [

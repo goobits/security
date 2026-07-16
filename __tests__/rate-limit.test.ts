@@ -26,15 +26,13 @@ class FakeD1RateLimitDatabase {
 						const timestamp = Number(args[1])
 						const resetAt = Number(args[2])
 						const retainedLimit = Number(args[5])
-						const cutoff = Number(args[7])
+						const cutoff = Number(args[4])
 						const current = this.rows.get(key)
 						const currentResetAt = Number(current?.reset_at ?? 0) * 1000
 						let timestamps: number[] = []
 						if (current && currentResetAt > timestamp) {
 							if (typeof current.count === 'string' && current.count.startsWith('[')) {
 								timestamps = JSON.parse(current.count) as number[]
-							} else {
-								timestamps = Array.from({ length: Number(current.count ?? 0) }, () => timestamp - 1)
 							}
 						}
 						timestamps = timestamps.filter((value) => value > cutoff)
@@ -269,21 +267,7 @@ describe('createRateLimiter', () => {
 		expect(db.selectCount).toBe(0)
 	})
 
-	it('reads legacy D1 numeric count rows', async () => {
-		const db = new FakeD1RateLimitDatabase()
-		db.rows.set('auth:alice', {
-			count: 2,
-			reset_at: Math.ceil((Date.now() + 60_000) / 1000)
-		})
-		const store = new D1RateLimitStore(db)
-
-		const entry = await store.incrementEntry('auth:alice', Date.now(), 60_000, 4)
-
-		expect(entry.timestamps).toHaveLength(3)
-		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
-	})
-
-	it('reads persisted D1 JSON timestamps and numeric migration rows', async () => {
+	it('reads persisted D1 JSON timestamps and deletes obsolete numeric rows', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const store = new D1RateLimitStore(db)
 		const now = Date.now()
@@ -293,7 +277,8 @@ describe('createRateLimiter', () => {
 		db.rows.set('legacy', { count: 2, reset_at: resetAt })
 
 		expect(await store.getEntry('json')).toEqual({ timestamps })
-		expect((await store.getEntry('legacy'))?.timestamps).toHaveLength(2)
+		expect(await store.getEntry('legacy')).toBeNull()
+		expect(db.rows.has('legacy')).toBe(false)
 	})
 
 	it('deletes expired and malformed D1 rows instead of restoring bad counters', async () => {
@@ -461,5 +446,21 @@ describe('getClientIP', () => {
 		})
 
 		expect(getClientIP(request, { trustHeaders: ['x-forwarded-for'] })).toBe('unknown')
+	})
+
+	it('rejects malformed or unbounded trusted header values', () => {
+		for (const value of ['not-an-ip', '999.1.2.3', '203.0.113.1 attacker', '1'.repeat(65)]) {
+			const request = new Request('https://example.test', {
+				headers: { 'cf-connecting-ip': value }
+			})
+			expect(getClientIP(request, { trustHeaders: ['cf-connecting-ip'] })).toBe('unknown')
+		}
+	})
+
+	it('accepts bounded IPv6 addresses', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'cf-connecting-ip': '2001:db8::1' }
+		})
+		expect(getClientIP(request, { trustHeaders: ['cf-connecting-ip'] })).toBe('2001:db8::1')
 	})
 })

@@ -6,6 +6,23 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Added
+
+- `request-origin`: one framework-agnostic verifier for Fetch Metadata,
+  `Origin`, and `Referer` checks across browser mutation boundaries.
+- `audit`: explicit `failureMode: 'throw'` support for required durable audit
+  pipelines, and `safeErrorContext()` for bounded error logging.
+
+### Changed
+
+- Unknown runtime modes now use production-safe defaults; development bypasses
+  require an explicit `NODE_ENV=development` or `NODE_ENV=test`.
+- Audit redaction defaults can only be extended, not disabled, and arbitrary
+  exception messages and stacks are excluded from default projections.
+- Trusted client-IP headers are bounded and validated before use.
+- D1 rate-limit storage now accepts only the canonical JSON timestamp format;
+  the expired numeric-counter migration bridge was removed.
+
 ## [3.0.0] - 2026-07-16
 
 ### Breaking

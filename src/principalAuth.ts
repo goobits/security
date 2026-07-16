@@ -13,6 +13,7 @@ import { timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import { parseBearerToken } from './httpCredentials.js'
 import type { Logger } from './logger.js'
+import { safeErrorContext } from './logger.js'
 
 /** Principal Auth Algorithm shape used for signed principals, API keys, and request authentication. */
 export type PrincipalAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'
@@ -178,7 +179,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 			} else if (err instanceof errors.JOSEError) {
 				log.warn('Principal JWT verification failed', { code: err.code })
 			} else {
-				log.warn('Principal JWT verification threw', { error: String(err) })
+				log.warn('Principal JWT verification threw', safeErrorContext(err))
 			}
 			return null
 		}

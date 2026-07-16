@@ -53,6 +53,7 @@ src/
 ├── recaptcha.ts      # Google v2/v3 verifier
 ├── redaction.ts      # secret-safe public/audit projections
 ├── requestBody.ts    # bounded Fetch request-body readers
+├── requestOrigin.ts  # Fetch Metadata + Origin/Referer verification
 ├── turnstile.ts      # Cloudflare Turnstile verifier
 ├── validation.ts     # framework-agnostic Zod helpers
 └── index.ts          # curated framework-agnostic root barrel

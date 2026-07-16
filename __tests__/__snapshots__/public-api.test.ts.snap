@@ -73,6 +73,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "readJsonBody",
     "readRequestBodyBytes",
     "redactSensitive",
+    "safeErrorContext",
     "sealAesGcm",
     "sealAesGcmWithKeyring",
     "sealJson",
@@ -93,6 +94,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "verifyHmac",
     "verifyHttpSignatureIdentity",
     "verifyRecaptcha",
+    "verifyRequestOrigin",
     "verifySecurityProof",
   ],
   "admin-auth": [
@@ -252,6 +254,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
   "logger": [
     "createConsoleLogger",
     "noopLogger",
+    "safeErrorContext",
   ],
   "principal-auth": [
     "createPrincipalAuth",

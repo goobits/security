@@ -67,6 +67,16 @@ describe('createAuditLogger', () => {
 		await expect(auditor.log({ action: 'x', outcome: 'success' })).resolves.not.toThrow()
 		expect(errors.length).toBeGreaterThan(0)
 	})
+
+	it('can fail closed when the sink is required', async () => {
+		const failure = new Error('sink boom')
+		const auditor = createAuditLogger({
+			failureMode: 'throw',
+			sink: { record: () => Promise.reject(failure) }
+		})
+
+		await expect(auditor.log({ action: 'x', outcome: 'success' })).rejects.toBe(failure)
+	})
 })
 
 describe('createLoggerSink', () => {
@@ -89,6 +99,20 @@ describe('createLoggerSink', () => {
 				outcome: 'success'
 			})
 		)
+	})
+
+	it('redacts sensitive detail before using a logger sink', () => {
+		const info = vi.fn()
+		const sink = createLoggerSink({ debug() {}, info, warn() {}, error() {} })
+
+		sink.record({
+			action: 'user.login',
+			outcome: 'failure',
+			detail: { password: 'plaintext' },
+			timestamp: '2026-01-01T00:00:00.000Z'
+		})
+
+		expect(info.mock.calls[0]?.[1]).toMatchObject({ detail: { password: '[redacted]' } })
 	})
 })
 
@@ -170,7 +194,7 @@ describe('withAudit redaction', () => {
 		expect(body.tokens[0]?.token).toBe('[redacted]')
 	})
 
-	it('honors empty redactKeys (no redaction) when explicitly opted out', async () => {
+	it('retains default redaction when no additional keys are configured', async () => {
 		const { sink, records } = makeSink()
 		const auditor = createAuditLogger({ sink })
 
@@ -185,7 +209,7 @@ describe('withAudit redaction', () => {
 		await Promise.resolve()
 
 		const body = records[0]?.detail?.['requestBody'] as Record<string, unknown>
-		expect(body['password']).toBe('plaintext')
+		expect(body['password']).toBe('[redacted]')
 	})
 
 	it('derives outcome from response status', async () => {
@@ -224,7 +248,13 @@ describe('redactSensitive', () => {
 		expect(redacted['password']).toBe('[redacted]')
 		expect(redacted['email']).toBe('[redacted]')
 		expect(redacted['self']).toBe('[circular]')
-		expect(redacted['error']).toMatchObject({ message: 'failed for [email]' })
+		expect(redacted['error']).toEqual({ name: 'Error' })
+		expect(
+			redactSensitive(new Error('failed for member@example.test'), {
+				includeErrorMessage: true,
+				redactString: (value) => value.replaceAll('member@example.test', '[email]')
+			})
+		).toMatchObject({ message: 'failed for [email]' })
 	})
 
 	it('normalizes secret field naming and can omit nested secrets', () => {

@@ -45,6 +45,11 @@ describe('verifyTurnstile', () => {
 		expect(result.success).toBe(false)
 	})
 
+	it('does not bypass an unknown runtime even with explicit development opt-in', async () => {
+		const result = await verifyTurnstile('token', { allowInDevelopment: true })
+		expect(result.success).toBe(false)
+	})
+
 	it('permits dev bypass only when explicitly opted in AND NODE_ENV !== production', async () => {
 		vi.stubEnv('NODE_ENV', 'development')
 		const result = await verifyTurnstile('token', { allowInDevelopment: true })
@@ -150,6 +155,7 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('skips siteverify entirely when bypassLocalhost matches remoteIp (non-prod)', async () => {
+		vi.stubEnv('NODE_ENV', 'development')
 		const fetchSpy = vi.fn()
 		vi.stubGlobal('fetch', fetchSpy)
 
@@ -189,6 +195,7 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('honors custom bypassHosts list', async () => {
+		vi.stubEnv('NODE_ENV', 'development')
 		const fetchSpy = vi.fn()
 		vi.stubGlobal('fetch', fetchSpy)
 

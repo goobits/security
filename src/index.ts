@@ -16,7 +16,8 @@ export {
 	type LogContext,
 	type Logger,
 	createConsoleLogger,
-	noopLogger
+	noopLogger,
+	safeErrorContext
 } from './logger.js'
 
 /* Secret-safe logging and audit payloads. */
@@ -65,6 +66,12 @@ export {
 	readJsonBody,
 	readRequestBodyBytes
 } from './requestBody.js'
+export {
+	type RequestOriginFailureReason,
+	type RequestOriginResult,
+	type VerifyRequestOriginOptions,
+	verifyRequestOrigin
+} from './requestOrigin.js'
 export { type RedisCsrfStoreOptions, type RedisLike, createRedisCsrfStore } from './csrfRedis.js'
 
 /* Content Security Policy. */
