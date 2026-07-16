@@ -8,7 +8,7 @@
  * @module @goobits/security/csrf-client
  */
 
-import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from './MemoryCsrfStore.js'
+import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from './csrf.js'
 
 const DEFAULT_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS'])
 

@@ -8,7 +8,7 @@
 	"sideEffects": false,
 	"exports": {
 		".": "./src/index.ts",
-		"./csrf": "./src/MemoryCsrfStore.ts",
+		"./csrf": "./src/csrf.ts",
 		"./csrf-client": "./src/csrfClient.ts",
 		"./csrf-redis": "./src/csrfRedis.ts",
 		"./csp": "./src/csp.ts",
@@ -29,7 +29,6 @@
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",
 		"./rate-limit": "./src/rate-limit/index.ts",
 		"./rate-limit/sveltekit": "./src/rate-limit/sveltekit.ts",
-		"./rate-limit/auth": "./src/rate-limit/auth.ts",
 		"./admin-auth": "./src/adminAuth.ts",
 		"./audit": "./src/audit.ts",
 		"./audit/d1": "./src/audit/d1.ts",
@@ -37,6 +36,7 @@
 		"./alerting": "./src/alerting.ts",
 		"./logger": "./src/logger.ts",
 		"./redaction": "./src/redaction.ts",
+		"./request-body": "./src/requestBody.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [

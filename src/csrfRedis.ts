@@ -8,7 +8,7 @@
  * @module @goobits/security/csrf-redis
  */
 
-import type { CsrfTokenStore } from './MemoryCsrfStore.js'
+import type { CsrfTokenStore } from './csrf.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
 

@@ -11,6 +11,7 @@ import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
 
 import { timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
+import { parseBearerToken } from './httpCredentials.js'
 import type { Logger } from './logger.js'
 
 /** Principal Auth Algorithm shape used for signed principals, API keys, and request authentication. */
@@ -94,12 +95,6 @@ function principalFromPayload(payload: JWTPayload): AuthPrincipal | null {
 		id,
 		...(roles ? { roles } : {})
 	}
-}
-
-function extractBearer(authHeader: string | null): string | null {
-	if (!authHeader) return null
-	const match = /^Bearer\s+(\S+)\s*$/i.exec(authHeader.trim())
-	return match?.[1] ?? null
 }
 
 function normalizeApiKeys(config: PrincipalAuthConfig): PrincipalApiKey[] {
@@ -190,7 +185,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 	}
 
 	async function authenticate(request: Request): Promise<PrincipalAuthResult> {
-		const bearer = extractBearer(request.headers.get('authorization'))
+		const bearer = parseBearerToken(request.headers.get('authorization'))
 		if (bearer) {
 			const principal = await verifyJwt(bearer)
 			if (!principal) return { authenticated: false, reason: 'invalid-jwt' }

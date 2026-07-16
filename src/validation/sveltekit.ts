@@ -6,11 +6,7 @@
 
 import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 
-import {
-	BodyTooLargeError,
-	readJsonBody,
-	readRequestBodyBytes
-} from '../_internal/BodyTooLargeError.js'
+import { BodyTooLargeError, readJsonBody, readRequestBodyBytes } from '../requestBody.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
 import type { Logger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'

@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { type AlertChannel, createSecurityAlerter, createWebhookChannel } from '../src/alerting.js'
+import {
+	type AlertChannel,
+	createSecurityAlerter,
+	createThresholdAlertObserver,
+	createWebhookChannel
+} from '../src/alerting.js'
 import type { AuditEvent } from '../src/audit.js'
+import { MemoryRateLimitStore } from '../src/rate-limit/index.js'
 
 afterEach(() => {
 	vi.useRealTimers()
@@ -115,6 +121,41 @@ describe('createSecurityAlerter', () => {
 
 		await expect(alerter.process(event({}))).resolves.not.toThrow()
 		expect(sends).toHaveLength(1)
+	})
+})
+
+describe('createThresholdAlertObserver', () => {
+	it('shares counters and claims one notification across observer instances', async () => {
+		const store = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const alerts: unknown[] = []
+		const options = {
+			rules: [{ eventName: 'auth.failure', max: 3, windowMs: 60_000, severity: 'warning' }],
+			store,
+			keyPrefix: 'test-alert',
+			now: () => 120_000,
+			onAlert: (alert: unknown) => {
+				alerts.push(alert)
+			}
+		} as const
+		const first = createThresholdAlertObserver(options)
+		const second = createThresholdAlertObserver(options)
+
+		await first({ name: 'auth.failure' })
+		await second({ name: 'auth.failure' })
+		await first({ name: 'auth.failure' })
+		await second({ name: 'auth.failure' })
+
+		expect(alerts).toEqual([
+			expect.objectContaining({ eventName: 'auth.failure', count: 3, severity: 'warning' })
+		])
+	})
+
+	it('rejects invalid thresholds at construction time', () => {
+		expect(() =>
+			createThresholdAlertObserver({
+				rules: [{ eventName: 'failure', max: 0, windowMs: 60_000, severity: 'critical' }]
+			})
+		).toThrow(/positive safe integer/)
 	})
 })
 

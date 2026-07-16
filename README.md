@@ -348,21 +348,20 @@ const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
 
 In SvelteKit, prefer `event.getClientAddress()`, which honors your platform adapter's trusted-proxy config.
 
-Pre-baked auth flow limiters (login, registration, password reset) live in `@goobits/security/rate-limit/auth`:
+Authentication-specific limiter presets live with the policy they encode in
+`@goobits/auth/security`. This package intentionally exposes only the generic
+rate-limiting mechanism:
 
 ```ts
-import {
-	createLoginRateLimiter,
-	createRegistrationRateLimiter,
-	createPasswordResetRateLimiter
-} from '@goobits/security/rate-limit/auth'
+import { createRateLimiter } from '@goobits/security/rate-limit'
 
-const loginLimiter = createLoginRateLimiter() // 5/min, 15/15min
-const registrationLimiter = createRegistrationRateLimiter() // 3/10min, 5/hour
-const passwordResetLimiter = createPasswordResetRateLimiter() // 3/15min, 5/hour
+const limiter = createRateLimiter({
+	windows: [{ name: 'write', windowMs: 60_000, maxEvents: 10 }]
+})
 ```
 
-Each factory takes the same `{ store?, logger?, keyPrefix? }` options as `createRateLimiter`; use a shared `RateLimitStore` (e.g. Redis) to make all three limiters multi-instance safe at once.
+Use a shared `RateLimitStore` (for example Redis or D1) when counters must be
+consistent across application instances.
 
 Custom in-memory store config (e.g. tuning the cleanup probability):
 
@@ -632,7 +631,6 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `identity`               | ✅               | ✅               | ✅               | ✅                                 |
 | `validation` †           | ✅               | ✅               | ✅               | ✅                                 |
 | `rate-limit`             | ✅               | ✅               | ✅               | ✅                                 |
-| `rate-limit/auth`        | ✅               | ✅               | ✅               | ✅                                 |
 | `rate-limit/sveltekit` † | ✅               | ✅               | ✅               | ✅                                 |
 | `principal-auth`         | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |
 | `admin-auth`             | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |

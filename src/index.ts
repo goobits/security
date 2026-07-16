@@ -59,7 +59,13 @@ export {
 	CSRF_TOKEN_EXPIRY_MS,
 	MemoryCsrfStore,
 	createCsrf
-} from './MemoryCsrfStore.js'
+} from './csrf.js'
+export {
+	BodyTooLargeError,
+	type ReadBodyOptions,
+	readJsonBody,
+	readRequestBodyBytes
+} from './requestBody.js'
 export { type RedisCsrfStoreOptions, type RedisLike, createRedisCsrfStore } from './csrfRedis.js'
 
 /* Content Security Policy. */
@@ -167,13 +173,6 @@ export {
 	createRateLimiter,
 	getClientIP
 } from './rate-limit/index.js'
-export {
-	type AuthRateLimitConfig,
-	createLoginRateLimiter,
-	createPasswordResetRateLimiter,
-	createRegistrationRateLimiter
-} from './rate-limit/auth.js'
-
 /* Admin authentication. */
 export {
 	type AuthPrincipal,
@@ -216,8 +215,12 @@ export {
 	type AlertSeverity,
 	type CreateSecurityAlerterOptions,
 	type SecurityAlerter,
+	type ThresholdAlert,
+	type ThresholdAlertObserverOptions,
+	type ThresholdAlertRule,
 	type WebhookChannelOptions,
 	createSecurityAlerter,
+	createThresholdAlertObserver,
 	createWebhookChannel
 } from './alerting.js'
 

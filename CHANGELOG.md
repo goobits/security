@@ -9,6 +9,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 ### Breaking
 
 - The internal `resolveLogger()` fallback is no longer exported from `@goobits/security/logger`. Consumers should pass a logger to public factories or use the exported `noopLogger` explicitly. This closes the logger surface around stable public contracts ahead of v3.
+- Authentication-specific rate-limit presets moved to `@goobits/auth/security`.
+  `@goobits/security/rate-limit` now owns only the generic counter mechanism,
+  and the `rate-limit/auth` subpath has been removed.
 
 ### Removed
 
@@ -36,6 +39,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### 🔧 Changed
 
+- 🔔 **`alerting`**: Added one generic, store-backed threshold observer and a
+  single `info | warning | critical` severity vocabulary for consumer packages.
+- 📦 **module layout**: CSRF and bounded request-body primitives now live at
+  honest public module paths (`csrf.ts` and `request-body`) instead of private or
+  implementation-named files. Existing `validation/sveltekit` re-exports remain
+  available for compatibility.
 - 🔔 **`alerting`**: Webhook delivery now aborts after a configurable timeout
   (`5000ms` by default) instead of waiting indefinitely on an unavailable receiver.
 - 🧮 **`rate-limit`**: Limiter construction now rejects empty names and
