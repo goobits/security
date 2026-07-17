@@ -41,6 +41,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "createPrincipalAuth",
     "createRateLimiter",
     "createRedisCsrfStore",
+    "createResilientRateLimitStore",
     "createSecurityAlerter",
     "createSecurityProof",
     "createThresholdAlertObserver",
@@ -266,6 +267,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "MemoryRateLimitStore",
     "createHmacRateLimitStore",
     "createRateLimiter",
+    "createResilientRateLimitStore",
     "getClientIP",
   ],
   "rate-limit/sveltekit": [

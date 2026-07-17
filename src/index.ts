@@ -181,10 +181,12 @@ export {
 	type RateLimitStore,
 	type RateLimitWindow,
 	type RateLimiter,
+	type ResilientRateLimitStoreOptions,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
 	createHmacRateLimitStore,
 	createRateLimiter,
+	createResilientRateLimitStore,
 	getClientIP
 } from './rate-limit/index.js'
 /* Admin authentication. */

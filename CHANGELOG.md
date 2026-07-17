@@ -22,6 +22,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Changed
 
+- `rate-limit`: added one generic resilient-store wrapper with an explicit
+  `closed | fallback` failure policy. Fallback mode requires a caller-owned
+  store, and observer failures cannot change the selected policy.
 - Unknown runtime modes now use production-safe defaults; development bypasses
   require an explicit `NODE_ENV=development` or `NODE_ENV=test`.
 - Audit redaction defaults can only be extended, not disabled, and arbitrary

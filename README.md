@@ -378,6 +378,26 @@ safe integers. Invalid or non-finite policy values fail at construction time.
 
 ⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments. The package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
 
+When a durable store needs an explicit outage policy, wrap it once at the store
+boundary. Closed mode propagates the original failure; fallback mode requires a
+specific fallback store instead of silently constructing one:
+
+```ts
+import {
+	MemoryRateLimitStore,
+	createResilientRateLimitStore
+} from '@goobits/security/rate-limit'
+
+const store = createResilientRateLimitStore({
+	primary: durableStore,
+	failureMode: 'fallback',
+	fallback: new MemoryRateLimitStore()
+})
+```
+
+Authentication and other abuse-sensitive production routes should normally use
+`failureMode: 'closed'`. Applications still own that availability decision.
+
 ⚠️ **`getClientIP` trusts NO proxy headers by default.** This is intentional: blindly trusting `x-forwarded-for` lets attackers spoof the identifier. To enable header trust:
 
 ```ts

@@ -1,11 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
 	createHmacRateLimitStore,
 	createRateLimiter,
+	createResilientRateLimitStore,
 	D1RateLimitStore,
 	getClientIP,
-	MemoryRateLimitStore
+	MemoryRateLimitStore,
+	type RateLimitStore
 } from '../src/rate-limit/index.js'
 
 type FakeRateLimitRow = {
@@ -55,6 +57,81 @@ class FakeD1RateLimitDatabase {
 		}
 	}
 }
+
+describe('createResilientRateLimitStore', () => {
+	const unavailableStore = (failure: Error): RateLimitStore => ({
+		getEntry: () => Promise.reject(failure),
+		incrementEntry: () => Promise.reject(failure),
+		deleteEntry: () => Promise.reject(failure)
+	})
+
+	it('delegates every operation to the explicit fallback after primary failures', async () => {
+		const failure = new Error('primary unavailable')
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const onPrimaryError = vi.fn()
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(failure),
+			failureMode: 'fallback',
+			fallback,
+			onPrimaryError
+		})
+
+		await expect(store.incrementEntry('alice', 1_000, 60_000, 3)).resolves.toEqual({
+			timestamps: [1_000]
+		})
+		await expect(store.getEntry('alice')).resolves.toEqual({ timestamps: [1_000] })
+		await expect(store.deleteEntry('alice')).resolves.toBeUndefined()
+		await expect(store.getEntry('alice')).resolves.toBeNull()
+		expect(onPrimaryError.mock.calls.map(([operation]) => operation)).toEqual([
+			'incrementEntry',
+			'getEntry',
+			'deleteEntry',
+			'getEntry'
+		])
+	})
+
+	it('propagates the original failure in closed mode', async () => {
+		const failure = new Error('primary unavailable')
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(failure),
+			failureMode: 'closed'
+		})
+
+		await expect(store.getEntry('alice')).rejects.toBe(failure)
+		await expect(store.incrementEntry('alice', 1_000, 60_000)).rejects.toBe(failure)
+		await expect(store.deleteEntry('alice')).rejects.toBe(failure)
+	})
+
+	it('does not let a failing observer disable the fallback', async () => {
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(new Error('primary unavailable')),
+			failureMode: 'fallback',
+			fallback,
+			onPrimaryError: async () => {
+				throw new Error('observer unavailable')
+			}
+		})
+
+		await expect(store.incrementEntry('alice', 1_000, 60_000)).resolves.toEqual({
+			timestamps: [1_000]
+		})
+	})
+
+	it('clears the fallback after a successful primary delete', async () => {
+		const primary = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		fallback.incrementEntry('alice', 1_000, 60_000)
+		const store = createResilientRateLimitStore({
+			primary,
+			failureMode: 'fallback',
+			fallback
+		})
+
+		await store.deleteEntry('alice')
+		expect(fallback.getEntry('alice')).toBeNull()
+	})
+})
 
 describe('createRateLimiter', () => {
 	it('throws on empty windows', () => {
