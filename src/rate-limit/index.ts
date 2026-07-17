@@ -223,15 +223,7 @@ export class D1RateLimitStore implements RateLimitStore {
 					${resetAtColumn} = excluded.${resetAtColumn}
 				 RETURNING ${countColumn} AS count, ${resetAtColumn} AS reset_at`
 			)
-			.bind(
-				key,
-				timestamp,
-				resetAtSeconds,
-				timestamp,
-				cutoff,
-				retainedLimit,
-				timestamp
-			)
+			.bind(key, timestamp, resetAtSeconds, timestamp, cutoff, retainedLimit, timestamp)
 			.first<{ count: number | string | null; reset_at: number | string | null }>()
 		const entry = this.mapEntry(row, timestamp)
 		if (!entry) throw new Error('D1RateLimitStore: increment did not return a valid entry')
@@ -552,9 +544,7 @@ function normalizeClientIp(value: string): string | null {
 	}
 
 	if (/^\d{1,3}(?:\.\d{1,3}){3}$/u.test(candidate)) {
-		return candidate
-			.split('.')
-			.every((part) => Number(part) >= 0 && Number(part) <= 255)
+		return candidate.split('.').every((part) => Number(part) >= 0 && Number(part) <= 255)
 			? candidate
 			: null
 	}

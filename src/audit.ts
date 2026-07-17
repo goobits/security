@@ -104,8 +104,8 @@ export function createAuditLogger(options: CreateAuditLoggerOptions = {}): Audit
 			// omit `timestamp` in your partial to get the current time.
 			const event = redactSensitive(
 				{
-				...partial,
-				timestamp: partial.timestamp ?? new Date().toISOString()
+					...partial,
+					timestamp: partial.timestamp ?? new Date().toISOString()
 				},
 				{ keys: redactKeys }
 			) as AuditEvent

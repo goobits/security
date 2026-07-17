@@ -14,9 +14,7 @@ export type RequestOriginFailureReason =
 	| 'missing-browser-context'
 
 /** Result of checking one browser mutation against an explicit origin set. */
-export type RequestOriginResult =
-	| { ok: true }
-	| { ok: false; reason: RequestOriginFailureReason }
+export type RequestOriginResult = { ok: true } | { ok: false; reason: RequestOriginFailureReason }
 
 /** Inputs for strict browser mutation origin verification. */
 export interface VerifyRequestOriginOptions {
