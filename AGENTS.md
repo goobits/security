@@ -7,7 +7,7 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 ## Quick reference
 
 - **Category:** library (ESM-only, TypeScript)
-- **Distribution:** git submodule consumed inside a pnpm workspace. Consumer bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source directly - no build step, no `dist/`, no npm publish.
+- **Distribution:** git submodules consume `.ts` source directly inside first-party workspaces. Published tarballs use compiled ESM and declarations from `dist/`.
 - **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependency: `jose ^6`. Optional peer dependencies: `@sveltejs/kit ^2`, `zod ^4`
 - **Runtime targets:** Node 22+, Bun, Deno, Cloudflare Workers (anything with Web Crypto on `globalThis`)
 - **Engines:** Node `>=22`
@@ -18,6 +18,8 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 pnpm install
 pnpm typecheck      # tsc --noEmit (src + tests)
 pnpm test           # vitest run
+pnpm build          # compile the publish-only dist artifact
+pnpm verify:package # install the tarball and import every public entrypoint
 pnpm test:watch     # vitest
 pnpm test:coverage  # vitest run --coverage
 ```
@@ -62,7 +64,7 @@ src/
 
 SvelteKit-specific adapters live under `*/sveltekit.ts` subpaths so non-SvelteKit consumers never pay the `@sveltejs/kit` types cost.
 
-`package.json#exports` points directly at `./src/*.ts`. There is no build step. Consumers' bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source as part of their own pipeline.
+`package.json#exports` points directly at `./src/*.ts` for workspace consumers. `publishConfig` rewrites the packed manifest to `./dist/*.js` plus matching declarations; `pnpm verify:package` proves the isolated artifact before release.
 
 Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. The package has zero hard dependency on any specific logging library.
 
@@ -103,8 +105,10 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 
 - `pnpm typecheck` passes with no errors (covers `src/` and `tests/`)
 - `pnpm test` passes with no failing assertions
+- `pnpm verify:package` passes from a clean packed consumer
 - Every entry in `package.json#exports` points at an existing `src/*.ts` file
-- No `dist/`, `node_modules/`, `.DS_Store`, or `*.tsbuildinfo` tracked
+- Every entry in `package.json#publishConfig.exports` points at compiled JavaScript and declarations
+- No generated `dist/`, `node_modules/`, `.DS_Store`, or `*.tsbuildinfo` tracked
 - README + CHANGELOG updated for any user-facing change
 - New deps reviewed for license compatibility (permissive only)
 

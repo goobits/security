@@ -4,7 +4,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 ## TL;DR
 
-- Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
+- Add as a pnpm workspace git submodule for source consumption, or install the published compiled package.
 - Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `http-credentials`, `redaction`, `audit`, `alerting`, `crypto`, `identity`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
@@ -31,13 +31,13 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 ## Usage
 
-`@goobits/security` is distributed as a **git submodule with TypeScript source**: no build step, no `dist/`, no npm package. Consume it from a workspace whose bundler (Vite, esbuild, SvelteKit, Bun, Deno, etc.) handles `.ts` natively.
+`@goobits/security` supports two deliberate distribution modes. First-party workspaces consume TypeScript source directly from a pinned git submodule. Published packages contain compiled ESM and declarations so clean Node installations never execute TypeScript from `node_modules`.
 
-### Why source-only?
+### Why two modes?
 
-We share this package across several internal SvelteKit consumers. Every consumer's bundler already compiles `.ts` end-to-end, so shipping a pre-built `dist/` adds a build/version-dance step that buys nothing. Source-level distribution keeps fixes one diff away in either direction, and the consumer's existing typecheck/test pipeline sees real types through the boundary rather than `.d.ts` reconstructions.
+Internal SvelteKit consumers already compile `.ts` end-to-end, so source-level workspace exports keep their development loop immediate and typecheck the real source boundary. The publish pipeline rewrites only the packed manifest to compiled `dist/` exports. This preserves the workspace workflow while making the npm artifact safe for runtimes that do not strip dependency TypeScript.
 
-If you need a non-bundler runtime (raw Node, a third-party consumer, etc.), the trade-off matters; this package is intentionally not designed for those cases.
+The package verifier installs the generated tarball in an isolated consumer and imports every public entrypoint before release.
 
 ### pnpm workspace (recommended)
 
@@ -67,6 +67,14 @@ pnpm install
 pnpm add @sveltejs/kit   # if using SvelteKit helper subpaths
 pnpm add zod             # if using validation
 ```
+
+### Published package
+
+```bash
+pnpm add @goobits/security
+```
+
+Published artifacts contain only compiled output, declarations, the package manifest, and release documentation. `src/`, tests, repository metadata, and release tooling are excluded.
 
 ### npm / yarn / Bun workspaces
 

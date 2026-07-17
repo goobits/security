@@ -8,6 +8,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Added
 
+- A publish-only compiled ESM artifact with declarations and an isolated
+  tarball smoke test for every public entrypoint. Workspace consumers continue
+  to use the existing source exports.
 - `request-origin`: one framework-agnostic verifier for Fetch Metadata,
   `Origin`, and `Referer` checks across browser mutation boundaries.
 - `audit`: explicit `failureMode: 'throw'` support for required durable audit
