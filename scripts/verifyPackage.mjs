@@ -37,9 +37,7 @@ function run(command, args, cwd = root) {
 			if (code === 0) {
 				resolve(stdout)
 			} else {
-				reject(
-					new Error(`${command} ${args.join(' ')} exited with ${code}\n${stdout}${stderr}`)
-				)
+				reject(new Error(`${command} ${args.join(' ')} exited with ${code}\n${stdout}${stderr}`))
 			}
 		})
 	})
@@ -112,7 +110,15 @@ try {
 	for (const required of ['dist/index.js', 'dist/index.d.ts', 'README.md', 'LICENSE']) {
 		assert(packedFiles.includes(required), `packed artifact is missing ${required}`)
 	}
-	const forbiddenPrefixes = ['.github/', '.llm/', '__tests__/', 'done/', 'pending/', 'scripts/', 'src/']
+	const forbiddenPrefixes = [
+		'.github/',
+		'.llm/',
+		'__tests__/',
+		'done/',
+		'pending/',
+		'scripts/',
+		'src/'
+	]
 	assert(
 		!packedFiles.some((file) => forbiddenPrefixes.some((prefix) => file.startsWith(prefix))),
 		'packed artifact contains repository-only files'

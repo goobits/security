@@ -33,10 +33,7 @@ export interface RateLimitStore {
 
 interface ResilientRateLimitStoreBaseOptions {
 	primary: RateLimitStore
-	onPrimaryError?: (
-		operation: keyof RateLimitStore,
-		error: unknown
-	) => void | Promise<void>
+	onPrimaryError?: (operation: keyof RateLimitStore, error: unknown) => void | Promise<void>
 }
 
 /** Explicit availability policy for a primary rate-limit store failure. */

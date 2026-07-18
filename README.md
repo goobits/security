@@ -383,10 +383,7 @@ boundary. Closed mode propagates the original failure; fallback mode requires a
 specific fallback store instead of silently constructing one:
 
 ```ts
-import {
-	MemoryRateLimitStore,
-	createResilientRateLimitStore
-} from '@goobits/security/rate-limit'
+import { MemoryRateLimitStore, createResilientRateLimitStore } from '@goobits/security/rate-limit'
 
 const store = createResilientRateLimitStore({
 	primary: durableStore,
