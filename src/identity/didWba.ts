@@ -108,7 +108,9 @@ export function buildDidWba(domain: string, pathSegments: string[] = [], port?: 
 		throw invalidDidWba('invalid DID-WBA port')
 	}
 	const host = port === undefined ? domain : `${domain}%3A${port}`
-	const path = pathSegments.map((segment) => encodeURIComponent(decodePathSegment(segment))).join(':')
+	const path = pathSegments
+		.map((segment) => encodeURIComponent(decodePathSegment(segment)))
+		.join(':')
 	return `${DID_WBA_PREFIX}${host}${path ? `:${path}` : ''}`
 }
 

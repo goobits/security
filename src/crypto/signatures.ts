@@ -53,10 +53,7 @@ export async function verifyHmac(
 	signature: HmacSignature,
 	secret: Uint8Array | string
 ): Promise<boolean> {
-	if (
-		typeof signature.value !== 'string' ||
-		!Object.hasOwn(HMAC_HASH, signature.algorithm)
-	) {
+	if (typeof signature.value !== 'string' || !Object.hasOwn(HMAC_HASH, signature.algorithm)) {
 		return false
 	}
 	let provided: Uint8Array
