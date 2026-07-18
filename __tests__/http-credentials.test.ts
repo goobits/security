@@ -53,7 +53,7 @@ describe('HTTP credential parsing', () => {
 })
 
 describe('API-key verifiers', () => {
-	const options = { secret: 'api-key-verifier-secret-that-is-at-least-32-bytes' }
+	const options = { secret: 'api-key-verifier-secret-that-is-at-least-32-bytes' } // gitleaks:allow -- deterministic test-only HMAC secret
 
 	it('creates bounded random keys', () => {
 		expect(createApiKey({ prefix: 'service', bytes: 16 })).toMatch(/^service_[0-9a-f]{32}$/)
