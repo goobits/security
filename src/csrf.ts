@@ -17,8 +17,10 @@
 
 import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_internal/crypto.js'
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
-import { isProduction, readEnv } from './_internal/env.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { readEnv } from './_internal/env.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
+import { isProductionRuntime } from './runtime.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
@@ -65,10 +67,10 @@ export interface CsrfConfig {
 	 */
 	disabled?: boolean
 	/**
-	 * If true, errors from the token store (e.g. Redis connection failure) cause
-	 * `validate()` to return false. If false (default), validation continues and
-	 * the constant-time compare still has to succeed against the cookie. Set to
-	 * `true` for high-security routes where availability < correctness.
+	 * If true (default), errors from the token store (e.g. Redis connection
+	 * failure) cause `validate()` to return false. Set to false only when an
+	 * explicit availability-over-correctness policy accepts fail-open expiry
+	 * checks; the cookie/header constant-time comparison still applies.
 	 */
 	failClosed?: boolean
 }
@@ -150,7 +152,7 @@ export class MemoryCsrfStore implements CsrfTokenStore {
 function defaultCookieOptions(): CookieOptions {
 	return {
 		httpOnly: true,
-		secure: isProduction(),
+		secure: isProductionRuntime(),
 		sameSite: 'lax',
 		path: '/',
 		maxAge: 60 * 60 * 24
@@ -186,9 +188,9 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 
 	const envDisabled = readEnv('DISABLE_CSRF') === 'true'
 	const disabled = config.disabled === true || envDisabled
-	const failClosed = config.failClosed === true
+	const failClosed = config.failClosed !== false
 
-	if (disabled && isProduction()) {
+	if (disabled && isProductionRuntime()) {
 		throw new Error(
 			'@goobits/security/csrf: DISABLE_CSRF is set in production. ' +
 				'This config is for tests only. Unset DISABLE_CSRF and remove ' +
@@ -254,7 +256,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 	}
 
 	async function validate(request: Request, options: ValidateOptions = {}): Promise<boolean> {
-		if (disabled && !isProduction()) {
+		if (disabled && !isProductionRuntime()) {
 			log.warn('CSRF validation disabled (test/dev mode)')
 			return true
 		}

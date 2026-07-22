@@ -8,6 +8,7 @@ import {
 } from '../src/audit.js'
 import { withAudit } from '../src/audit/sveltekit.js'
 import type { Logger } from '../src/logger.js'
+import { isSensitiveKey, omitSensitive, redactSensitive } from '../src/redaction.js'
 
 function makeSink(): { sink: AuditSink; records: AuditEvent[] } {
 	const records: AuditEvent[] = []
@@ -203,5 +204,56 @@ describe('withAudit redaction', () => {
 
 		expect(records[0]?.outcome).toBe('denied')
 		expect(records[0]?.status).toBe(403)
+	})
+})
+
+describe('redactSensitive', () => {
+	it('handles cycles, errors, application key patterns, and string scrubbing', () => {
+		const payload: Record<string, unknown> = {
+			password: 'secret',
+			email: 'member@example.test',
+			error: new Error('failed for member@example.test')
+		}
+		payload['self'] = payload
+
+		const redacted = redactSensitive(payload, {
+			keyPattern: /^email$/i,
+			redactString: (value) => value.replaceAll('member@example.test', '[email]')
+		}) as Record<string, unknown>
+
+		expect(redacted['password']).toBe('[redacted]')
+		expect(redacted['email']).toBe('[redacted]')
+		expect(redacted['self']).toBe('[circular]')
+		expect(redacted['error']).toMatchObject({ message: 'failed for [email]' })
+	})
+
+	it('normalizes secret field naming and can omit nested secrets', () => {
+		const payload = {
+			id: 'u1',
+			passwordHash: 'encoded',
+			settings: {
+				refresh_token: 'refresh',
+				theme: 'dark'
+			}
+		}
+
+		expect(isSensitiveKey('PASSWORD-HASH')).toBe(true)
+		expect(isSensitiveKey('displayName')).toBe(false)
+		expect(omitSensitive(payload)).toEqual({
+			id: 'u1',
+			settings: { theme: 'dark' }
+		})
+	})
+
+	it('redacts enumerable fields on class instances before audit serialization', () => {
+		class AuditDetail {
+			readonly password = 'plaintext'
+			readonly profile = { accessToken: 'token-value', displayName: 'Member' }
+		}
+
+		expect(redactSensitive(new AuditDetail())).toEqual({
+			password: '[redacted]',
+			profile: { accessToken: '[redacted]', displayName: 'Member' }
+		})
 	})
 })

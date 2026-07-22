@@ -1,7 +1,7 @@
 /**
  * Bounded request-body readers.
  *
- * @internal
+ * @module @goobits/security/request-body
  */
 
 const DEFAULT_MAX_BODY_BYTES = 1_048_576
@@ -13,7 +13,7 @@ export class BodyTooLargeError extends Error {
 	}
 }
 
-interface ReadBodyOptions {
+export interface ReadBodyOptions {
 	/** Maximum bytes to read before failing. Default: 1 MiB. */
 	maxBytes?: number
 }

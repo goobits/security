@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	createHmacRateLimitStore,
 	createRateLimiter,
 	D1RateLimitStore,
 	getClientIP,
@@ -386,6 +387,46 @@ describe('createRateLimiter', () => {
 			window: 'burst'
 		})
 		expect(store.getEntry('rate-limit:alice')?.timestamps).toHaveLength(storedEvents)
+	})
+
+	it('pseudonymizes persisted keys with a dedicated HMAC secret', async () => {
+		const primary = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const store = createHmacRateLimitStore({
+			store: primary,
+			secret: 'rate-limit-secret-that-is-at-least-32-bytes',
+			namespace: 'auth'
+		})
+		await store.incrementEntry('email:member@example.test', Date.now(), 60_000)
+
+		expect(primary.size).toBe(1)
+		expect(primary.getEntry('email:member@example.test')).toBeNull()
+		expect(await store.getEntry('email:member@example.test')).not.toBeNull()
+	})
+
+	it('propagates backing-store failures instead of choosing availability policy', async () => {
+		const failure = new Error('store unavailable')
+		const store = createHmacRateLimitStore({
+			secret: 'rate-limit-secret-that-is-at-least-32-bytes',
+			store: {
+				getEntry: async () => {
+					throw failure
+				},
+				incrementEntry: async () => {
+					throw failure
+				},
+				deleteEntry: async () => {
+					throw failure
+				}
+			}
+		})
+
+		await expect(store.incrementEntry('alice', Date.now(), 60_000)).rejects.toBe(failure)
+	})
+
+	it('requires a dedicated high-entropy HMAC secret', () => {
+		expect(() =>
+			createHmacRateLimitStore({ store: new MemoryRateLimitStore(), secret: 'too-short' })
+		).toThrow(/at least 32 bytes/)
 	})
 })
 

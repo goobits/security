@@ -57,6 +57,16 @@ describe('createSvelteKitCsrf', () => {
 		expect(requestEvent.cookies.set).not.toHaveBeenCalled()
 	})
 
+	it('supports thin package bridges without reconstructing request events', async () => {
+		const token = 'a'.repeat(64)
+		const requestEvent = event(request(), { csrf_token: token })
+		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
+		const candidate = request(undefined, { 'X-CSRF-Token': token })
+
+		await expect(csrf.validateRequest(candidate, requestEvent.cookies)).resolves.toBe(true)
+		await expect(csrf.issue(requestEvent.cookies)).resolves.toMatch(/^[0-9a-f]{64}$/)
+	})
+
 	it('validates header, URL-encoded, JSON, and multipart tokens', async () => {
 		const token = 'a'.repeat(64)
 		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
@@ -85,9 +95,12 @@ describe('createSvelteKitCsrf', () => {
 			event(request(''), { csrf_token: token }),
 			event(request(undefined, { 'X-CSRF-Token': 'wrong' }), { csrf_token: token }),
 			event(request('{', { 'Content-Type': 'application/json' }), { csrf_token: token }),
-			event(request(`csrf_token=${token}`, { 'Content-Type': 'application/x-www-form-urlencoded' }), {
-				csrf_token: token
-			})
+			event(
+				request(`csrf_token=${token}`, { 'Content-Type': 'application/x-www-form-urlencoded' }),
+				{
+					csrf_token: token
+				}
+			)
 		]
 
 		for (const candidate of cases) {

@@ -26,27 +26,36 @@ pnpm test:coverage  # vitest run --coverage
 
 ```
 src/
-├── _internal/        # crypto + cookie + env + body helpers; NOT exported
+├── _internal/        # cookie, crypto, env, logger helpers; never exported
+├── crypto/           # encoding, HMAC, AES-GCM/keyrings, signed proofs
+├── identity/         # DID-WBA, HTTP signatures, verified principals
 ├── rate-limit/
 │   ├── index.ts      # createRateLimiter + MemoryRateLimitStore (framework-agnostic)
-│   ├── auth.ts       # pre-baked auth-endpoint factories
 │   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
 ├── csrf/
 │   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
 ├── audit/
-│   └── sveltekit.ts  # withAudit handler wrapper (SvelteKit adapter)
-├── MemoryCsrfStore.ts # double-submit CSRF, pluggable token store
-├── csrfRedis.ts       # structural Redis adapter for the CSRF token store
-├── csp.ts            # parameterized CSP builder (no hardcoded vendors)
-├── recaptcha.ts      # Google v2/v3 verifier (discriminated-union result)
-├── validation.ts     # Zod v4 helpers (framework-agnostic)
+│   ├── d1.ts         # durable D1 audit sink
+│   └── sveltekit.ts  # request audit adapter
 ├── validation/
-│   └── sveltekit.ts  # withValidation SvelteKit adapter
-├── adminAuth.ts      # JWT + API key admin gate
-├── audit.ts          # createAuditLogger + sinks (framework-agnostic)
-├── alerting.ts       # rule-based dispatch over pluggable channels
-├── logger.ts         # pluggable Logger interface + noopLogger + createConsoleLogger
-└── index.ts          # barrel re-exporting framework-agnostic surface
+│   ├── simple.ts     # dependency-free boundary validators
+│   └── sveltekit.ts  # Zod-backed SvelteKit adapter
+├── adminAuth.ts      # admin-only adapter over generic principal auth
+├── alerting.ts       # channels, rules, shared threshold observer
+├── audit.ts          # framework-agnostic audit logger
+├── csp.ts            # parameterized CSP builder
+├── csrf.ts           # double-submit CSRF + pluggable store
+├── csrfClient.ts     # browser request integration
+├── csrfRedis.ts      # structural Redis CSRF store adapter
+├── httpCredentials.ts # bounded Basic/Bearer/API-key parsing and verification
+├── logger.ts         # pluggable logger contract and implementations
+├── principalAuth.ts  # generic JWT/API-key principal authentication
+├── recaptcha.ts      # Google v2/v3 verifier
+├── redaction.ts      # secret-safe public/audit projections
+├── requestBody.ts    # bounded Fetch request-body readers
+├── turnstile.ts      # Cloudflare Turnstile verifier
+├── validation.ts     # framework-agnostic Zod helpers
+└── index.ts          # curated framework-agnostic root barrel
 ```
 
 SvelteKit-specific adapters live under `*/sveltekit.ts` subpaths so non-SvelteKit consumers never pay the `@sveltejs/kit` types cost.

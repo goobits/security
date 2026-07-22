@@ -1,5 +1,63 @@
 import { principalFromDid, type VerifiedPrincipal } from './principal.js'
 
+const DID_WBA_PREFIX = 'did:wba:'
+
+function invalidDidWba(message: string): Error {
+	return new Error(`@goobits/security/identity: ${message}`)
+}
+
+function decodeDidWbaComponent(value: string): string {
+	try {
+		return decodeURIComponent(value)
+	} catch {
+		throw invalidDidWba('invalid percent encoding')
+	}
+}
+
+function validateDomain(domain: string): void {
+	if (domain.length === 0 || domain.length > 253) {
+		throw invalidDidWba('invalid DID-WBA host')
+	}
+	for (const label of domain.split('.')) {
+		if (
+			label.length === 0 ||
+			label.length > 63 ||
+			!/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/u.test(label)
+		) {
+			throw invalidDidWba('invalid DID-WBA host')
+		}
+	}
+}
+
+function validateHost(host: string): void {
+	const separator = host.lastIndexOf(':')
+	const domain = separator === -1 ? host : host.slice(0, separator)
+	validateDomain(domain)
+
+	if (separator === -1) return
+	if (host.indexOf(':') !== separator) {
+		throw invalidDidWba('invalid DID-WBA host')
+	}
+	const portText = host.slice(separator + 1)
+	const port = Number(portText)
+	if (!/^\d{1,5}$/u.test(portText) || !Number.isInteger(port) || port < 1 || port > 65_535) {
+		throw invalidDidWba('invalid DID-WBA port')
+	}
+}
+
+function decodePathSegment(value: string): string {
+	const segment = decodeDidWbaComponent(value)
+	if (
+		segment.length === 0 ||
+		segment === '.' ||
+		segment === '..' ||
+		/[\/\\?#\u0000-\u001f\u007f]/u.test(segment)
+	) {
+		throw invalidDidWba('invalid DID-WBA path')
+	}
+	return segment
+}
+
 /** Machine-readable did:wba verification failure reason. */
 export type DidWbaVerificationError =
 	| 'missing-header'
@@ -45,28 +103,32 @@ export type DidWbaVerificationResult =
 
 /** Builds a did:wba identifier from a domain and optional path. */
 export function buildDidWba(domain: string, pathSegments: string[] = [], port?: number): string {
-	if (!domain) {
-		throw new Error('@goobits/security/identity: DID-WBA domain is required')
+	validateDomain(domain)
+	if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65_535)) {
+		throw invalidDidWba('invalid DID-WBA port')
 	}
-	const host = port ? `${domain}%3A${port}` : domain
-	const path = pathSegments.map((segment) => encodeURIComponent(segment)).join(':')
-	return `did:wba:${host}${path ? `:${path}` : ''}`
+	const host = port === undefined ? domain : `${domain}%3A${port}`
+	const path = pathSegments
+		.map((segment) => encodeURIComponent(decodePathSegment(segment)))
+		.join(':')
+	return `${DID_WBA_PREFIX}${host}${path ? `:${path}` : ''}`
 }
 
 /** Resolves a did:wba identifier to its DID document URL. */
 export function didWbaToUrl(did: string): string {
-	if (!did.startsWith('did:wba:')) {
-		throw new Error('@goobits/security/identity: invalid DID-WBA method')
+	if (!did.startsWith(DID_WBA_PREFIX)) {
+		throw invalidDidWba('invalid DID-WBA method')
 	}
-	const methodId = did.slice('did:wba:'.length)
-	const parts = methodId.split(':').filter(Boolean)
+	const methodId = did.slice(DID_WBA_PREFIX.length)
+	const parts = methodId.split(':')
 	const [encodedHost, ...encodedPath] = parts
-	if (!encodedHost) {
-		throw new Error('@goobits/security/identity: missing DID-WBA host')
+	if (!encodedHost || encodedPath.some((part) => part.length === 0)) {
+		throw invalidDidWba('missing DID-WBA host or path segment')
 	}
-	const host = decodeURIComponent(encodedHost)
+	const host = decodeDidWbaComponent(encodedHost)
+	validateHost(host)
 	const path = encodedPath.length
-		? `/${encodedPath.map((part) => decodeURIComponent(part)).join('/')}/did.json`
+		? `/${encodedPath.map((part) => encodeURIComponent(decodePathSegment(part))).join('/')}/did.json`
 		: '/.well-known/did.json'
 	return `https://${host}${path}`
 }
@@ -124,10 +186,16 @@ export async function verifyDidWbaIdentity(
 	if (!header) {
 		return { ok: false, reason: options.header ? 'invalid-header' : 'missing-header' }
 	}
-	if (!header.did.startsWith('did:wba:')) {
+	if (!header.did.startsWith(DID_WBA_PREFIX)) {
 		return { ok: false, reason: 'invalid-did' }
 	}
-	if (options.expectedDomain && didWbaDomain(header.did) !== options.expectedDomain) {
+	let domain: string
+	try {
+		domain = didWbaDomain(header.did)
+	} catch {
+		return { ok: false, reason: 'invalid-did' }
+	}
+	if (options.expectedDomain && domain !== options.expectedDomain) {
 		return { ok: false, reason: 'domain-mismatch' }
 	}
 	const timestamp = Date.parse(header.timestamp)

@@ -8,8 +8,9 @@
  * @module @goobits/security/csrf-redis
  */
 
-import type { CsrfTokenStore } from './MemoryCsrfStore.js'
-import { type Logger, resolveLogger } from './logger.js'
+import type { CsrfTokenStore } from './csrf.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Minimal Redis client contract required by this adapter. */
 export interface RedisLike {

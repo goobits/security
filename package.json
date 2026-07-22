@@ -1,6 +1,6 @@
 {
 	"name": "@goobits/security",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "Server-side security primitives for modern JavaScript runtimes: CSRF, rate limiting, reCAPTCHA, CSP, validation, admin auth, audit logging, and alerting",
 	"type": "module",
 	"main": "./src/index.ts",
@@ -8,7 +8,7 @@
 	"sideEffects": false,
 	"exports": {
 		".": "./src/index.ts",
-		"./csrf": "./src/MemoryCsrfStore.ts",
+		"./csrf": "./src/csrf.ts",
 		"./csrf/sveltekit": "./src/csrf/sveltekit.ts",
 		"./csrf-client": "./src/csrfClient.ts",
 		"./csrf-redis": "./src/csrfRedis.ts",
@@ -30,12 +30,16 @@
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",
 		"./rate-limit": "./src/rate-limit/index.ts",
 		"./rate-limit/sveltekit": "./src/rate-limit/sveltekit.ts",
-		"./rate-limit/auth": "./src/rate-limit/auth.ts",
 		"./admin-auth": "./src/adminAuth.ts",
 		"./audit": "./src/audit.ts",
+		"./audit/d1": "./src/audit/d1.ts",
 		"./audit/sveltekit": "./src/audit/sveltekit.ts",
 		"./alerting": "./src/alerting.ts",
-		"./logger": "./src/logger.ts"
+		"./logger": "./src/logger.ts",
+		"./redaction": "./src/redaction.ts",
+		"./request-body": "./src/requestBody.ts",
+		"./runtime": "./src/runtime.ts",
+		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [
 		"security",
@@ -81,8 +85,8 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.69.1",
-		"@types/node": "^26.1.0",
+		"@sveltejs/kit": "^2.70.1",
+		"@types/node": "^26.1.1",
 		"@vitest/coverage-v8": "^4.1.10",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.10",

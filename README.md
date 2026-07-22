@@ -5,7 +5,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 ## TL;DR
 
 - Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
-- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `audit`, `alerting`, `crypto`, `identity`.
+- Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `http-credentials`, `redaction`, `audit`, `alerting`, `crypto`, `identity`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
 
@@ -13,12 +13,15 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 - **CSRF:** double-submit cookie pattern with timing-safe comparison, pluggable token store (in-memory or Redis)
 - **Rate limiting:** sliding-window counter with multi-window support, pluggable store
+- **Private rate-limit keys:** optional HMAC store wrapper keeps raw identifiers out of backing stores
 - **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
 - **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
 - **Validation:** Zod v4 middleware for request body / query / params
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
-- **Crypto:** Web Crypto encoding, HMAC, AES-GCM, SHA-256, and deterministic proof helpers
+- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
+- **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
+- **Redaction:** recursive, cycle-safe redaction or omission of normalized secret-bearing fields before structured values reach logs, audit sinks, or public projections
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
@@ -81,8 +84,8 @@ The same submodule layout works. Just declare the workspace in the format your p
 
 ```bash
 # Pin to a tag (recommended for releases):
-cd packages/security && git checkout v2.0.0 && cd ../..
-git add packages/security && git commit -m "chore: pin @goobits/security to v2.0.0"
+cd packages/security && git checkout <version-tag> && cd ../..
+git add packages/security && git commit -m "chore: pin @goobits/security"
 
 # Or pin to a specific commit SHA:
 cd packages/security && git checkout <sha> && cd ../..
@@ -109,6 +112,8 @@ import { getInputValidator } from '@goobits/security/validation'
 import { withValidation } from '@goobits/security/validation/sveltekit'
 import { createPrincipalAuth } from '@goobits/security/principal-auth'
 import { createAdminAuth } from '@goobits/security/admin-auth'
+import { parseBearerToken, verifyApiKey } from '@goobits/security/http-credentials'
+import { redactSensitive } from '@goobits/security/redaction'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
@@ -199,7 +204,12 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 })
 ```
 
-The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, and deterministic `SecurityProof` envelopes. Product permissions, roles, and app-specific authorization remain outside this package.
+The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, rotation-ready opaque keyrings, and deterministic `SecurityProof` envelopes. Product permissions, roles, key-distribution policy, and app-specific authorization remain outside this package.
+
+For environment-backed rotation, `createAesGcmKeyringFromJson` accepts a strict
+JSON object with `activeKeyId` and a `keys` map of hex-encoded AES keys. The
+returned keyring exposes only the active key ID; applications retain ownership
+of the environment variable name and rotation policy.
 
 Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
 
@@ -249,12 +259,13 @@ without limit.
 
 ⚠️ **`cookieOptions` replaces defaults, doesn't merge.** If you supply your own `cookieOptions`, you also lose the sensible defaults (`HttpOnly`, `SameSite=Lax`, etc.). Copy the defaults first if you only want to tweak one field.
 
-### `failClosed`: for compliance-sensitive routes
+### `failClosed`: expiry checks fail closed by default
 
-Default behavior on store errors (Redis down, etc.) is **fail-open**: `validate()` will still let requests through if the cookie + header constant-time compare succeeds. For routes where availability is less important than correctness, opt into fail-closed:
+Store errors (Redis down, etc.) make expiry-checked validation fail by default.
+Only an explicit availability-over-correctness policy should opt out:
 
 ```ts
-const csrf = createCsrf({ failClosed: true })
+const csrf = createCsrf({ failClosed: false })
 
 // On a route that explicitly checks expiration:
 if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
@@ -373,21 +384,20 @@ const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
 
 In SvelteKit, prefer `event.getClientAddress()`, which honors your platform adapter's trusted-proxy config.
 
-Pre-baked auth flow limiters (login, registration, password reset) live in `@goobits/security/rate-limit/auth`:
+Authentication-specific limiter presets live with the policy they encode in
+`@goobits/auth/security`. This package intentionally exposes only the generic
+rate-limiting mechanism:
 
 ```ts
-import {
-	createLoginRateLimiter,
-	createRegistrationRateLimiter,
-	createPasswordResetRateLimiter
-} from '@goobits/security/rate-limit/auth'
+import { createRateLimiter } from '@goobits/security/rate-limit'
 
-const loginLimiter = createLoginRateLimiter() // 5/min, 15/15min
-const registrationLimiter = createRegistrationRateLimiter() // 3/10min, 5/hour
-const passwordResetLimiter = createPasswordResetRateLimiter() // 3/15min, 5/hour
+const limiter = createRateLimiter({
+	windows: [{ name: 'write', windowMs: 60_000, maxEvents: 10 }]
+})
 ```
 
-Each factory takes the same `{ store?, logger?, keyPrefix? }` options as `createRateLimiter`; use a shared `RateLimitStore` (e.g. Redis) to make all three limiters multi-instance safe at once.
+Use a shared `RateLimitStore` (for example Redis or D1) when counters must be
+consistent across application instances.
 
 Custom in-memory store config (e.g. tuning cleanup and identifier bounds):
 
@@ -562,6 +572,24 @@ await auditor.log({
 })
 ```
 
+Cloudflare D1 consumers can use the canonical sink and add product-specific PII
+field names to the default secret redaction set:
+
+```ts
+import { createD1AuditSink } from '@goobits/security/audit/d1'
+
+const sink = createD1AuditSink({
+	db: env.DB,
+	tableName: 'security_audit_events',
+	redactKeys: ['email']
+})
+```
+
+Custom redaction keys extend Security's default secret set. The D1 sink validates
+its table identifier, caps structured detail and scalar fields, serializes
+bigints safely, omits arbitrary error messages by default, and reports storage
+failures without logging database error messages or event values.
+
 ## Alerting
 
 ```ts
@@ -643,7 +671,6 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 | `identity`               | ✅               | ✅               | ✅               | ✅                                 |
 | `validation` †           | ✅               | ✅               | ✅               | ✅                                 |
 | `rate-limit`             | ✅               | ✅               | ✅               | ✅                                 |
-| `rate-limit/auth`        | ✅               | ✅               | ✅               | ✅                                 |
 | `rate-limit/sveltekit` † | ✅               | ✅               | ✅               | ✅                                 |
 | `principal-auth`         | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |
 | `admin-auth`             | ✅               | ✅               | ✅               | ✅ (uses `jose`, Web Crypto-based) |

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCsrf, MemoryCsrfStore } from '../src/MemoryCsrfStore.js'
+import { createCsrf, MemoryCsrfStore } from '../src/csrf.js'
 
 function makeRequest(headers: Record<string, string>): Request {
 	return new Request('https://example.test/api', { headers })
@@ -164,30 +164,9 @@ describe('createCsrf', () => {
 		expect(response.headers.get('My-CSRF')).toBe(token)
 	})
 
-	it('fails open on store read errors by default', async () => {
+	it('fails closed on store read errors by default', async () => {
 		const token = 'a'.repeat(64)
 		const csrf = createCsrf({
-			tokenStore: {
-				get() {
-					throw new Error('store down')
-				},
-				set() {},
-				delete() {},
-				clear() {}
-			}
-		})
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
-
-		expect(await csrf.validate(request, { checkExpiry: true })).toBe(true)
-	})
-
-	it('fails closed on store read errors when configured', async () => {
-		const token = 'a'.repeat(64)
-		const csrf = createCsrf({
-			failClosed: true,
 			tokenStore: {
 				get() {
 					throw new Error('store down')
@@ -203,6 +182,27 @@ describe('createCsrf', () => {
 		})
 
 		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
+	})
+
+	it('allows an explicit fail-open policy for store read errors', async () => {
+		const token = 'a'.repeat(64)
+		const csrf = createCsrf({
+			failClosed: false,
+			tokenStore: {
+				get() {
+					throw new Error('store down')
+				},
+				set() {},
+				delete() {},
+				clear() {}
+			}
+		})
+		const request = makeRequest({
+			cookie: `csrf-token=${token}`,
+			'X-CSRF-Token': token
+		})
+
+		expect(await csrf.validate(request, { checkExpiry: true })).toBe(true)
 	})
 
 	it('surfaces store write errors during token generation', async () => {

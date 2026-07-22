@@ -10,8 +10,9 @@
  */
 
 import { getRandomBytes } from './_internal/crypto.js'
-import { isProduction } from './_internal/env.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
+import { isProductionRuntime } from './runtime.js'
 
 /** Standard CSP fetch + navigation directives, plus CSP3 + Trusted Types. */
 export type CspDirective =
@@ -168,7 +169,7 @@ export function createCspDirectives(config: CspConfig = {}): CspDirectives {
 	} = config
 
 	const log = resolveLogger(logger)
-	if (mode === 'development' && isProduction()) {
+	if (mode === 'development' && isProductionRuntime()) {
 		log.warn(
 			"CSP mode='development' requested while NODE_ENV=production. " +
 				"this relaxes script-src/style-src to allow 'unsafe-inline' and 'unsafe-eval'. " +

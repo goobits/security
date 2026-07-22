@@ -10,8 +10,6 @@
  * @module @goobits/security
  */
 
-import packageJson from '../package.json' with { type: 'json' }
-
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
@@ -20,6 +18,32 @@ export {
 	createConsoleLogger,
 	noopLogger
 } from './logger.js'
+
+/* Secret-safe logging and audit payloads. */
+export {
+	type RedactionOptions,
+	DEFAULT_REDACT_KEYS,
+	isSensitiveKey,
+	omitSensitive,
+	REDACTED_VALUE,
+	redactSensitive
+} from './redaction.js'
+
+/* Generic HTTP credential parsing and verification. */
+export {
+	type ApiKeyVerifierOptions,
+	type BasicAuthCredentials,
+	type BasicAuthPasswordVerifier,
+	type VerifyBasicAuthOptions,
+	createApiKey,
+	createBasicAuthResponse,
+	hashApiKey,
+	parseApiKeyHeader,
+	parseBasicAuthHeader,
+	parseBearerToken,
+	verifyApiKey,
+	verifyBasicAuthHeader
+} from './httpCredentials.js'
 
 /* CSRF protection. */
 export {
@@ -34,7 +58,13 @@ export {
 	CSRF_TOKEN_EXPIRY_MS,
 	MemoryCsrfStore,
 	createCsrf
-} from './MemoryCsrfStore.js'
+} from './csrf.js'
+export {
+	BodyTooLargeError,
+	type ReadBodyOptions,
+	readJsonBody,
+	readRequestBodyBytes
+} from './requestBody.js'
 export { type RedisCsrfStoreOptions, type RedisLike, createRedisCsrfStore } from './csrfRedis.js'
 
 /* Content Security Policy. */
@@ -55,6 +85,12 @@ export { type RecaptchaOptions, type RecaptchaResult, verifyRecaptcha } from './
 export {
 	type AesGcmOpenOptions,
 	type AesGcmOptions,
+	type AesGcmKeyring,
+	type AesGcmKeyringConfig,
+	type AesGcmKeyringJsonConfig,
+	type AesGcmKeyringOpenOptions,
+	type AesGcmKeyringSeal,
+	type AesGcmKeyringSealOptions,
 	type AesGcmSeal,
 	type CreateSecurityProofOptions,
 	type HmacAlgorithm,
@@ -65,18 +101,27 @@ export {
 	type VerifySecurityProofOptions,
 	attachSecurityProof,
 	base64UrlToBytes,
+	base64ToBytes,
+	bytesToBase64,
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,
 	canonicalizeJson,
 	constantTimeEqual,
+	createAesGcmKeyring,
+	createAesGcmKeyringFromJson,
 	createSecurityProof,
+	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
+	openAesGcmWithKeyring,
 	openJson,
+	parseAesGcmKeyringSeal,
+	parseAesGcmSeal,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
+	sealAesGcmWithKeyring,
 	sealJson,
 	sha256Bytes,
 	sha256Hex,
@@ -118,6 +163,7 @@ export {
 	type D1RateLimitDatabase,
 	type D1RateLimitStoreOptions,
 	type GetClientIpOptions,
+	type HmacRateLimitStoreOptions,
 	type MemoryRateLimitStoreOptions,
 	type RateLimitConfig,
 	type RateLimitEntry,
@@ -127,16 +173,10 @@ export {
 	type RateLimiter,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
+	createHmacRateLimitStore,
 	createRateLimiter,
 	getClientIP
 } from './rate-limit/index.js'
-export {
-	type AuthRateLimitConfig,
-	createLoginRateLimiter,
-	createPasswordResetRateLimiter,
-	createRegistrationRateLimiter
-} from './rate-limit/auth.js'
-
 /* Admin authentication. */
 export {
 	type AuthPrincipal,
@@ -169,6 +209,7 @@ export {
 	createAuditLogger,
 	createLoggerSink
 } from './audit.js'
+export { type D1AuditDatabase, type D1AuditSinkOptions, createD1AuditSink } from './audit/d1.js'
 
 /* Security alerting. */
 export {
@@ -178,8 +219,12 @@ export {
 	type AlertSeverity,
 	type CreateSecurityAlerterOptions,
 	type SecurityAlerter,
+	type ThresholdAlert,
+	type ThresholdAlertObserverOptions,
+	type ThresholdAlertRule,
 	type WebhookChannelOptions,
 	createSecurityAlerter,
+	createThresholdAlertObserver,
 	createWebhookChannel
 } from './alerting.js'
 
@@ -198,7 +243,3 @@ export {
 	validateRequestBody,
 	validateString
 } from './validation/simple.js'
-
-/* Version constant. */
-/** Security Package Version registry entry for security middleware. */
-export const SECURITY_PACKAGE_VERSION = packageJson.version

@@ -6,7 +6,8 @@
 
 import type { Handle, RequestEvent } from '@sveltejs/kit'
 
-import { type Logger, resolveLogger } from '../logger.js'
+import { resolveLogger } from '../_internal/resolveLogger.js'
+import type { Logger } from '../logger.js'
 import type { RateLimitResult, RateLimiter } from './index.js'
 
 /** Rate Limit Handle Options request or option shape for rate limiting. */

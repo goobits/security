@@ -2,16 +2,25 @@ import { describe, expect, it } from 'vitest'
 
 import {
 	base64UrlToBytes,
+	base64ToBytes,
+	bytesToBase64,
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,
 	constantTimeEqual,
+	createAesGcmKeyring,
+	createAesGcmKeyringFromJson,
+	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
+	openAesGcmWithKeyring,
 	openJson,
+	parseAesGcmKeyringSeal,
+	parseAesGcmSeal,
 	randomBytes,
 	randomHex,
 	sealAesGcm,
+	sealAesGcmWithKeyring,
 	sealJson,
 	sha256Hex,
 	signHmac,
@@ -26,6 +35,21 @@ describe('crypto encoding helpers', () => {
 		expect(bytesToHex(bytes)).toBe('68656c6c6f')
 		expect(hexToBytes('68656c6c6f')).toEqual(bytes)
 		expect(base64UrlToBytes(bytesToBase64Url(bytes))).toEqual(bytes)
+		expect(base64ToBytes(bytesToBase64(bytes))).toEqual(bytes)
+	})
+
+	it('rejects malformed and non-canonical base64url values', () => {
+		for (const value of ['a', 'abc=', 'abc+', 'abc/', 'ab c', 'AB==']) {
+			expect(() => base64UrlToBytes(value)).toThrow(/invalid base64url/)
+		}
+	})
+
+	it('keeps standard base64 and base64url parsing explicit', () => {
+		const bytes = Uint8Array.from([251, 255])
+		expect(bytesToBase64(bytes)).toBe('+/8=')
+		expect(bytesToBase64Url(bytes)).toBe('-_8')
+		expect(() => base64ToBytes('-_8')).toThrow(/invalid base64 value/)
+		expect(() => base64UrlToBytes('+/8=')).toThrow(/invalid base64url value/)
 	})
 
 	it('generates random bytes and hex', () => {
@@ -52,6 +76,15 @@ describe('crypto signatures', () => {
 		expect(signature.algorithm).toBe('HS256')
 		expect(await verifyHmac('payload', signature, 'secret')).toBe(true)
 		expect(await verifyHmac('tampered', signature, 'secret')).toBe(false)
+	})
+
+	it('treats malformed HMAC signatures as invalid instead of throwing', async () => {
+		await expect(
+			verifyHmac('payload', { algorithm: 'HS256', value: 'not+base64url' }, 'secret')
+		).resolves.toBe(false)
+		await expect(
+			verifyHmac('payload', { algorithm: 'invalid' as 'HS256', value: 'abc' }, 'secret')
+		).resolves.toBe(false)
 	})
 })
 
@@ -94,5 +127,103 @@ describe('crypto AEAD helpers', () => {
 		const seal = await sealJson({ token: 'abc' }, { key })
 
 		await expect(openJson<{ token: string }>({ key, seal })).resolves.toEqual({ token: 'abc' })
+	})
+
+	it('rotates opaque keyrings without exposing key material', async () => {
+		const oldKey = randomHex(32)
+		const currentKey = randomHex(32)
+		const oldKeyring = createAesGcmKeyring({ activeKeyId: 'old', keys: { old: oldKey } })
+		const sealed = await sealAesGcmWithKeyring({
+			keyring: oldKeyring,
+			plaintext: 'secret',
+			associatedData: 'context'
+		})
+		const rotatedKeyring = createAesGcmKeyring({
+			activeKeyId: 'current',
+			keys: { old: oldKey, current: currentKey }
+		})
+
+		expect(rotatedKeyring).toEqual({ activeKeyId: 'current' })
+		expect(hasAesGcmKey(rotatedKeyring, 'old')).toBe(true)
+		expect(
+			bytesToText(
+				await openAesGcmWithKeyring({
+					keyring: rotatedKeyring,
+					sealed,
+					associatedData: 'context'
+				})
+			)
+		).toBe('secret')
+	})
+
+	it('builds the same opaque keyring from strict JSON configuration', async () => {
+		const oldKey = randomHex(32)
+		const currentKey = randomHex(32)
+		const keyring = createAesGcmKeyringFromJson(
+			JSON.stringify({
+				activeKeyId: 'current',
+				keys: { old: oldKey, current: currentKey }
+			})
+		)
+		const sealed = await sealAesGcmWithKeyring({ keyring, plaintext: 'secret' })
+
+		expect(keyring).toEqual({ activeKeyId: 'current' })
+		expect(sealed.keyId).toBe('current')
+		expect(bytesToText(await openAesGcmWithKeyring({ keyring, sealed }))).toBe('secret')
+	})
+
+	it('rejects malformed or ambiguous keyring JSON without echoing secrets', () => {
+		for (const input of [
+			'not-json-secret-value',
+			'[]',
+			JSON.stringify({ activeKeyId: 'current', keys: { current: 123 } }),
+			JSON.stringify({ activeKeyId: 'current', keys: {}, typo: 'secret-value' })
+		]) {
+			expect(() => createAesGcmKeyringFromJson(input)).toThrow(/invalid AES-GCM keyring JSON/)
+			try {
+				createAesGcmKeyringFromJson(input)
+			} catch (error) {
+				expect(String(error)).not.toContain('secret-value')
+			}
+		}
+	})
+
+	it('rejects duplicate and unconfigured keyring keys', async () => {
+		const key = randomHex(32)
+		expect(() => createAesGcmKeyring({ activeKeyId: 'missing', keys: { current: key } })).toThrow(
+			/active AES-GCM key ID/
+		)
+		expect(() => createAesGcmKeyring({ activeKeyId: 'a', keys: { a: key, b: key } })).toThrow(
+			/must be distinct/
+		)
+
+		const keyring = createAesGcmKeyring({ activeKeyId: 'current', keys: { current: key } })
+		await expect(
+			openAesGcmWithKeyring({
+				keyring,
+				sealed: {
+					keyId: 'retired',
+					seal: { algorithm: 'AES-GCM', iv: 'invalid', ciphertext: 'invalid' }
+				}
+			})
+		).rejects.toThrow(/not configured/)
+	})
+
+	it('strictly parses AES-GCM and keyring seals', async () => {
+		const keyring = createAesGcmKeyring({
+			activeKeyId: 'current',
+			keys: { current: randomHex(32) }
+		})
+		const sealed = await sealAesGcmWithKeyring({ keyring, plaintext: 'secret' })
+
+		expect(parseAesGcmSeal(sealed.seal)).toEqual(sealed.seal)
+		expect(parseAesGcmKeyringSeal(sealed)).toEqual(sealed)
+		for (const malformed of [
+			{ ...sealed, extra: true },
+			{ ...sealed, keyId: '../current' },
+			{ ...sealed, seal: { ...sealed.seal, algorithm: 'AES-CBC' } }
+		]) {
+			expect(() => parseAesGcmKeyringSeal(malformed)).toThrow(/invalid AES-GCM keyring seal/)
+		}
 	})
 })

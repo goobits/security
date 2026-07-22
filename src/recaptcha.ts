@@ -4,8 +4,10 @@
  * @module @goobits/security/recaptcha
  */
 
-import { isProduction, readEnv } from './_internal/env.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { readEnv } from './_internal/env.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
+import { isProductionRuntime } from './runtime.js'
 
 const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
@@ -107,7 +109,7 @@ export async function verifyRecaptcha(
 
 	if (!secretKey) {
 		log.error('RECAPTCHA_SECRET_KEY is not set')
-		if (!isProduction() && allowInDevelopment) {
+		if (!isProductionRuntime() && allowInDevelopment) {
 			log.warn(
 				'Allowing reCAPTCHA verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
 			)

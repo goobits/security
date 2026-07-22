@@ -88,12 +88,3 @@ export function createConsoleLogger(options: ConsoleLoggerOptions = {}): Logger 
 		error: (msg, ctx): void => emit('error', msg, ctx)
 	}
 }
-
-/**
- * Resolve a logger from an options bag, falling back to `noopLogger`.
- *
- * @internal helper used by every factory in this package.
- */
-export function resolveLogger(logger: Logger | undefined): Logger {
-	return logger ?? noopLogger
-}

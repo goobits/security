@@ -9,10 +9,110 @@
  */
 
 import type { AuditEvent } from './audit.js'
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
+import { MemoryRateLimitStore, type RateLimitStore } from './rate-limit/index.js'
 
 /** Alert Severity typed model for security alerting. */
 export type AlertSeverity = 'info' | 'warning' | 'critical'
+
+/** An event counter rule used to emit at most one alert per fixed window bucket. */
+export interface ThresholdAlertRule<
+	EventName extends string = string,
+	Severity extends AlertSeverity = AlertSeverity
+> {
+	eventName: EventName
+	max: number
+	windowMs: number
+	severity: Severity
+}
+
+/** Alert emitted when a named event reaches a configured threshold. */
+export interface ThresholdAlert<
+	EventName extends string = string,
+	Severity extends AlertSeverity = AlertSeverity
+> {
+	type: 'threshold_exceeded'
+	eventName: EventName
+	severity: Severity
+	count: number
+	windowMs: number
+	timestamp: string
+}
+
+/** Configuration for the generic, store-backed threshold observer. */
+export interface ThresholdAlertObserverOptions<
+	EventName extends string = string,
+	Severity extends AlertSeverity = AlertSeverity
+> {
+	rules: ReadonlyArray<ThresholdAlertRule<EventName, Severity>>
+	onAlert?: (alert: ThresholdAlert<EventName, Severity>) => Promise<void> | void
+	store?: RateLimitStore
+	keyPrefix?: string
+	/** Injectable clock for deterministic consumers and tests. Default: `Date.now`. */
+	now?: () => number
+}
+
+function assertThresholdRule(rule: ThresholdAlertRule): void {
+	if (!rule.eventName) throw new Error('Threshold alert eventName is required')
+	if (!Number.isSafeInteger(rule.max) || rule.max <= 0) {
+		throw new RangeError('Threshold alert max must be a positive safe integer')
+	}
+	if (!Number.isSafeInteger(rule.windowMs) || rule.windowMs <= 0) {
+		throw new RangeError('Threshold alert windowMs must be a positive safe integer')
+	}
+}
+
+/**
+ * Counts named events in a sliding window and claims one notification per
+ * fixed window bucket. A shared store makes both counters and claims atomic
+ * across application instances; the default memory store is single-process.
+ */
+export function createThresholdAlertObserver<
+	EventName extends string,
+	Severity extends AlertSeverity = AlertSeverity
+>({
+	rules,
+	onAlert,
+	store = new MemoryRateLimitStore(),
+	keyPrefix = 'security-alert',
+	now = Date.now
+}: ThresholdAlertObserverOptions<EventName, Severity>): (event: {
+	name: EventName
+}) => Promise<void> {
+	for (const rule of rules) assertThresholdRule(rule)
+
+	return async (event): Promise<void> => {
+		for (const rule of rules) {
+			if (event.name !== rule.eventName) continue
+			const timestamp = now()
+			const key = `${keyPrefix}:${rule.eventName}:${rule.max}:${rule.windowMs}:${rule.severity}`
+			const entry = await store.incrementEntry(key, timestamp, rule.windowMs, rule.max + 1)
+			const cutoff = timestamp - rule.windowMs
+			const count = entry.timestamps.filter((value) => value > cutoff).length
+			if (count < rule.max || !onAlert) continue
+
+			const bucket = Math.floor(timestamp / rule.windowMs)
+			const claim = await store.incrementEntry(
+				`${key}:notification:${bucket}`,
+				timestamp,
+				rule.windowMs,
+				2
+			)
+			const claimCount = claim.timestamps.filter((value) => value > cutoff).length
+			if (claimCount !== 1) continue
+
+			await onAlert({
+				type: 'threshold_exceeded',
+				eventName: rule.eventName,
+				severity: rule.severity,
+				count,
+				windowMs: rule.windowMs,
+				timestamp: new Date(timestamp).toISOString()
+			})
+		}
+	}
+}
 
 /** Alert request or option shape for security alerting. */
 export interface Alert {

@@ -6,6 +6,18 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-07-16
+
+### Breaking
+
+- The internal `resolveLogger()` fallback is no longer exported from `@goobits/security/logger`. Consumers should pass a logger to public factories or use the exported `noopLogger` explicitly. This closes the logger surface around stable public contracts ahead of v3.
+- Authentication-specific rate-limit presets moved to `@goobits/auth/security`.
+  `@goobits/security/rate-limit` now owns only the generic counter mechanism,
+  and the `rate-limit/auth` subpath has been removed.
+- The root-only `SECURITY_PACKAGE_VERSION` constant was removed. Package
+  metadata is not a runtime security primitive; read the installed manifest when
+  tooling needs a version.
+
 ### Removed
 
 - Removed legacy boolean CAPTCHA helpers. Use `verifyRecaptcha()` and `verifyTurnstile()` directly so callers can branch on structured failure reasons instead of flattening security decisions to `true`/`false`.
@@ -15,6 +27,13 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### ✨ Added
 
+- **`redaction`**: Normalized secret-key detection and recursive omission for
+  public projections, including common camel-case, snake-case, and kebab-case
+  variants.
+- **`http-credentials`**: Strict, bounded parsers for Basic, Bearer, and explicit API-key authorization headers; constant-work Basic password verification; HMAC-bound API-key verifiers; secure key generation; and sanitized challenge responses.
+- **`redaction`**: Recursive, cycle-safe structured-value redaction with conservative secret-key defaults and consumer-provided string scrubbing for application PII policy.
+- **`crypto`**: Opaque, rotation-ready AES-GCM keyrings that expose key IDs without exposing key material.
+- **`rate-limit`**: HMAC-backed store wrapper that keeps raw emails, usernames, IP addresses, and tokens out of rate-limit persistence while propagating backing-store failures for explicit consumer policy.
 - **`csrf/sveltekit`**: New SvelteKit adapter for stateless double-submit
   cookies, bounded form/JSON token extraction, and unsafe-method middleware.
 - 🌐 **`turnstile`**: New `@goobits/security/turnstile` sub-export for Cloudflare Turnstile token verification with the same discriminated-union result shape as `recaptcha`.
@@ -26,6 +45,14 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### 🔧 Changed
 
+- 🛡️ **`csrf`**: Store failures during requested expiry checks now fail closed
+  by default. Availability-sensitive callers must opt out explicitly.
+- 🔔 **`alerting`**: Added one generic, store-backed threshold observer and a
+  single `info | warning | critical` severity vocabulary for consumer packages.
+- 📦 **module layout**: CSRF and bounded request-body primitives now live at
+  honest public module paths (`csrf.ts` and `request-body`) instead of private or
+  implementation-named files. Existing `validation/sveltekit` re-exports remain
+  available for compatibility.
 - **`csrf` / `rate-limit`**: In-memory stores now enforce deterministic
   configurable `maxKeys` bounds, cleaning stale entries before evicting the
   oldest active key.

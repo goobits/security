@@ -6,7 +6,8 @@
 
 import type { z } from 'zod'
 
-import { type Logger, resolveLogger } from './logger.js'
+import { resolveLogger } from './_internal/resolveLogger.js'
+import type { Logger } from './logger.js'
 
 /** Validation Schemas request or option shape for security middleware. */
 export interface ValidationSchemas<Body = unknown, Query = unknown, Params = unknown> {
