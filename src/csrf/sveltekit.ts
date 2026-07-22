@@ -6,10 +6,10 @@
 
 import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit'
 
-import { isProduction } from '../_internal/env.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
 import { createCsrf, type CsrfConfig, type CsrfProtection, type GenerateOptions } from '../csrf.js'
 import { BodyTooLargeError, readRequestBodyBytes } from '../requestBody.js'
+import { isProductionRuntime } from '../runtime.js'
 
 const DEFAULT_MAX_BODY_BYTES = 65_536
 const DEFAULT_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'] as const
@@ -71,7 +71,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 	const checkExpiry = config.checkExpiry ?? trackExpiry
 	const cookieOptions = config.cookieOptions ?? {
 		httpOnly: true,
-		secure: isProduction(),
+		secure: isProductionRuntime(),
 		sameSite: 'lax' as const,
 		path: '/',
 		maxAge: 60 * 60 * 24

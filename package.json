@@ -38,6 +38,7 @@
 		"./logger": "./src/logger.ts",
 		"./redaction": "./src/redaction.ts",
 		"./request-body": "./src/requestBody.ts",
+		"./runtime": "./src/runtime.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
 	"keywords": [
@@ -84,7 +85,7 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.69.1",
+		"@sveltejs/kit": "^2.70.1",
 		"@types/node": "^26.1.0",
 		"@vitest/coverage-v8": "^4.1.10",
 		"typescript": "^6.0.3",

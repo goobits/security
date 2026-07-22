@@ -6,9 +6,10 @@
  * @module @goobits/security/turnstile
  */
 
-import { isProduction, readEnv } from './_internal/env.js'
+import { readEnv } from './_internal/env.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
+import { isProductionRuntime } from './runtime.js'
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
@@ -133,7 +134,7 @@ export async function verifyTurnstile(
 	}
 
 	// Loopback bypass  -  only outside production, only when explicitly opted in.
-	if (bypassLocalhost && !isProduction() && remoteIp && bypassHosts.includes(remoteIp)) {
+	if (bypassLocalhost && !isProductionRuntime() && remoteIp && bypassHosts.includes(remoteIp)) {
 		log.info('Turnstile bypassed for loopback remoteIp', { remoteIp })
 		return {
 			success: true,
@@ -147,7 +148,7 @@ export async function verifyTurnstile(
 
 	if (!secretKey) {
 		log.error('TURNSTILE_SECRET_KEY is not set')
-		if (!isProduction() && allowInDevelopment) {
+		if (!isProductionRuntime() && allowInDevelopment) {
 			log.warn(
 				'Allowing Turnstile verification to pass (allowInDevelopment=true, NODE_ENV !== production)'
 			)

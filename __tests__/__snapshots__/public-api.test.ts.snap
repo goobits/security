@@ -281,6 +281,9 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "readJsonBody",
     "readRequestBodyBytes",
   ],
+  "runtime": [
+    "isProductionRuntime",
+  ],
   "turnstile": [
     "verifyTurnstile",
   ],
