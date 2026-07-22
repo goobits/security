@@ -126,14 +126,6 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 				validatedData.params = result.data
 			}
 
-			const eventWithLocals = event as RequestEvent & {
-				locals: RequestEvent['locals'] & {
-					validatedData: ValidatedData<Body, Query, Params>
-				}
-			}
-			eventWithLocals.locals.validatedData = validatedData
-
-			return await handler(eventWithLocals)
 		} catch (error) {
 			if (error instanceof BodyTooLargeError) {
 				log.warn('Validation request body too large', {
@@ -149,5 +141,14 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 			})
 			return jsonResponse({ success: false, error: 'Validation error' }, 500)
 		}
+
+		const eventWithLocals = event as RequestEvent & {
+			locals: RequestEvent['locals'] & {
+				validatedData: ValidatedData<Body, Query, Params>
+			}
+		}
+		eventWithLocals.locals.validatedData = validatedData
+
+		return handler(eventWithLocals)
 	}
 }

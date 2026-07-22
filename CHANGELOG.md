@@ -6,6 +6,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Fixed
+
+- **`validation/sveltekit`**: Application handler errors now propagate to
+  SvelteKit instead of being rewritten as generic validation `500` responses.
+
 ## [3.0.0] - 2026-07-16
 
 ### Breaking

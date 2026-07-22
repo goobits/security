@@ -94,6 +94,17 @@ describe('withValidation', () => {
 
 		expect(response.status).toBe(413)
 	})
+
+	it('lets application handler errors propagate', async () => {
+		const expected = new Error('handler failed')
+		const handler = withValidation({ body: z.object({ email: z.email() }) }, async () => {
+			throw expected
+		})
+		const { event } = makeEvent({ email: 'a@b.com' })
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		await expect(handler(event as any)).rejects.toBe(expected)
+	})
 })
 
 describe('readRequestBodyBytes', () => {
