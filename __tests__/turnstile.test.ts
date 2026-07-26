@@ -154,9 +154,9 @@ describe('verifyTurnstile', () => {
 		expect(body.get('response')).toBe('token')
 	})
 
-	it('skips siteverify entirely when bypassLocalhost matches remoteIp (non-prod)', async () => {
-		vi.stubEnv('NODE_ENV', 'development')
+	it('skips siteverify entirely when bypassLocalhost matches remoteIp in development', async () => {
 		const fetchSpy = vi.fn()
+		vi.stubEnv('NODE_ENV', 'development')
 		vi.stubGlobal('fetch', fetchSpy)
 
 		const result = await verifyTurnstile('token', {
@@ -195,8 +195,8 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('honors custom bypassHosts list', async () => {
-		vi.stubEnv('NODE_ENV', 'development')
 		const fetchSpy = vi.fn()
+		vi.stubEnv('NODE_ENV', 'development')
 		vi.stubGlobal('fetch', fetchSpy)
 
 		const result = await verifyTurnstile('token', {

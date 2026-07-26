@@ -10,9 +10,9 @@
  */
 
 import { getRandomBytes } from './_internal/crypto.js'
-import { isProductionRuntime } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
+import { isProductionRuntime } from './runtime.js'
 
 /** Standard CSP fetch + navigation directives, plus CSP3 + Trusted Types. */
 export type CspDirective =
