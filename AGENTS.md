@@ -32,8 +32,15 @@ src/
 ├── crypto/           # encoding, HMAC, AES-GCM/keyrings, signed proofs
 ├── identity/         # DID-WBA, HTTP signatures, verified principals
 ├── rate-limit/
-│   ├── index.ts      # createRateLimiter + MemoryRateLimitStore (framework-agnostic)
-│   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
+│   ├── clientIp.ts       # explicit trusted-proxy client IP parsing
+│   ├── d1Store.ts        # atomic D1 sliding-window store
+│   ├── hmacStore.ts      # pseudonymized backing-store key wrapper
+│   ├── index.ts          # curated framework-agnostic barrel
+│   ├── limiter.ts        # multi-window rate-limit evaluation
+│   ├── memoryStore.ts    # bounded single-process store
+│   ├── resilientStore.ts # explicit primary-store failure policy
+│   ├── sveltekit.ts      # createRateLimitHandle (SvelteKit Handle adapter)
+│   └── types.ts          # shared rate-limit contracts
 ├── csrf/
 │   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
 ├── audit/
