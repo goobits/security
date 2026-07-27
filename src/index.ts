@@ -26,6 +26,7 @@ export {
 	isSensitiveKey,
 	omitSensitive,
 	REDACTED_VALUE,
+	redactSecretText,
 	redactSensitive
 } from './redaction.js'
 

@@ -6,6 +6,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Added
+
+- **`redaction`**: Added `redactSecretText()` for credentials embedded in
+  environment assignments, authorization headers, and URLs.
+
 ## [3.0.0] - 2026-07-16
 
 ### Breaking

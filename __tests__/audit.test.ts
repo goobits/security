@@ -8,7 +8,12 @@ import {
 } from '../src/audit.js'
 import { withAudit } from '../src/audit/sveltekit.js'
 import type { Logger } from '../src/logger.js'
-import { isSensitiveKey, omitSensitive, redactSensitive } from '../src/redaction.js'
+import {
+	isSensitiveKey,
+	omitSensitive,
+	redactSecretText,
+	redactSensitive
+} from '../src/redaction.js'
 
 function makeSink(): { sink: AuditSink; records: AuditEvent[] } {
 	const records: AuditEvent[] = []
@@ -208,6 +213,16 @@ describe('withAudit redaction', () => {
 })
 
 describe('redactSensitive', () => {
+	it('redacts credentials embedded in unstructured text', () => {
+		expect(
+			redactSecretText(
+				'OPENAI_API_KEY=secret curl -H "Authorization: Bearer abc.def" https://user:pass@example.com'
+			)
+		).toBe(
+			'OPENAI_API_KEY=[redacted] curl -H "Authorization: Bearer [redacted]" https://[redacted]@example.com'
+		)
+	})
+
 	it('handles cycles, errors, application key patterns, and string scrubbing', () => {
 		const payload: Record<string, unknown> = {
 			password: 'secret',

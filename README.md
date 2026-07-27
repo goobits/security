@@ -21,7 +21,9 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
 - **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
 - **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
-- **Redaction:** recursive, cycle-safe redaction or omission of normalized secret-bearing fields before structured values reach logs, audit sinks, or public projections
+- **Redaction:** recursive, cycle-safe structured redaction plus bounded
+  credential removal from unstructured diagnostic text before values reach
+  logs, audit sinks, or public projections
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
@@ -113,7 +115,7 @@ import { withValidation } from '@goobits/security/validation/sveltekit'
 import { createPrincipalAuth } from '@goobits/security/principal-auth'
 import { createAdminAuth } from '@goobits/security/admin-auth'
 import { parseBearerToken, verifyApiKey } from '@goobits/security/http-credentials'
-import { redactSensitive } from '@goobits/security/redaction'
+import { redactSecretText, redactSensitive } from '@goobits/security/redaction'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
