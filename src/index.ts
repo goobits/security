@@ -10,13 +10,16 @@
  * @module @goobits/security
  */
 
+export { isProductionRuntime, readRuntimeEnv } from './runtime.js'
+
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
 	type LogContext,
 	type Logger,
 	createConsoleLogger,
-	noopLogger
+	noopLogger,
+	safeErrorContext
 } from './logger.js'
 
 /* Secret-safe logging and audit payloads. */
@@ -66,6 +69,12 @@ export {
 	readJsonBody,
 	readRequestBodyBytes
 } from './requestBody.js'
+export {
+	type RequestOriginFailureReason,
+	type RequestOriginResult,
+	type VerifyRequestOriginOptions,
+	verifyRequestOrigin
+} from './requestOrigin.js'
 export { type RedisCsrfStoreOptions, type RedisLike, createRedisCsrfStore } from './csrfRedis.js'
 
 /* Content Security Policy. */
@@ -145,6 +154,7 @@ export {
 	type HttpSignatureVerificationInput,
 	type HttpSignatureVerificationResult,
 	type IdentityMethod,
+	type PrincipalIdentity,
 	type VerifiedPrincipal,
 	type VerifyHttpSignatureOptions,
 	buildDidWba,
@@ -172,10 +182,12 @@ export {
 	type RateLimitStore,
 	type RateLimitWindow,
 	type RateLimiter,
+	type ResilientRateLimitStoreOptions,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
 	createHmacRateLimitStore,
 	createRateLimiter,
+	createResilientRateLimitStore,
 	getClientIP
 } from './rate-limit/index.js'
 /* Admin authentication. */

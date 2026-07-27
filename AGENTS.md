@@ -7,7 +7,7 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 ## Quick reference
 
 - **Category:** library (ESM-only, TypeScript)
-- **Distribution:** git submodule consumed inside a pnpm workspace. Consumer bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source directly - no build step, no `dist/`, no npm publish.
+- **Distribution:** git submodules consume `.ts` source directly inside first-party workspaces. Published tarballs use compiled ESM and declarations from `dist/`.
 - **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependency: `jose ^6`. Optional peer dependencies: `@sveltejs/kit ^2`, `zod ^4`
 - **Runtime targets:** Node 22+, Bun, Deno, Cloudflare Workers (anything with Web Crypto on `globalThis`)
 - **Engines:** Node `>=22`
@@ -18,6 +18,8 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 pnpm install
 pnpm typecheck      # tsc --noEmit (src + tests)
 pnpm test           # vitest run
+pnpm build          # compile the publish-only dist artifact
+pnpm verify:package # install the tarball and import every public entrypoint
 pnpm test:watch     # vitest
 pnpm test:coverage  # vitest run --coverage
 ```
@@ -26,12 +28,19 @@ pnpm test:coverage  # vitest run --coverage
 
 ```
 src/
-├── _internal/        # cookie, crypto, env, logger helpers; never exported
+├── _internal/        # cookie, crypto, logger helpers; never exported
 ├── crypto/           # encoding, HMAC, AES-GCM/keyrings, signed proofs
 ├── identity/         # DID-WBA, HTTP signatures, verified principals
 ├── rate-limit/
-│   ├── index.ts      # createRateLimiter + MemoryRateLimitStore (framework-agnostic)
-│   └── sveltekit.ts  # createRateLimitHandle (SvelteKit Handle adapter)
+│   ├── clientIp.ts       # explicit trusted-proxy client IP parsing
+│   ├── d1Store.ts        # atomic D1 sliding-window store
+│   ├── hmacStore.ts      # pseudonymized backing-store key wrapper
+│   ├── index.ts          # curated framework-agnostic barrel
+│   ├── limiter.ts        # multi-window rate-limit evaluation
+│   ├── memoryStore.ts    # bounded single-process store
+│   ├── resilientStore.ts # explicit primary-store failure policy
+│   ├── sveltekit.ts      # createRateLimitHandle (SvelteKit Handle adapter)
+│   └── types.ts          # shared rate-limit contracts
 ├── csrf/
 │   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
 ├── audit/
@@ -53,6 +62,8 @@ src/
 ├── recaptcha.ts      # Google v2/v3 verifier
 ├── redaction.ts      # secret-safe public/audit projections
 ├── requestBody.ts    # bounded Fetch request-body readers
+├── requestOrigin.ts  # Fetch Metadata + Origin/Referer verification
+├── runtime.ts        # production-safe cross-runtime environment decisions
 ├── turnstile.ts      # Cloudflare Turnstile verifier
 ├── validation.ts     # framework-agnostic Zod helpers
 └── index.ts          # curated framework-agnostic root barrel
@@ -60,7 +71,7 @@ src/
 
 SvelteKit-specific adapters live under `*/sveltekit.ts` subpaths so non-SvelteKit consumers never pay the `@sveltejs/kit` types cost.
 
-`package.json#exports` points directly at `./src/*.ts`. There is no build step. Consumers' bundlers (Vite/esbuild/SvelteKit) compile the `.ts` source as part of their own pipeline.
+`package.json#exports` points directly at `./src/*.ts` for workspace consumers. `publishConfig` rewrites the packed manifest to `./dist/*.js` plus matching declarations; `pnpm verify:package` proves the isolated artifact before release.
 
 Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. The package has zero hard dependency on any specific logging library.
 
@@ -74,7 +85,9 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 ## Security rules (do not bypass)
 
 - Never log raw tokens, passwords, JWTs, or API keys. The supplied `Logger` may be third-party - assume it captures everything passed to it.
-- All cryptographic comparisons MUST be constant-time. Use `timingSafeEqualBytes` from `_internal/crypto.ts`.
+- All cryptographic comparisons MUST be constant-time. Public modules use
+  `constantTimeEqual()` from `crypto/encoding`; private byte-level primitives
+  may use `timingSafeEqualBytes()` from `_internal/crypto.ts`.
 - All random values for tokens/keys MUST come from `globalThis.crypto.getRandomValues` (via `getRandomBytes`). Never use `Math.random()` for security-sensitive paths.
 - `csp.ts` MUST NOT hardcode any third-party vendor URLs (Stripe, fonts, CDNs, etc.). Consumers supply those via `extraSources`. Adding vendor knowledge to defaults would force every consumer to inherit those policies whether they need them or not.
 - When this package's deps change in `package.json`, verify their licenses remain permissive (MIT / Apache 2.0 / BSD). No GPL-ish copyleft deps.
@@ -99,8 +112,10 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 
 - `pnpm typecheck` passes with no errors (covers `src/` and `tests/`)
 - `pnpm test` passes with no failing assertions
+- `pnpm verify:package` passes from a clean packed consumer
 - Every entry in `package.json#exports` points at an existing `src/*.ts` file
-- No `dist/`, `node_modules/`, `.DS_Store`, or `*.tsbuildinfo` tracked
+- Every entry in `package.json#publishConfig.exports` points at compiled JavaScript and declarations
+- No generated `dist/`, `node_modules/`, `.DS_Store`, or `*.tsbuildinfo` tracked
 - README + CHANGELOG updated for any user-facing change
 - New deps reviewed for license compatibility (permissive only)
 

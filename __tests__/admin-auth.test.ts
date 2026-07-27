@@ -82,7 +82,7 @@ describe('createAdminAuth', () => {
 		const result = await adminAuth.requireAdmin(request)
 
 		expect(result.authenticated).toBe(true)
-		if (result.authenticated) expect(result.method).toBe('apikey')
+		if (result.authenticated) expect(result.method).toBe('api-key')
 	})
 
 	it('rejects wrong API key (constant-time comparison)', async () => {

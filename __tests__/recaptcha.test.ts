@@ -46,6 +46,11 @@ describe('verifyRecaptcha', () => {
 		expect(result.success).toBe(false)
 	})
 
+	it('does not bypass an unknown runtime even with explicit development opt-in', async () => {
+		const result = await verifyRecaptcha('token', { allowInDevelopment: true })
+		expect(result.success).toBe(false)
+	})
+
 	it('permits dev bypass only when explicitly opted in AND NODE_ENV !== production', async () => {
 		vi.stubEnv('NODE_ENV', 'development')
 		const result = await verifyRecaptcha('token', { allowInDevelopment: true })

@@ -11,6 +11,7 @@
 import type { CsrfTokenStore } from './csrf.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
+import { safeErrorContext } from './logger.js'
 
 /** Minimal Redis client contract required by this adapter. */
 export interface RedisLike {
@@ -67,7 +68,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 				const parsed = Number(raw)
 				return Number.isFinite(parsed) ? parsed : undefined
 			} catch (err) {
-				log.error('Redis CSRF store: get failed', { error: String(err) })
+				log.error('Redis CSRF store: get failed', safeErrorContext(err))
 				throw err
 			}
 		},
@@ -77,7 +78,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 			try {
 				await client.set(key(token), String(expiresAt), 'PX', effectiveTtl)
 			} catch (err) {
-				log.error('Redis CSRF store: set failed', { error: String(err) })
+				log.error('Redis CSRF store: set failed', safeErrorContext(err))
 				throw err
 			}
 		},
@@ -86,7 +87,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 			try {
 				await client.del(key(token))
 			} catch (err) {
-				log.error('Redis CSRF store: delete failed', { error: String(err) })
+				log.error('Redis CSRF store: delete failed', safeErrorContext(err))
 				throw err
 			}
 		},
@@ -109,7 +110,7 @@ export function createRedisCsrfStore(options: RedisCsrfStoreOptions): CsrfTokenS
 					}
 				} while (cursor !== '0')
 			} catch (err) {
-				log.error('Redis CSRF store: clear failed', { error: String(err) })
+				log.error('Redis CSRF store: clear failed', safeErrorContext(err))
 				throw err
 			}
 		}

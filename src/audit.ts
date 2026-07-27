@@ -6,6 +6,8 @@
 
 import { resolveLogger } from './_internal/resolveLogger.js'
 import type { Logger } from './logger.js'
+import { safeErrorContext } from './logger.js'
+import { DEFAULT_REDACT_KEYS, redactSensitive } from './redaction.js'
 
 /** Audit Outcome typed model for audit logging. */
 export type AuditOutcome = 'success' | 'failure' | 'denied' | 'error'
@@ -38,15 +40,15 @@ export interface AuditEvent {
 	durationMs?: number
 	/** Free-form structured detail (filtered for sensitive data by the caller). */
 	detail?: Record<string, unknown>
-	/** Error info when `outcome === 'error'`. */
-	error?: { message: string; name?: string }
+	/** Bounded error identity when `outcome === 'error'`; messages and stacks are excluded. */
+	error?: { name: string; code?: string }
 }
 
 /** Audit Sink request or option shape for audit logging. */
 export interface AuditSink {
 	/**
 	 * Write a single audit event. Implementations may queue, batch, or persist.
-	 * Should NOT throw  -  log internally and swallow errors.
+	 * May throw. `AuditLogger` applies its configured failure mode.
 	 */
 	record(event: AuditEvent): void | Promise<void>
 }
@@ -55,7 +57,8 @@ export interface AuditSink {
 export function createLoggerSink(logger: Logger): AuditSink {
 	return {
 		record(event: AuditEvent): void {
-			logger.info(`audit:${event.action}`, event as unknown as Record<string, unknown>)
+			const safeEvent = redactSensitive(event) as Record<string, unknown>
+			logger.info(`audit:${event.action}`, safeEvent)
 		}
 	}
 }
@@ -69,6 +72,10 @@ export interface AuditLogger {
 export interface CreateAuditLoggerOptions {
 	sink?: AuditSink
 	logger?: Logger
+	/** Additional sensitive keys; Security defaults are always retained. */
+	redactKeys?: ReadonlyArray<string>
+	/** Throw when the sink fails, or report through the logger. Default: `report`. */
+	failureMode?: 'report' | 'throw'
 }
 
 /**
@@ -88,19 +95,25 @@ export interface CreateAuditLoggerOptions {
 export function createAuditLogger(options: CreateAuditLoggerOptions = {}): AuditLogger {
 	const log = resolveLogger(options.logger)
 	const sink = options.sink ?? createLoggerSink(log)
+	const redactKeys = Array.from(new Set([...DEFAULT_REDACT_KEYS, ...(options.redactKeys ?? [])]))
+	const failureMode = options.failureMode ?? 'report'
 
 	return {
 		async log(partial): Promise<void> {
 			// Caller-supplied timestamp wins (useful for replaying historical events);
 			// omit `timestamp` in your partial to get the current time.
-			const event: AuditEvent = {
-				...partial,
-				timestamp: partial.timestamp ?? new Date().toISOString()
-			}
+			const event = redactSensitive(
+				{
+					...partial,
+					timestamp: partial.timestamp ?? new Date().toISOString()
+				},
+				{ keys: redactKeys }
+			) as AuditEvent
 			try {
 				await sink.record(event)
 			} catch (err) {
-				log.error('Audit sink threw', { error: String(err), action: event.action })
+				log.error('Audit sink threw', { ...safeErrorContext(err), action: event.action })
+				if (failureMode === 'throw') throw err
 			}
 		}
 	}
