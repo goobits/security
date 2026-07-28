@@ -8,6 +8,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Added
 
+- **`jwt`**: Added one framework-agnostic, purpose-bound HMAC JWT primitive
+  with algorithm, audience, issuer, type, lifetime, and required-claim
+  verification. Principal authentication now delegates to this shared owner.
 - **`redaction`**: Added `redactSecretText()` for credentials embedded in
   environment assignments, authorization headers, and URLs.
 - A publish-only compiled ESM artifact with declarations and an isolated

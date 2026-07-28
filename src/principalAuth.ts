@@ -7,12 +7,13 @@
  * @module @goobits/security/principal-auth
  */
 
-import { errors, jwtVerify, type JWTPayload, SignJWT } from 'jose'
+import type { JWTPayload } from 'jose'
 
 import { constantTimeEqual, textToBytes } from './crypto/index.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import { parseBearerToken } from './httpCredentials.js'
 import type { PrincipalIdentity } from './identity/principal.js'
+import { signJwt, verifyJwt as verifyJwtToken } from './jwt.js'
 import type { Logger } from './logger.js'
 import { safeErrorContext } from './logger.js'
 
@@ -185,10 +186,6 @@ function resolveApiKeyPrincipal(
 	return null
 }
 
-function resolveExpirationTime(ttl: string | number): string | number {
-	return typeof ttl === 'number' ? Math.floor(Date.now() / 1000) + ttl : ttl
-}
-
 function assertExpectedClaim(
 	name: 'audience' | 'issuer',
 	value: string | string[] | undefined
@@ -248,19 +245,16 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 	}
 	if (
 		clockTolerance !== undefined &&
-		(typeof clockTolerance !== 'number' || !Number.isFinite(clockTolerance) || clockTolerance < 0)
+		(typeof clockTolerance !== 'number' ||
+			!Number.isFinite(clockTolerance) ||
+			clockTolerance < 0)
 	) {
 		throw new Error('@goobits/security/principal-auth: clockTolerance must be non-negative')
 	}
 	assertExpectedClaim('audience', audience)
 	assertExpectedClaim('issuer', issuer)
 
-	const secretBytes = textToBytes(jwtSecret)
 	const apiKeys = normalizeApiKeys(config)
-	const verifyOptions: Parameters<typeof jwtVerify>[2] = { algorithms }
-	if (audience !== undefined) verifyOptions.audience = audience
-	if (issuer !== undefined) verifyOptions.issuer = issuer
-	if (clockTolerance !== undefined) verifyOptions.clockTolerance = clockTolerance
 
 	async function authorize(
 		principal: AuthPrincipal,
@@ -272,21 +266,29 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 
 	async function verifyJwt(token: string): Promise<AuthPrincipal | null> {
 		try {
-			const { payload } = await jwtVerify(token, secretBytes, verifyOptions)
-			const principal = principalFromPayload(payload)
+			const verification = await verifyJwtToken(token, {
+				secret: jwtSecret,
+				algorithms,
+				...(audience === undefined ? {} : { audience }),
+				...(issuer === undefined ? {} : { issuer }),
+				...(clockTolerance === undefined ? {} : { clockTolerance })
+			})
+			if (!verification.ok) {
+				log.warn(
+					verification.reason === 'expired'
+						? 'Principal JWT expired'
+						: 'Principal JWT verification failed'
+				)
+				return null
+			}
+			const principal = principalFromPayload(verification.payload)
 			if (!principal) {
 				log.warn('Principal JWT lacks `id` or `sub` claim')
 				return null
 			}
 			return principal
 		} catch (err) {
-			if (err instanceof errors.JWTExpired) {
-				log.warn('Principal JWT expired')
-			} else if (err instanceof errors.JOSEError) {
-				log.warn('Principal JWT verification failed', { code: err.code })
-			} else {
-				log.warn('Principal JWT verification threw', safeErrorContext(err))
-			}
+			log.warn('Principal JWT verification threw', safeErrorContext(err))
 			return null
 		}
 	}
@@ -335,19 +337,15 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 		if (typeof ttl === 'number' && (!Number.isSafeInteger(ttl) || ttl <= 0)) {
 			throw new Error('@goobits/security/principal-auth: numeric token TTL must be positive')
 		}
-		const builder = new SignJWT(normalizedPrincipal)
-			.setProtectedHeader({ alg: algorithms[0] ?? 'HS256' })
-			.setIssuedAt()
-			.setExpirationTime(resolveExpirationTime(ttl))
-
-		if (audience !== undefined) {
-			builder.setAudience(audience)
-		}
-		if (issuer !== undefined) {
-			builder.setIssuer(typeof issuer === 'string' ? issuer : (issuer[0] ?? ''))
-		}
-
-		return builder.sign(secretBytes)
+		return await signJwt(normalizedPrincipal, {
+			secret: jwtSecret,
+			expiresIn: ttl,
+			algorithm: algorithms[0] ?? 'HS256',
+			...(audience === undefined ? {} : { audience }),
+			...(issuer === undefined
+				? {}
+				: { issuer: typeof issuer === 'string' ? issuer : (issuer[0] ?? '') })
+		})
 	}
 
 	return {

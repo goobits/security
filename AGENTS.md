@@ -58,6 +58,7 @@ src/
 ├── csrfRedis.ts      # structural Redis CSRF store adapter
 ├── httpCredentials.ts # bounded Basic/Bearer/API-key parsing and verification
 ├── logger.ts         # pluggable logger contract and implementations
+├── jwt.ts            # purpose-bound HMAC JWT signing and verification
 ├── principalAuth.ts  # generic JWT/API-key principal authentication
 ├── recaptcha.ts      # Google v2/v3 verifier
 ├── redaction.ts      # secret-safe public/audit projections

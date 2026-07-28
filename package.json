@@ -89,6 +89,10 @@
 				"types": "./dist/principalAuth.d.ts",
 				"default": "./dist/principalAuth.js"
 			},
+			"./jwt": {
+				"types": "./dist/jwt.d.ts",
+				"default": "./dist/jwt.js"
+			},
 			"./validation": {
 				"types": "./dist/validation.d.ts",
 				"default": "./dist/validation.js"
@@ -175,6 +179,7 @@
 		"./identity/http-signature": "./src/identity/httpSignature.ts",
 		"./identity/principal": "./src/identity/principal.ts",
 		"./principal-auth": "./src/principalAuth.ts",
+		"./jwt": "./src/jwt.ts",
 		"./validation": "./src/validation.ts",
 		"./validation/simple": "./src/validation/simple.ts",
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",

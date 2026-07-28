@@ -203,6 +203,14 @@ export {
 	createPrincipalAuth
 } from './principalAuth.js'
 export {
+	type JwtHmacAlgorithm,
+	type JwtVerification,
+	type SignJwtOptions,
+	type VerifyJwtOptions,
+	signJwt,
+	verifyJwt
+} from './jwt.js'
+export {
 	type AdminAuth,
 	type AdminAuthAlgorithm,
 	type AdminAuthConfig,

@@ -84,6 +84,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "sha256Bytes",
     "sha256Hex",
     "signHmac",
+    "signJwt",
     "textToBytes",
     "validateArray",
     "validateBoolean",
@@ -97,6 +98,7 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "verifyDidWbaIdentity",
     "verifyHmac",
     "verifyHttpSignatureIdentity",
+    "verifyJwt",
     "verifyRecaptcha",
     "verifyRequestOrigin",
     "verifySecurityProof",
@@ -254,6 +256,10 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
   "identity/principal": [
     "principalFromDid",
     "principalFromHttpSignature",
+  ],
+  "jwt": [
+    "signJwt",
+    "verifyJwt",
   ],
   "logger": [
     "createConsoleLogger",

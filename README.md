@@ -129,9 +129,43 @@ import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
 import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/security/crypto'
 import { verifyDidWbaIdentity } from '@goobits/security/identity'
+import { signJwt, verifyJwt } from '@goobits/security/jwt'
 ```
 
 Each module is independently importable. Import only what you need.
+
+---
+
+## JWT
+
+Use the shared JWT primitive when a protocol needs a short-lived,
+purpose-bound HMAC token without adopting principal-auth policy:
+
+```ts
+import { signJwt, verifyJwt } from '@goobits/security/jwt'
+
+const token = await signJwt(
+	{ roomId: 'room-1' },
+	{
+		secret,
+		expiresIn: 60,
+		audience: 'goobits:room-transport',
+		issuer: 'goobits:access-broker',
+		type: 'goobits-room+jwt'
+	}
+)
+
+const verification = await verifyJwt(token, {
+	secret,
+	audience: 'goobits:room-transport',
+	issuer: 'goobits:access-broker',
+	type: 'goobits-room+jwt'
+})
+```
+
+Verification pins `HS256` unless the caller supplies another explicit
+HS-family allowlist. Secrets must contain at least 32 bytes. Failed
+verification returns `invalid` or `expired` without exposing JOSE errors.
 
 ---
 
