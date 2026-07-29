@@ -13,6 +13,9 @@ importers:
 
   .:
     dependencies:
+      hash-wasm:
+        specifier: ^4.12.0
+        version: 4.12.0
       jose:
         specifier: ^6.2.3
         version: 6.2.3
@@ -368,6 +371,9 @@ packages:
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
     engines: {node: '>=8'}
+
+  hash-wasm@4.12.0:
+    resolution: {integrity: sha512-+/2B2rYLb48I/evdOIhP+K/DD2ca2fgBjp6O+GBEnCDk2e4rpeXIK8GvIyRPjTezgmWn9gmKwkQjjx6BtqDHVQ==}
 
   html-escaper@2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
@@ -961,6 +967,8 @@ snapshots:
     optional: true
 
   has-flag@4.0.0: {}
+
+  hash-wasm@4.12.0: {}
 
   html-escaper@2.0.2: {}
 

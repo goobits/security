@@ -19,7 +19,9 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Validation:** Zod v4 middleware for request body / query / params
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
-- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
+- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings,
+  bounded-memory incremental SHA-256 and BLAKE3 hashing, and deterministic
+  proof helpers
 - **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
 - **Redaction:** recursive, cycle-safe structured redaction plus bounded
   credential removal from unstructured diagnostic text before values reach
@@ -27,7 +29,9 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
-- **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit and Zod. Redis clients remain host-owned.
+- **Minimal forced dependencies:** uses Web Crypto from `globalThis`,
+  `hash-wasm` for incremental SHA-256 and BLAKE3 hashing, and `jose` for JWTs.
+  SvelteKit and Zod remain optional peers, and Redis clients remain host-owned.
 - **Pluggable logger:** every module accepts a `Logger` interface; bring your own (Pino, Winston, console, or silent)
 - **ESM-only, full TypeScript:** subpath exports for treeshaking; runs on Node 22+, Bun, Deno, Cloudflare Workers
 
@@ -86,7 +90,9 @@ The same submodule layout works. Just declare the workspace in the format your p
 - **Bun**: same as npm.
 - **No workspace at all**: declare a `file:` reference, e.g. `"@goobits/security": "file:./packages/security"`.
 
-`@goobits/security` depends on [`jose`](https://github.com/panva/jose) for JWT operations in `admin-auth` (Web Crypto-based; cross-runtime). No other transitive runtime deps.
+`@goobits/security` depends on [`jose`](https://github.com/panva/jose) for
+cross-runtime JWT operations and `hash-wasm` for incremental SHA-256 and
+BLAKE3 hashing. It has no other direct runtime dependencies.
 
 ### Pinning a version
 
@@ -222,6 +228,7 @@ the same underlying principal-auth implementation.
 
 ```ts
 import {
+	createIncrementalHasher,
 	createSecurityProof,
 	randomHex,
 	sealJson,
@@ -230,6 +237,11 @@ import {
 
 const key = randomHex(32)
 const sealed = await sealJson({ refreshToken: 'secret' }, { key })
+
+const hasher = await createIncrementalHasher('blake3')
+hasher.update(new TextEncoder().encode('first chunk'))
+hasher.update(new TextEncoder().encode('second chunk'))
+const contentDigest = hasher.digestHex()
 
 const proof = await createSecurityProof(
 	{ id: 'message-1' },
@@ -248,7 +260,14 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 })
 ```
 
-The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, rotation-ready opaque keyrings, and deterministic `SecurityProof` envelopes. Product permissions, roles, key-distribution policy, and app-specific authorization remain outside this package.
+The `crypto` subpath is framework-agnostic. It provides encoding helpers,
+random bytes and hex, one-shot SHA-256, incremental SHA-256 and BLAKE3, HMAC
+signatures, AES-GCM sealing and opening, rotation-ready opaque keyrings, and
+deterministic `SecurityProof` envelopes. `createIncrementalHasher()` accepts
+`'sha-256'` or `'blake3'`, retains only the hash state as callers supply chunks,
+and finalizes when `digestHex()` is called. Updating or finalizing it again
+throws. Product permissions, roles, key-distribution policy, and app-specific
+authorization remain outside this package.
 
 For environment-backed rotation, `createAesGcmKeyringFromJson` accepts a strict
 JSON object with `activeKeyId` and a `keys` map of hex-encoded AES keys. The
@@ -777,7 +796,9 @@ and returns `true`.
 
 ‡ `csrf-redis` imports no Redis library. Runtime support depends on the host-supplied client satisfying the exported `RedisLike` contract.
 
-All modules use the Web Crypto API on `globalThis.crypto` for randomness and signing. None import from `node:crypto`, `node:buffer`, or any other Node-only built-ins.
+Modules use the Web Crypto API on `globalThis.crypto` for randomness and
+signing. Incremental SHA-256 and BLAKE3 use cross-runtime `hash-wasm`. No module
+imports from `node:crypto`, `node:buffer`, or another Node-only built-in.
 
 > Continuous integration exercises Node 22. Bun, Deno, and Cloudflare Workers are validated manually; if you hit a runtime-specific issue, please open an issue with the runtime version and a minimal repro.
 

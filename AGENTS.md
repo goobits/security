@@ -8,7 +8,9 @@ Server-side security primitives for SvelteKit (and any modern Fetch-API runtime)
 
 - **Category:** library (ESM-only, TypeScript)
 - **Distribution:** git submodules consume `.ts` source directly inside first-party workspaces. Published tarballs use compiled ESM and declarations from `dist/`.
-- **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependency: `jose ^6`. Optional peer dependencies: `@sveltejs/kit ^2`, `zod ^4`
+- **Primary stack:** TypeScript 6 + Vitest 4. Runtime dependencies:
+  `hash-wasm ^4` and `jose ^6`. Optional peer dependencies:
+  `@sveltejs/kit ^2`, `zod ^4`
 - **Runtime targets:** Node 22+, Bun, Deno, Cloudflare Workers (anything with Web Crypto on `globalThis`)
 - **Engines:** Node `>=22`
 
@@ -96,7 +98,13 @@ Every public factory accepts a `logger?: Logger` and defaults to `noopLogger`. T
 ## Project-specific overrides
 
 - **`@goobits/logger` is intentionally not a dependency.** Use the local pluggable `Logger` interface from `./logger.js`. If a future module needs richer structured logging, add it via the consumer-supplied logger - don't reach for a specific logging library.
-- **`jose ^6` is the package's only direct runtime dependency.** Used by principal and admin authentication for cross-runtime JWTs (Web Crypto-based; works on Node, Bun, Deno, and Cloudflare Workers). Do NOT add `jsonwebtoken` back - it's CJS-only and would re-break the cross-runtime claim.
+- **`hash-wasm ^4` owns bounded-memory incremental hashing.** Keep streamed
+  SHA-256 and BLAKE3 on its cross-runtime API instead of buffering full
+  payloads or importing Node-only crypto.
+- **`jose ^6` owns cross-runtime JWTs.** Used by principal and admin
+  authentication through Web Crypto on Node, Bun, Deno, and Cloudflare
+  Workers. Do NOT add `jsonwebtoken` back because its CommonJS runtime would
+  re-break the cross-runtime claim.
 - **Zod is an optional peer dep at `^4.0.0`.** When updating validation code, use v4 APIs (`safeParseAsync`, `z.email()`, the `issues` shape on errors).
 - **`@sveltejs/kit` and `zod` are optional peers.** Consumers install only the adapter dependencies they use.
 - **The Redis CSRF adapter does not own a Redis client dependency.** Hosts pass any client satisfying the exported `RedisLike` contract; `ioredis` is one possible host-owned implementation.

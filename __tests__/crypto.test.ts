@@ -10,6 +10,7 @@ import {
 	constantTimeEqual,
 	createAesGcmKeyring,
 	createAesGcmKeyringFromJson,
+	createIncrementalHasher,
 	hasAesGcmKey,
 	hexToBytes,
 	openAesGcm,
@@ -61,6 +62,22 @@ describe('crypto encoding helpers', () => {
 		expect(await sha256Hex('hello')).toBe(
 			'2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
 		)
+	})
+
+	it('hashes streamed SHA-256 and BLAKE3 content without assembling it', async () => {
+		const sha256 = await createIncrementalHasher('sha-256')
+		sha256.update(textToBytes('hel'))
+		sha256.update(textToBytes('lo'))
+		expect(sha256.digestHex()).toBe(
+			'2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+		)
+
+		const blake3 = await createIncrementalHasher('blake3')
+		blake3.update(new Uint8Array())
+		expect(blake3.digestHex()).toBe(
+			'af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262'
+		)
+		expect(() => blake3.update(new Uint8Array())).toThrow(/incremental hash is finished/)
 	})
 
 	it('compares values in constant-time byte loops', () => {
