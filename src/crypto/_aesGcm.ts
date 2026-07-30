@@ -1,6 +1,6 @@
 import { hexToBytes } from './encoding.js'
 
-export type AesGcmKeyUsage = 'encrypt' | 'decrypt'
+type AesGcmKeyUsage = 'encrypt' | 'decrypt'
 
 export function normalizeAesGcmKey(key: Uint8Array | string): Uint8Array {
 	const bytes = typeof key === 'string' ? hexToBytes(key) : key
