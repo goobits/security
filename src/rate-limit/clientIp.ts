@@ -17,6 +17,15 @@ export interface GetClientIpOptions {
 	 * @example `['x-real-ip']` for Nginx with `proxy_set_header X-Real-IP`
 	 */
 	trustHeaders?: ReadonlyArray<'cf-connecting-ip' | 'x-forwarded-for' | 'x-real-ip'>
+	/**
+	 * Number of trusted proxy hops that append to `x-forwarded-for`, counted
+	 * from the server side of the chain. When omitted, the first address is
+	 * used and the trusted proxy must strip any client-supplied header.
+	 *
+	 * @example `1` for one append-style reverse proxy
+	 * @example `2` for two append-style reverse proxies
+	 */
+	forwardedForTrustedProxyHops?: number
 }
 
 function normalizeClientIp(value: string): string | null {
@@ -65,17 +74,33 @@ function normalizeClientIp(value: string): string | null {
  */
 export function getClientIP(request: Request, options: GetClientIpOptions = {}): string {
 	const trustHeaders = options.trustHeaders ?? []
+	const forwardedForTrustedProxyHops = options.forwardedForTrustedProxyHops
+	if (
+		forwardedForTrustedProxyHops !== undefined &&
+		(!Number.isSafeInteger(forwardedForTrustedProxyHops) || forwardedForTrustedProxyHops <= 0)
+	) {
+		throw new TypeError('forwardedForTrustedProxyHops must be a positive safe integer')
+	}
 
 	for (const headerName of trustHeaders) {
 		const raw = request.headers.get(headerName)
 		if (!raw) continue
-		// x-forwarded-for can be a comma-separated chain; the first value is
-		// (by convention) the original client.
-		const first = raw.split(',')[0]
-		if (first) {
-			const normalized = normalizeClientIp(first)
+		if (headerName === 'x-forwarded-for' && forwardedForTrustedProxyHops !== undefined) {
+			const entries = raw.split(',')
+			if (entries.length < forwardedForTrustedProxyHops) continue
+			const candidate = entries[entries.length - forwardedForTrustedProxyHops]
+			if (!candidate) continue
+			const normalized = normalizeClientIp(candidate)
 			if (normalized) return normalized
+			continue
 		}
+
+		// Direct proxy headers and replace-style XFF use one asserted client
+		// address. Append-style XFF must configure the trusted hop count above.
+		const first = raw.split(',')[0]
+		if (!first) continue
+		const normalized = normalizeClientIp(first)
+		if (normalized) return normalized
 	}
 
 	return 'unknown'

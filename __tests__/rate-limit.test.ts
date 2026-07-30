@@ -7,6 +7,8 @@ import {
 	D1RateLimitStore,
 	getClientIP,
 	MemoryRateLimitStore,
+	PostgresRateLimitStore,
+	postgresRateLimitSchemaSql,
 	type RateLimitStore
 } from '../src/rate-limit/index.js'
 
@@ -55,6 +57,38 @@ class FakeD1RateLimitDatabase {
 				}
 			})
 		}
+	}
+}
+
+class FakePostgresRateLimitDatabase {
+	readonly rows = new Map<string, { timestamps: number[]; expires_at_ms: number }>()
+
+	async query<T>(sql: string, params: readonly unknown[] = []): Promise<{ rows: T[] }> {
+		const key = String(params[0])
+		if (/^INSERT/i.test(sql.trim())) {
+			const timestamp = Number(params[1])
+			const ttlMs = Number(params[2])
+			const cutoff = Number(params[3])
+			const retainedLimit = params[4] === null ? undefined : Number(params[4])
+			const current = this.rows.get(key)
+			let timestamps =
+				current && current.expires_at_ms > timestamp
+					? current.timestamps.filter((value) => value > cutoff)
+					: []
+			if (retainedLimit !== undefined) {
+				timestamps = retainedLimit === 0 ? [] : timestamps.slice(-retainedLimit)
+			}
+			timestamps.push(timestamp)
+			const row = { timestamps, expires_at_ms: timestamp + ttlMs }
+			this.rows.set(key, row)
+			return { rows: [row as T] }
+		}
+		if (/^DELETE/i.test(sql.trim())) {
+			this.rows.delete(key)
+			return { rows: [] }
+		}
+		const row = this.rows.get(key)
+		return { rows: row ? [row as T] : [] }
 	}
 }
 
@@ -329,6 +363,36 @@ describe('createRateLimiter', () => {
 		expect(db.selectCount).toBe(0)
 	})
 
+	it('shares bounded sliding-window limits through PostgreSQL', async () => {
+		const db = new FakePostgresRateLimitDatabase()
+		const first = createRateLimiter({
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
+			store: new PostgresRateLimitStore(db),
+			keyPrefix: 'auth'
+		})
+		const second = createRateLimiter({
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
+			store: new PostgresRateLimitStore(db),
+			keyPrefix: 'auth'
+		})
+
+		expect((await first.check('alice')).allowed).toBe(true)
+		expect((await second.check('alice')).allowed).toBe(true)
+		expect((await first.check('alice')).allowed).toBe(false)
+		expect(db.rows.get('auth:alice')?.timestamps).toHaveLength(3)
+	})
+
+	it('rejects unsafe PostgreSQL rate-limit table identifiers', () => {
+		const db = new FakePostgresRateLimitDatabase()
+
+		expect(() =>
+			new PostgresRateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })
+		).toThrowError(/invalid SQL identifier/)
+		expect(() =>
+			postgresRateLimitSchemaSql({ table: 'rate-limits; DROP TABLE users' })
+		).toThrowError(/invalid SQL identifier/)
+	})
+
 	it('atomically preserves concurrent D1 increments', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const store = new D1RateLimitStore(db)
@@ -515,6 +579,61 @@ describe('getClientIP', () => {
 				trustHeaders: ['x-real-ip', 'x-forwarded-for']
 			})
 		).toBe('198.51.100.2')
+	})
+
+	it('resolves append-style forwarding chains from the trusted server side', () => {
+		const request = new Request('https://example.test', {
+			headers: {
+				'x-forwarded-for': '198.51.100.1, 203.0.113.10, 192.0.2.50'
+			}
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 2
+			})
+		).toBe('203.0.113.10')
+	})
+
+	it('ignores spoofed left entries with one trusted append-style proxy', () => {
+		const request = new Request('https://example.test', {
+			headers: {
+				'x-forwarded-for': '198.51.100.1, 203.0.113.10'
+			}
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 1
+			})
+		).toBe('203.0.113.10')
+	})
+
+	it('fails closed when the forwarding chain is shorter than the trusted hop count', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'x-forwarded-for': '203.0.113.10' }
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 2
+			})
+		).toBe('unknown')
+	})
+
+	it('rejects invalid trusted proxy hop counts', () => {
+		const request = new Request('https://example.test')
+		for (const forwardedForTrustedProxyHops of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+			expect(() =>
+				getClientIP(request, {
+					trustHeaders: ['x-forwarded-for'],
+					forwardedForTrustedProxyHops
+				})
+			).toThrowError(/positive safe integer/)
+		}
 	})
 
 	it('rejects a trusted forwarding chain with no first address', () => {

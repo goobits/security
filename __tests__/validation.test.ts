@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { getInputValidator } from '../src/validation.js'
+import { readAsyncIterableBytes } from '../src/requestBody.js'
 import {
 	BodyTooLargeError,
 	readRequestBodyBytes,
@@ -97,6 +98,26 @@ describe('withValidation', () => {
 })
 
 describe('readRequestBodyBytes', () => {
+	it('reads mixed async byte and string chunks without Node-specific types', async () => {
+		async function* body() {
+			yield new Uint8Array([97])
+			yield 'é'
+		}
+
+		const bytes = await readAsyncIterableBytes(body())
+		expect(new TextDecoder().decode(bytes)).toBe('aé')
+	})
+
+	it('caps async iterable bodies by encoded byte length', async () => {
+		async function* body() {
+			yield 'éé'
+		}
+
+		await expect(readAsyncIterableBytes(body(), { maxBytes: 3 })).rejects.toBeInstanceOf(
+			BodyTooLargeError
+		)
+	})
+
 	it('caps streamed bodies without a content-length header', async () => {
 		const request = new Request('https://example.test/upload', {
 			method: 'POST',
@@ -112,6 +133,12 @@ describe('readRequestBodyBytes', () => {
 
 		await expect(readRequestBodyBytes(request, { maxBytes: 8 })).rejects.toBeInstanceOf(
 			BodyTooLargeError
+		)
+	})
+
+	it('rejects invalid body limits at the configuration boundary', async () => {
+		await expect(readAsyncIterableBytes([], { maxBytes: 0 })).rejects.toThrowError(
+			/positive safe integer/
 		)
 	})
 })

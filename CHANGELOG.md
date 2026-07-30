@@ -8,6 +8,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Added
 
+- **`rate-limit`**: Added one atomic PostgreSQL sliding-window store and its
+  idempotent schema helper so multi-process services share canonical counters.
+- **`request-body`**: Added a cross-runtime bounded async-iterable reader so
+  Node and other stream hosts share one body-size enforcement owner.
+- **`rate-limit`**: Added explicit right-counted trusted-proxy-hop resolution
+  for append-style `x-forwarded-for` deployments.
 - **`crypto`**: Added `createIncrementalHasher()` for bounded-memory SHA-256
   and BLAKE3 hashing over caller-supplied chunks, backed by permissively
   licensed `hash-wasm`.
