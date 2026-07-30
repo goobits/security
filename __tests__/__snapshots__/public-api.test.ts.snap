@@ -134,6 +134,8 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "constantTimeEqual",
     "createAesGcmKeyring",
     "createAesGcmKeyringFromJson",
+    "createFramedAeadDecryptStream",
+    "createFramedAeadEncryptStream",
     "createIncrementalHasher",
     "createSecurityProof",
     "hasAesGcmKey",
@@ -184,6 +186,10 @@ exports[`@goobits/security public API > pins every public entrypoint to an inten
     "sha256Bytes",
     "sha256Hex",
     "textToBytes",
+  ],
+  "crypto/framed-aead": [
+    "createFramedAeadDecryptStream",
+    "createFramedAeadEncryptStream",
   ],
   "crypto/proof": [
     "attachSecurityProof",

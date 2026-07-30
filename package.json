@@ -57,6 +57,10 @@
 				"types": "./dist/crypto/aead.d.ts",
 				"default": "./dist/crypto/aead.js"
 			},
+			"./crypto/framed-aead": {
+				"types": "./dist/crypto/framedAead.d.ts",
+				"default": "./dist/crypto/framedAead.js"
+			},
 			"./crypto/encoding": {
 				"types": "./dist/crypto/encoding.d.ts",
 				"default": "./dist/crypto/encoding.js"
@@ -171,6 +175,7 @@
 		"./turnstile": "./src/turnstile.ts",
 		"./crypto": "./src/crypto/index.ts",
 		"./crypto/aead": "./src/crypto/aead.ts",
+		"./crypto/framed-aead": "./src/crypto/framedAead.ts",
 		"./crypto/encoding": "./src/crypto/encoding.ts",
 		"./crypto/proof": "./src/crypto/proof.ts",
 		"./crypto/signatures": "./src/crypto/signatures.ts",

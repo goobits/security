@@ -1,5 +1,5 @@
 import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from '../_internal/crypto.js'
-import { createBLAKE3, createSHA256, type IHasher } from 'hash-wasm'
+import type { IHasher } from 'hash-wasm'
 
 export { getRandomBytes as randomBytes, toBytes as textToBytes, toHex as bytesToHex }
 
@@ -121,7 +121,7 @@ export async function sha256Hex(value: Uint8Array | string): Promise<string> {
 export async function createIncrementalHasher(
 	algorithm: IncrementalHashAlgorithm
 ): Promise<IncrementalHasher> {
-	const hasher = await incrementalHashFactory(algorithm)()
+	const hasher = await createIncrementalHash(algorithm)
 	hasher.init()
 	let finished = false
 	return {
@@ -137,13 +137,12 @@ export async function createIncrementalHasher(
 	}
 }
 
-function incrementalHashFactory(
-	algorithm: IncrementalHashAlgorithm
-): () => Promise<IHasher> {
+async function createIncrementalHash(algorithm: IncrementalHashAlgorithm): Promise<IHasher> {
+	const { createBLAKE3, createSHA256 } = await import('hash-wasm')
 	switch (algorithm) {
 		case 'sha-256':
-			return createSHA256
+			return createSHA256()
 		case 'blake3':
-			return createBLAKE3
+			return createBLAKE3()
 	}
 }

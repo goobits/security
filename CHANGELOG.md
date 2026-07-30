@@ -11,6 +11,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - **`crypto`**: Added `createIncrementalHasher()` for bounded-memory SHA-256
   and BLAKE3 hashing over caller-supplied chunks, backed by permissively
   licensed `hash-wasm`.
+- **`crypto`**: Added versioned framed AES-GCM streams with authenticated
+  ordering, terminal-frame validation, caller-bound context, and bounded
+  plaintext buffering for large encrypted artifacts.
 - **`jwt`**: Added one framework-agnostic, purpose-bound HMAC JWT primitive
   with algorithm, audience, issuer, type, lifetime, and required-claim
   verification. Principal authentication now delegates to this shared owner.

@@ -262,19 +262,28 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 
 The `crypto` subpath is framework-agnostic. It provides encoding helpers,
 random bytes and hex, one-shot SHA-256, incremental SHA-256 and BLAKE3, HMAC
-signatures, AES-GCM sealing and opening, rotation-ready opaque keyrings, and
-deterministic `SecurityProof` envelopes. `createIncrementalHasher()` accepts
+signatures, AES-GCM sealing and opening, rotation-ready opaque keyrings,
+authenticated framed streams, and deterministic `SecurityProof` envelopes.
+`createIncrementalHasher()` accepts
 `'sha-256'` or `'blake3'`, retains only the hash state as callers supply chunks,
 and finalizes when `digestHex()` is called. Updating or finalizing it again
 throws. Product permissions, roles, key-distribution policy, and app-specific
 authorization remain outside this package.
+
+`createFramedAeadEncryptStream()` and `createFramedAeadDecryptStream()` process
+bounded AES-GCM frames and authenticate their version, order, terminal frame,
+and caller-supplied context. They are intended for large private artifacts
+that must remain encrypted at rest without buffering the full payload.
 
 For environment-backed rotation, `createAesGcmKeyringFromJson` accepts a strict
 JSON object with `activeKeyId` and a `keys` map of hex-encoded AES keys. The
 returned keyring exposes only the active key ID; applications retain ownership
 of the environment variable name and rotation policy.
 
-Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
+Narrow imports are also available: `@goobits/security/crypto/encoding`,
+`@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`,
+`@goobits/security/crypto/framed-aead`, and
+`@goobits/security/crypto/proof`.
 
 ---
 

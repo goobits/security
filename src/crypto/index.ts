@@ -21,6 +21,12 @@ export {
 	sealJson
 } from './aead.js'
 export {
+	createFramedAeadDecryptStream,
+	createFramedAeadEncryptStream,
+	type FramedAeadDecryptOptions,
+	type FramedAeadEncryptOptions
+} from './framedAead.js'
+export {
 	base64UrlToBytes,
 	base64ToBytes,
 	bytesToBase64,
