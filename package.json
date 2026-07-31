@@ -224,10 +224,10 @@
 	"engines": {
 		"node": ">=22"
 	},
-	"packageManager": "pnpm@11.10.0",
+	"packageManager": "pnpm@11.18.0",
 	"dependencies": {
 		"hash-wasm": "^4.12.0",
-		"jose": "^6.2.3"
+		"jose": "^6.2.5"
 	},
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
@@ -242,8 +242,8 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.70.1",
-		"@types/node": "^26.1.1",
+		"@sveltejs/kit": "2.70.2",
+		"@types/node": "^26.1.2",
 		"@vitest/coverage-v8": "^4.1.10",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.10",
