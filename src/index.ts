@@ -66,6 +66,7 @@ export {
 export {
 	BodyTooLargeError,
 	type ReadBodyOptions,
+	readAsyncIterableBytes,
 	readJsonBody,
 	readRequestBodyBytes
 } from './requestBody.js'
@@ -176,6 +177,8 @@ export {
 	type GetClientIpOptions,
 	type HmacRateLimitStoreOptions,
 	type MemoryRateLimitStoreOptions,
+	type PostgresRateLimitDatabase,
+	type PostgresRateLimitStoreOptions,
 	type RateLimitConfig,
 	type RateLimitEntry,
 	type RateLimitResult,
@@ -185,10 +188,12 @@ export {
 	type ResilientRateLimitStoreOptions,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
+	PostgresRateLimitStore,
 	createHmacRateLimitStore,
 	createRateLimiter,
 	createResilientRateLimitStore,
-	getClientIP
+	getClientIP,
+	postgresRateLimitSchemaSql
 } from './rate-limit/index.js'
 /* Admin authentication. */
 export {

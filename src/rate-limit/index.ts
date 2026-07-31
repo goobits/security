@@ -22,6 +22,12 @@ export {
 	type D1RateLimitDatabase,
 	type D1RateLimitStoreOptions
 } from './d1Store.js'
+export {
+	PostgresRateLimitStore,
+	type PostgresRateLimitDatabase,
+	type PostgresRateLimitStoreOptions,
+	postgresRateLimitSchemaSql
+} from './postgresStore.js'
 export { MemoryRateLimitStore, type MemoryRateLimitStoreOptions } from './memoryStore.js'
 export { createRateLimiter } from './limiter.js'
 export { getClientIP, type GetClientIpOptions } from './clientIp.js'

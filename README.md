@@ -440,14 +440,22 @@ if (!verdict.allowed) {
 Window names must be non-empty, and `windowMs`/`maxEvents` must be positive
 safe integers. Invalid or non-finite policy values fail at construction time.
 
-⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments. The package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
+⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use `PostgresRateLimitStore` or another shared `RateLimitStore` implementation for multi-process production environments.
 
 When a durable store needs an explicit outage policy, wrap it once at the store
 boundary. Closed mode propagates the original failure; fallback mode requires a
 specific fallback store instead of silently constructing one:
 
 ```ts
-import { MemoryRateLimitStore, createResilientRateLimitStore } from '@goobits/security/rate-limit'
+import {
+	MemoryRateLimitStore,
+	PostgresRateLimitStore,
+	createResilientRateLimitStore,
+	postgresRateLimitSchemaSql
+} from '@goobits/security/rate-limit'
+
+await pool.query(postgresRateLimitSchemaSql())
+const durableStore = new PostgresRateLimitStore(pool)
 
 const store = createResilientRateLimitStore({
 	primary: durableStore,
@@ -469,6 +477,12 @@ const ip = getClientIP(event.request, { trustHeaders: ['cf-connecting-ip'] })
 
 // AWS ALB / GCP LB (configured to strip client-supplied XFF):
 const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
+
+// Append-style XFF behind two trusted proxy hops:
+const ip = getClientIP(event.request, {
+  trustHeaders: ['x-forwarded-for'],
+  forwardedForTrustedProxyHops: 2
+})
 ```
 
 In SvelteKit, prefer `event.getClientAddress()`, which honors your platform adapter's trusted-proxy config.

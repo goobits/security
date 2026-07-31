@@ -6,23 +6,76 @@
 
 const DEFAULT_MAX_BODY_BYTES = 1_048_576
 
+/** Error raised when a bounded request-body reader exceeds its configured limit. */
 export class BodyTooLargeError extends Error {
-	constructor(readonly maxBytes: number) {
-		super(`Request body exceeds ${maxBytes} bytes`)
+	readonly maxBytes: number
+
+	constructor(maxBytes: number) {
+		super(`Request body exceeds ${ maxBytes } bytes`)
 		this.name = 'BodyTooLargeError'
+		this.maxBytes = maxBytes
 	}
 }
 
+/** Shared byte-limit options for bounded request-body readers. */
 export interface ReadBodyOptions {
+
 	/** Maximum bytes to read before failing. Default: 1 MiB. */
 	maxBytes?: number
 }
 
+function resolveMaxBytes(options: ReadBodyOptions): number {
+	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BODY_BYTES
+	if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
+		throw new TypeError('maxBytes must be a positive safe integer')
+	}
+	return maxBytes
+}
+
+function concatenateChunks(
+	chunks: readonly Uint8Array[],
+	byteLength: number
+): Uint8Array<ArrayBuffer> {
+	const bytes = new Uint8Array(new ArrayBuffer(byteLength))
+	let offset = 0
+	for (const chunk of chunks) {
+		bytes.set(chunk, offset)
+		offset += chunk.byteLength
+	}
+	return bytes
+}
+
+/**
+ * Reads a generic async byte/string stream into one bounded byte array.
+ *
+ * Node `IncomingMessage` streams yield `Buffer` values, which satisfy the
+ * `Uint8Array` input without making this cross-runtime package depend on Node.
+ */
+export async function readAsyncIterableBytes(
+	source: AsyncIterable<Uint8Array | string> | Iterable<Uint8Array | string>,
+	options: ReadBodyOptions = {}
+): Promise<Uint8Array> {
+	const maxBytes = resolveMaxBytes(options)
+	const encoder = new TextEncoder()
+	const chunks: Uint8Array[] = []
+	let bytesRead = 0
+
+	for await (const chunk of source) {
+		const bytes = typeof chunk === 'string' ? encoder.encode(chunk) : chunk
+		bytesRead += bytes.byteLength
+		if (bytesRead > maxBytes) throw new BodyTooLargeError(maxBytes)
+		chunks.push(bytes)
+	}
+
+	return concatenateChunks(chunks, bytesRead)
+}
+
+/** Reads a Fetch request body into one bounded `ArrayBuffer`. */
 export async function readRequestBodyBytes(
 	request: Request,
 	options: ReadBodyOptions = {}
 ): Promise<ArrayBuffer | undefined> {
-	const maxBytes = options.maxBytes ?? DEFAULT_MAX_BODY_BYTES
+	const maxBytes = resolveMaxBytes(options)
 	const contentLength = request.headers.get('content-length')
 	if (contentLength) {
 		const parsed = Number(contentLength)
@@ -55,15 +108,10 @@ export async function readRequestBodyBytes(
 		reader.releaseLock()
 	}
 
-	const bytes = new Uint8Array(bytesRead)
-	let offset = 0
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset)
-		offset += chunk.byteLength
-	}
-	return bytes.buffer
+	return concatenateChunks(chunks, bytesRead).buffer
 }
 
+/** Parses a bounded Fetch request body as JSON. */
 export async function readJsonBody(
 	request: Request,
 	options: ReadBodyOptions = {}
