@@ -44,27 +44,30 @@ function parseTimestamps(value: unknown): number[] | null {
 	return parsed
 }
 
-/**
- * Returns idempotent PostgreSQL schema SQL for a shared sliding-window store.
- *
- * Apply this during the owning application's normal migration/bootstrap step.
- */
-export function postgresRateLimitSchemaSql(
-	options: PostgresRateLimitStoreOptions = {}
-): string {
-	const tableName = options.table ?? 'rate_limits'
-	const table = quotePostgresIdentifier(tableName)
-	const expiresAtIndex = quotePostgresIdentifier(`${tableName}_expires_at_idx`)
-	return `
-CREATE TABLE IF NOT EXISTS ${table} (
+/** Idempotent default PostgreSQL schema for the shared sliding-window store. */
+export const postgresRateLimitSchemaSql = `
+CREATE TABLE IF NOT EXISTS "rate_limits" (
 	key TEXT PRIMARY KEY,
 	timestamps JSONB NOT NULL,
 	expires_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ${expiresAtIndex}
-	ON ${table}(expires_at);
+CREATE INDEX IF NOT EXISTS "rate_limits_expires_at_idx"
+	ON "rate_limits"(expires_at);
 `
+
+/** Builds the schema for an explicitly named PostgreSQL rate-limit table. */
+export function createPostgresRateLimitSchemaSql(
+	options: PostgresRateLimitStoreOptions = {}
+): string {
+	const tableName = options.table ?? 'rate_limits'
+	const table = quotePostgresIdentifier(tableName)
+	const expiresAtIndex = quotePostgresIdentifier(`${tableName}_expires_at_idx`)
+	return tableName === 'rate_limits'
+		? postgresRateLimitSchemaSql
+		: postgresRateLimitSchemaSql
+			.replaceAll('"rate_limits_expires_at_idx"', expiresAtIndex)
+			.replaceAll('"rate_limits"', table)
 }
 
 /**

@@ -8,6 +8,7 @@ import {
 	getClientIP,
 	MemoryRateLimitStore,
 	PostgresRateLimitStore,
+	createPostgresRateLimitSchemaSql,
 	postgresRateLimitSchemaSql,
 	type RateLimitStore
 } from '../src/rate-limit/index.js'
@@ -389,8 +390,15 @@ describe('createRateLimiter', () => {
 			new PostgresRateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })
 		).toThrowError(/invalid SQL identifier/)
 		expect(() =>
-			postgresRateLimitSchemaSql({ table: 'rate-limits; DROP TABLE users' })
+			createPostgresRateLimitSchemaSql({ table: 'rate-limits; DROP TABLE users' })
 		).toThrowError(/invalid SQL identifier/)
+	})
+
+	it('shares one canonical PostgreSQL schema across default and custom tables', () => {
+		expect(createPostgresRateLimitSchemaSql()).toBe(postgresRateLimitSchemaSql)
+		expect(createPostgresRateLimitSchemaSql({ table: 'tenant_limits' })).toContain(
+			'"tenant_limits_expires_at_idx"'
+		)
 	})
 
 	it('atomically preserves concurrent D1 increments', async () => {

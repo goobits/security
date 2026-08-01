@@ -190,6 +190,7 @@ export {
 	MemoryRateLimitStore,
 	PostgresRateLimitStore,
 	createHmacRateLimitStore,
+	createPostgresRateLimitSchemaSql,
 	createRateLimiter,
 	createResilientRateLimitStore,
 	getClientIP,

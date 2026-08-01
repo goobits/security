@@ -1,0 +1,19 @@
+{
+	"root": ".",
+	"postgres": {
+		"contracts": [
+			{
+				"id": "security-rate-limit-postgres",
+				"bootstrap_sources": [
+					{
+						"path": "src/rate-limit/postgresStore.ts",
+						"transaction": "always",
+						"psql_meta_commands": "reject"
+					}
+				],
+				"query_roots": ["src/rate-limit/postgresStore.ts"],
+				"source_complete": true
+			}
+		]
+	}
+}
