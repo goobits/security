@@ -1,6 +1,14 @@
 import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from '../_internal/crypto.js'
+import type { IHasher } from 'hash-wasm'
 
 export { getRandomBytes as randomBytes, toBytes as textToBytes, toHex as bytesToHex }
+
+export type IncrementalHashAlgorithm = 'sha-256' | 'blake3'
+
+export type IncrementalHasher = {
+	update: (_bytes: Uint8Array) => void
+	digestHex: () => string
+}
 
 /** Decodes UTF-8 bytes into text. */
 export function bytesToText(bytes: Uint8Array): string {
@@ -107,4 +115,34 @@ export async function sha256Bytes(value: Uint8Array | string): Promise<Uint8Arra
 /** Hashes bytes or text with SHA-256 and returns a hex digest. */
 export async function sha256Hex(value: Uint8Array | string): Promise<string> {
 	return toHex(await sha256Bytes(value))
+}
+
+/** Creates a bounded-memory incremental hasher for streamed binary content. */
+export async function createIncrementalHasher(
+	algorithm: IncrementalHashAlgorithm
+): Promise<IncrementalHasher> {
+	const hasher = await createIncrementalHash(algorithm)
+	hasher.init()
+	let finished = false
+	return {
+		update(bytes) {
+			if (finished) throw new Error('@goobits/security/crypto: incremental hash is finished')
+			hasher.update(bytes)
+		},
+		digestHex() {
+			if (finished) throw new Error('@goobits/security/crypto: incremental hash is finished')
+			finished = true
+			return hasher.digest('hex')
+		}
+	}
+}
+
+async function createIncrementalHash(algorithm: IncrementalHashAlgorithm): Promise<IHasher> {
+	const { createBLAKE3, createSHA256 } = await import('hash-wasm')
+	switch (algorithm) {
+		case 'sha-256':
+			return createSHA256()
+		case 'blake3':
+			return createBLAKE3()
+	}
 }

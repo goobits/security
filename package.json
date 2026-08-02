@@ -5,6 +5,164 @@
 	"type": "module",
 	"main": "./src/index.ts",
 	"types": "./src/index.ts",
+	"files": [
+		"dist",
+		"CHANGELOG.md",
+		"LICENSE",
+		"README.md",
+		"SECURITY.md"
+	],
+	"publishConfig": {
+		"access": "public",
+		"main": "./dist/index.js",
+		"types": "./dist/index.d.ts",
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"./csrf": {
+				"types": "./dist/csrf.d.ts",
+				"default": "./dist/csrf.js"
+			},
+			"./csrf/sveltekit": {
+				"types": "./dist/csrf/sveltekit.d.ts",
+				"default": "./dist/csrf/sveltekit.js"
+			},
+			"./csrf-client": {
+				"types": "./dist/csrfClient.d.ts",
+				"default": "./dist/csrfClient.js"
+			},
+			"./csrf-redis": {
+				"types": "./dist/csrfRedis.d.ts",
+				"default": "./dist/csrfRedis.js"
+			},
+			"./csp": {
+				"types": "./dist/csp.d.ts",
+				"default": "./dist/csp.js"
+			},
+			"./recaptcha": {
+				"types": "./dist/recaptcha.d.ts",
+				"default": "./dist/recaptcha.js"
+			},
+			"./turnstile": {
+				"types": "./dist/turnstile.d.ts",
+				"default": "./dist/turnstile.js"
+			},
+			"./crypto": {
+				"types": "./dist/crypto/index.d.ts",
+				"default": "./dist/crypto/index.js"
+			},
+			"./crypto/aead": {
+				"types": "./dist/crypto/aead.d.ts",
+				"default": "./dist/crypto/aead.js"
+			},
+			"./crypto/framed-aead": {
+				"types": "./dist/crypto/framedAead.d.ts",
+				"default": "./dist/crypto/framedAead.js"
+			},
+			"./crypto/encoding": {
+				"types": "./dist/crypto/encoding.d.ts",
+				"default": "./dist/crypto/encoding.js"
+			},
+			"./crypto/proof": {
+				"types": "./dist/crypto/proof.d.ts",
+				"default": "./dist/crypto/proof.js"
+			},
+			"./crypto/signatures": {
+				"types": "./dist/crypto/signatures.d.ts",
+				"default": "./dist/crypto/signatures.js"
+			},
+			"./identity": {
+				"types": "./dist/identity/index.d.ts",
+				"default": "./dist/identity/index.js"
+			},
+			"./identity/did-wba": {
+				"types": "./dist/identity/didWba.d.ts",
+				"default": "./dist/identity/didWba.js"
+			},
+			"./identity/http-signature": {
+				"types": "./dist/identity/httpSignature.d.ts",
+				"default": "./dist/identity/httpSignature.js"
+			},
+			"./identity/principal": {
+				"types": "./dist/identity/principal.d.ts",
+				"default": "./dist/identity/principal.js"
+			},
+			"./principal-auth": {
+				"types": "./dist/principalAuth.d.ts",
+				"default": "./dist/principalAuth.js"
+			},
+			"./jwt": {
+				"types": "./dist/jwt.d.ts",
+				"default": "./dist/jwt.js"
+			},
+			"./validation": {
+				"types": "./dist/validation.d.ts",
+				"default": "./dist/validation.js"
+			},
+			"./validation/simple": {
+				"types": "./dist/validation/simple.d.ts",
+				"default": "./dist/validation/simple.js"
+			},
+			"./validation/sveltekit": {
+				"types": "./dist/validation/sveltekit.d.ts",
+				"default": "./dist/validation/sveltekit.js"
+			},
+			"./rate-limit": {
+				"types": "./dist/rate-limit/index.d.ts",
+				"default": "./dist/rate-limit/index.js"
+			},
+			"./rate-limit/sveltekit": {
+				"types": "./dist/rate-limit/sveltekit.d.ts",
+				"default": "./dist/rate-limit/sveltekit.js"
+			},
+			"./admin-auth": {
+				"types": "./dist/adminAuth.d.ts",
+				"default": "./dist/adminAuth.js"
+			},
+			"./audit": {
+				"types": "./dist/audit.d.ts",
+				"default": "./dist/audit.js"
+			},
+			"./audit/d1": {
+				"types": "./dist/audit/d1.d.ts",
+				"default": "./dist/audit/d1.js"
+			},
+			"./audit/sveltekit": {
+				"types": "./dist/audit/sveltekit.d.ts",
+				"default": "./dist/audit/sveltekit.js"
+			},
+			"./alerting": {
+				"types": "./dist/alerting.d.ts",
+				"default": "./dist/alerting.js"
+			},
+			"./logger": {
+				"types": "./dist/logger.d.ts",
+				"default": "./dist/logger.js"
+			},
+			"./redaction": {
+				"types": "./dist/redaction.d.ts",
+				"default": "./dist/redaction.js"
+			},
+			"./request-body": {
+				"types": "./dist/requestBody.d.ts",
+				"default": "./dist/requestBody.js"
+			},
+			"./request-origin": {
+				"types": "./dist/requestOrigin.d.ts",
+				"default": "./dist/requestOrigin.js"
+			},
+			"./runtime": {
+				"types": "./dist/runtime.d.ts",
+				"default": "./dist/runtime.js"
+			},
+			"./http-credentials": {
+				"types": "./dist/httpCredentials.d.ts",
+				"default": "./dist/httpCredentials.js"
+			}
+		}
+	},
 	"sideEffects": false,
 	"exports": {
 		".": "./src/index.ts",
@@ -17,6 +175,7 @@
 		"./turnstile": "./src/turnstile.ts",
 		"./crypto": "./src/crypto/index.ts",
 		"./crypto/aead": "./src/crypto/aead.ts",
+		"./crypto/framed-aead": "./src/crypto/framedAead.ts",
 		"./crypto/encoding": "./src/crypto/encoding.ts",
 		"./crypto/proof": "./src/crypto/proof.ts",
 		"./crypto/signatures": "./src/crypto/signatures.ts",
@@ -25,6 +184,7 @@
 		"./identity/http-signature": "./src/identity/httpSignature.ts",
 		"./identity/principal": "./src/identity/principal.ts",
 		"./principal-auth": "./src/principalAuth.ts",
+		"./jwt": "./src/jwt.ts",
 		"./validation": "./src/validation.ts",
 		"./validation/simple": "./src/validation/simple.ts",
 		"./validation/sveltekit": "./src/validation/sveltekit.ts",
@@ -38,6 +198,7 @@
 		"./logger": "./src/logger.ts",
 		"./redaction": "./src/redaction.ts",
 		"./request-body": "./src/requestBody.ts",
+		"./request-origin": "./src/requestOrigin.ts",
 		"./runtime": "./src/runtime.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
@@ -68,9 +229,10 @@
 	"engines": {
 		"node": ">=22"
 	},
-	"packageManager": "pnpm@11.10.0",
+	"packageManager": "pnpm@11.18.0",
 	"dependencies": {
-		"jose": "^6.2.3"
+		"hash-wasm": "^4.12.0",
+		"jose": "^6.2.4"
 	},
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.0.0",
@@ -85,7 +247,7 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "^2.70.1",
+		"@sveltejs/kit": "2.70.1",
 		"@types/node": "^26.1.1",
 		"@vitest/coverage-v8": "^4.1.10",
 		"typescript": "^6.0.3",
@@ -93,10 +255,14 @@
 		"zod": "^4.4.3"
 	},
 	"scripts": {
+		"build": "rm -rf dist && tsc -p tsconfig.build.json",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
+		"verify:package": "node scripts/verifyPackage.mjs",
+		"prepack": "pnpm run build",
+		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run verify:package",
 		"clean": "rm -rf dist node_modules .turbo"
 	}
 }

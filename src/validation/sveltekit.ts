@@ -8,7 +8,7 @@ import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 
 import { BodyTooLargeError, readJsonBody, readRequestBodyBytes } from '../requestBody.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
-import type { Logger } from '../logger.js'
+import { safeErrorContext, type Logger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'
 
 export { BodyTooLargeError, readJsonBody, readRequestBodyBytes }
@@ -145,7 +145,7 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 
 			log.error('Validation middleware error', {
 				path: url.pathname,
-				error: error instanceof Error ? error.message : String(error)
+				...safeErrorContext(error)
 			})
 			return jsonResponse({ success: false, error: 'Validation error' }, 500)
 		}

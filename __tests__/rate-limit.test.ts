@@ -1,11 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
 	createHmacRateLimitStore,
 	createRateLimiter,
+	createResilientRateLimitStore,
 	D1RateLimitStore,
 	getClientIP,
-	MemoryRateLimitStore
+	MemoryRateLimitStore,
+	PostgresRateLimitStore,
+	postgresRateLimitSchemaSql,
+	type RateLimitStore
 } from '../src/rate-limit/index.js'
 
 type FakeRateLimitRow = {
@@ -26,15 +30,13 @@ class FakeD1RateLimitDatabase {
 						const timestamp = Number(args[1])
 						const resetAt = Number(args[2])
 						const retainedLimit = Number(args[5])
-						const cutoff = Number(args[7])
+						const cutoff = Number(args[4])
 						const current = this.rows.get(key)
 						const currentResetAt = Number(current?.reset_at ?? 0) * 1000
 						let timestamps: number[] = []
 						if (current && currentResetAt > timestamp) {
 							if (typeof current.count === 'string' && current.count.startsWith('[')) {
 								timestamps = JSON.parse(current.count) as number[]
-							} else {
-								timestamps = Array.from({ length: Number(current.count ?? 0) }, () => timestamp - 1)
 							}
 						}
 						timestamps = timestamps.filter((value) => value > cutoff)
@@ -57,6 +59,113 @@ class FakeD1RateLimitDatabase {
 		}
 	}
 }
+
+class FakePostgresRateLimitDatabase {
+	readonly rows = new Map<string, { timestamps: number[]; expires_at_ms: number }>()
+
+	async query<T>(sql: string, params: readonly unknown[] = []): Promise<{ rows: T[] }> {
+		const key = String(params[0])
+		if (/^INSERT/i.test(sql.trim())) {
+			const timestamp = Number(params[1])
+			const ttlMs = Number(params[2])
+			const cutoff = Number(params[3])
+			const retainedLimit = params[4] === null ? undefined : Number(params[4])
+			const current = this.rows.get(key)
+			let timestamps =
+				current && current.expires_at_ms > timestamp
+					? current.timestamps.filter((value) => value > cutoff)
+					: []
+			if (retainedLimit !== undefined) {
+				timestamps = retainedLimit === 0 ? [] : timestamps.slice(-retainedLimit)
+			}
+			timestamps.push(timestamp)
+			const row = { timestamps, expires_at_ms: timestamp + ttlMs }
+			this.rows.set(key, row)
+			return { rows: [row as T] }
+		}
+		if (/^DELETE/i.test(sql.trim())) {
+			this.rows.delete(key)
+			return { rows: [] }
+		}
+		const row = this.rows.get(key)
+		return { rows: row ? [row as T] : [] }
+	}
+}
+
+describe('createResilientRateLimitStore', () => {
+	const unavailableStore = (failure: Error): RateLimitStore => ({
+		getEntry: () => Promise.reject(failure),
+		incrementEntry: () => Promise.reject(failure),
+		deleteEntry: () => Promise.reject(failure)
+	})
+
+	it('delegates every operation to the explicit fallback after primary failures', async () => {
+		const failure = new Error('primary unavailable')
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const onPrimaryError = vi.fn()
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(failure),
+			failureMode: 'fallback',
+			fallback,
+			onPrimaryError
+		})
+
+		await expect(store.incrementEntry('alice', 1_000, 60_000, 3)).resolves.toEqual({
+			timestamps: [1_000]
+		})
+		await expect(store.getEntry('alice')).resolves.toEqual({ timestamps: [1_000] })
+		await expect(store.deleteEntry('alice')).resolves.toBeUndefined()
+		await expect(store.getEntry('alice')).resolves.toBeNull()
+		expect(onPrimaryError.mock.calls.map(([operation]) => operation)).toEqual([
+			'incrementEntry',
+			'getEntry',
+			'deleteEntry',
+			'getEntry'
+		])
+	})
+
+	it('propagates the original failure in closed mode', async () => {
+		const failure = new Error('primary unavailable')
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(failure),
+			failureMode: 'closed'
+		})
+
+		await expect(store.getEntry('alice')).rejects.toBe(failure)
+		await expect(store.incrementEntry('alice', 1_000, 60_000)).rejects.toBe(failure)
+		await expect(store.deleteEntry('alice')).rejects.toBe(failure)
+	})
+
+	it('does not let a failing observer disable the fallback', async () => {
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const store = createResilientRateLimitStore({
+			primary: unavailableStore(new Error('primary unavailable')),
+			failureMode: 'fallback',
+			fallback,
+			onPrimaryError: async () => {
+				throw new Error('observer unavailable')
+			}
+		})
+
+		await expect(store.incrementEntry('alice', 1_000, 60_000)).resolves.toEqual({
+			timestamps: [1_000]
+		})
+	})
+
+	it('clears the fallback after a successful primary delete', async () => {
+		const primary = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
+		fallback.incrementEntry('alice', 1_000, 60_000)
+		const store = createResilientRateLimitStore({
+			primary,
+			failureMode: 'fallback',
+			fallback
+		})
+
+		await store.deleteEntry('alice')
+		expect(fallback.getEntry('alice')).toBeNull()
+	})
+})
 
 describe('createRateLimiter', () => {
 	it('throws on empty windows', () => {
@@ -254,6 +363,36 @@ describe('createRateLimiter', () => {
 		expect(db.selectCount).toBe(0)
 	})
 
+	it('shares bounded sliding-window limits through PostgreSQL', async () => {
+		const db = new FakePostgresRateLimitDatabase()
+		const first = createRateLimiter({
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
+			store: new PostgresRateLimitStore(db),
+			keyPrefix: 'auth'
+		})
+		const second = createRateLimiter({
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
+			store: new PostgresRateLimitStore(db),
+			keyPrefix: 'auth'
+		})
+
+		expect((await first.check('alice')).allowed).toBe(true)
+		expect((await second.check('alice')).allowed).toBe(true)
+		expect((await first.check('alice')).allowed).toBe(false)
+		expect(db.rows.get('auth:alice')?.timestamps).toHaveLength(3)
+	})
+
+	it('rejects unsafe PostgreSQL rate-limit table identifiers', () => {
+		const db = new FakePostgresRateLimitDatabase()
+
+		expect(() =>
+			new PostgresRateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })
+		).toThrowError(/invalid SQL identifier/)
+		expect(() =>
+			postgresRateLimitSchemaSql({ table: 'rate-limits; DROP TABLE users' })
+		).toThrowError(/invalid SQL identifier/)
+	})
+
 	it('atomically preserves concurrent D1 increments', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const store = new D1RateLimitStore(db)
@@ -269,21 +408,7 @@ describe('createRateLimiter', () => {
 		expect(db.selectCount).toBe(0)
 	})
 
-	it('reads legacy D1 numeric count rows', async () => {
-		const db = new FakeD1RateLimitDatabase()
-		db.rows.set('auth:alice', {
-			count: 2,
-			reset_at: Math.ceil((Date.now() + 60_000) / 1000)
-		})
-		const store = new D1RateLimitStore(db)
-
-		const entry = await store.incrementEntry('auth:alice', Date.now(), 60_000, 4)
-
-		expect(entry.timestamps).toHaveLength(3)
-		expect(db.rows.get('auth:alice')?.count).toMatch(/^\[/)
-	})
-
-	it('reads persisted D1 JSON timestamps and numeric migration rows', async () => {
+	it('reads persisted D1 JSON timestamps and deletes obsolete numeric rows', async () => {
 		const db = new FakeD1RateLimitDatabase()
 		const store = new D1RateLimitStore(db)
 		const now = Date.now()
@@ -293,7 +418,8 @@ describe('createRateLimiter', () => {
 		db.rows.set('legacy', { count: 2, reset_at: resetAt })
 
 		expect(await store.getEntry('json')).toEqual({ timestamps })
-		expect((await store.getEntry('legacy'))?.timestamps).toHaveLength(2)
+		expect(await store.getEntry('legacy')).toBeNull()
+		expect(db.rows.has('legacy')).toBe(false)
 	})
 
 	it('deletes expired and malformed D1 rows instead of restoring bad counters', async () => {
@@ -455,11 +581,82 @@ describe('getClientIP', () => {
 		).toBe('198.51.100.2')
 	})
 
+	it('resolves append-style forwarding chains from the trusted server side', () => {
+		const request = new Request('https://example.test', {
+			headers: {
+				'x-forwarded-for': '198.51.100.1, 203.0.113.10, 192.0.2.50'
+			}
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 2
+			})
+		).toBe('203.0.113.10')
+	})
+
+	it('ignores spoofed left entries with one trusted append-style proxy', () => {
+		const request = new Request('https://example.test', {
+			headers: {
+				'x-forwarded-for': '198.51.100.1, 203.0.113.10'
+			}
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 1
+			})
+		).toBe('203.0.113.10')
+	})
+
+	it('fails closed when the forwarding chain is shorter than the trusted hop count', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'x-forwarded-for': '203.0.113.10' }
+		})
+
+		expect(
+			getClientIP(request, {
+				trustHeaders: ['x-forwarded-for'],
+				forwardedForTrustedProxyHops: 2
+			})
+		).toBe('unknown')
+	})
+
+	it('rejects invalid trusted proxy hop counts', () => {
+		const request = new Request('https://example.test')
+		for (const forwardedForTrustedProxyHops of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+			expect(() =>
+				getClientIP(request, {
+					trustHeaders: ['x-forwarded-for'],
+					forwardedForTrustedProxyHops
+				})
+			).toThrowError(/positive safe integer/)
+		}
+	})
+
 	it('rejects a trusted forwarding chain with no first address', () => {
 		const request = new Request('https://example.test', {
 			headers: { 'x-forwarded-for': ', 198.51.100.2' }
 		})
 
 		expect(getClientIP(request, { trustHeaders: ['x-forwarded-for'] })).toBe('unknown')
+	})
+
+	it('rejects malformed or unbounded trusted header values', () => {
+		for (const value of ['not-an-ip', '999.1.2.3', '203.0.113.1 attacker', '1'.repeat(65)]) {
+			const request = new Request('https://example.test', {
+				headers: { 'cf-connecting-ip': value }
+			})
+			expect(getClientIP(request, { trustHeaders: ['cf-connecting-ip'] })).toBe('unknown')
+		}
+	})
+
+	it('accepts bounded IPv6 addresses', () => {
+		const request = new Request('https://example.test', {
+			headers: { 'cf-connecting-ip': '2001:db8::1' }
+		})
+		expect(getClientIP(request, { trustHeaders: ['cf-connecting-ip'] })).toBe('2001:db8::1')
 	})
 })

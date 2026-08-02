@@ -26,7 +26,7 @@ describe('D1 audit sink', () => {
 		expect(run).toHaveBeenCalledOnce()
 	})
 
-	it('rejects unsafe table names and swallows storage failures', async () => {
+	it('rejects unsafe table names and propagates storage failures safely', async () => {
 		expect(() =>
 			createD1AuditSink({
 				db: { prepare: () => ({ bind: () => ({ run: async () => undefined }) }) },
@@ -45,7 +45,7 @@ describe('D1 audit sink', () => {
 		})
 		await expect(
 			sink.record({ action: 'test', outcome: 'error', timestamp: new Date().toISOString() })
-		).resolves.toBeUndefined()
+		).rejects.toThrow('private database error')
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.any(String),
 			expect.not.objectContaining({ error: 'private database error' })
@@ -69,7 +69,7 @@ describe('D1 audit sink', () => {
 				password: 'still-default-redacted',
 				rowId: 42n
 			},
-			error: { name: 'DatabaseError', message: 'secret-bearing exception' },
+			error: { name: 'DatabaseError' },
 			timestamp: '2026-07-15T12:00:00.000Z'
 		})
 
@@ -85,22 +85,21 @@ describe('D1 audit sink', () => {
 		expect(run).toHaveBeenCalledOnce()
 	})
 
-	it('bounds scalar fields and only stores error messages by explicit opt-in', async () => {
+	it('bounds scalar fields and never stores error messages', async () => {
 		const bind = vi.fn((..._values: unknown[]) => ({ run: async () => undefined }))
 		const sink = createD1AuditSink({
 			db: { prepare: () => ({ bind }) },
-			maxFieldLength: 64,
-			includeErrorMessage: true
+			maxFieldLength: 64
 		})
 
 		await sink.record({
 			action: 'x'.repeat(100),
 			outcome: 'error',
-			error: { message: 'y'.repeat(100) },
+			error: { name: 'DatabaseError' },
 			timestamp: '2026-07-15T12:00:00.000Z'
 		})
 
 		expect(bind.mock.calls[0]?.[0]).toBe('x'.repeat(64))
-		expect(bind.mock.calls[0]?.[13]).toBe('y'.repeat(64))
+		expect(bind.mock.calls[0]?.[13]).toBeNull()
 	})
 })

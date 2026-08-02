@@ -17,10 +17,9 @@
 
 import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_internal/crypto.js'
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
-import { readEnv } from './_internal/env.js'
+import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { isProductionRuntime } from './runtime.js'
+import { safeErrorContext, type Logger } from './logger.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
@@ -76,7 +75,7 @@ export interface CsrfConfig {
 }
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
-export interface GenerateOptions {
+export interface CsrfGenerateOptions {
 	/** Override the default TTL. */
 	expiryMs?: number
 	/** If false, the token is generated but not stored. Default: true. */
@@ -84,7 +83,7 @@ export interface GenerateOptions {
 }
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
-export interface ValidateOptions {
+export interface CsrfValidateOptions {
 	/** If true, validation also checks store-tracked expiration. Default: false. */
 	checkExpiry?: boolean
 }
@@ -186,7 +185,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 	const cookieOptions = config.cookieOptions ?? defaultCookieOptions()
 	const defaultExpiryMs = config.tokenExpiryMs ?? CSRF_TOKEN_EXPIRY_MS
 
-	const envDisabled = readEnv('DISABLE_CSRF') === 'true'
+	const envDisabled = readRuntimeEnv('DISABLE_CSRF') === 'true'
 	const disabled = config.disabled === true || envDisabled
 	const failClosed = config.failClosed !== false
 
@@ -198,7 +197,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		)
 	}
 
-	async function generate(options: GenerateOptions = {}): Promise<string> {
+	async function generate(options: CsrfGenerateOptions = {}): Promise<string> {
 		const { expiryMs = defaultExpiryMs, trackExpiry = true } = options
 		const token = toHex(getRandomBytes(32))
 
@@ -235,7 +234,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		try {
 			expires = await store.get(token)
 		} catch (err) {
-			log.error('Error checking CSRF token expiration', { error: String(err) })
+			log.error('Error checking CSRF token expiration', safeErrorContext(err))
 			// failClosed=true treats store errors as expired (fail-safe);
 			// failClosed=false treats them as not-expired (fail-open for availability).
 			return failClosed
@@ -248,14 +247,14 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 			try {
 				await store.delete(token)
 			} catch (err) {
-				log.error('Error deleting expired CSRF token', { error: String(err) })
+				log.error('Error deleting expired CSRF token', safeErrorContext(err))
 			}
 			log.warn('CSRF token expired')
 		}
 		return expired
 	}
 
-	async function validate(request: Request, options: ValidateOptions = {}): Promise<boolean> {
+	async function validate(request: Request, options: CsrfValidateOptions = {}): Promise<boolean> {
 		if (disabled && !isProductionRuntime()) {
 			log.warn('CSRF validation disabled (test/dev mode)')
 			return true
@@ -309,10 +308,10 @@ export interface CsrfProtection {
 	readonly cookieName: string
 	readonly headerName: string
 	readonly storeSize: number | undefined
-	generate(options?: GenerateOptions): Promise<string>
+	generate(options?: CsrfGenerateOptions): Promise<string>
 	setCookie(response: Response, token: string): void
 	getToken(request: Request): string | null
-	validate(request: Request, options?: ValidateOptions): Promise<boolean>
+	validate(request: Request, options?: CsrfValidateOptions): Promise<boolean>
 	cleanup(): Promise<number>
 	clear(): Promise<void>
 }

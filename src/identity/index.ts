@@ -24,5 +24,6 @@ export {
 	principalFromDid,
 	principalFromHttpSignature,
 	type IdentityMethod,
+	type PrincipalIdentity,
 	type VerifiedPrincipal
 } from './principal.js'

@@ -4,10 +4,9 @@
  * @module @goobits/security/recaptcha
  */
 
-import { readEnv } from './_internal/env.js'
+import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { isProductionRuntime } from './runtime.js'
+import { safeErrorContext, type Logger } from './logger.js'
 
 const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 
@@ -92,7 +91,7 @@ export async function verifyRecaptcha(
 	options: RecaptchaOptions = {}
 ): Promise<RecaptchaResult> {
 	const {
-		secretKey = readEnv('RECAPTCHA_SECRET_KEY'),
+		secretKey = readRuntimeEnv('RECAPTCHA_SECRET_KEY'),
 		action,
 		minScore = 0.5,
 		allowInDevelopment = false,
@@ -187,7 +186,7 @@ export async function verifyRecaptcha(
 		if (data.action !== undefined) result.action = data.action
 		return result
 	} catch (error) {
-		log.error('reCAPTCHA API request failed', { error: String(error) })
+		log.error('reCAPTCHA API request failed', safeErrorContext(error))
 		return { success: false, reason: 'api-error' }
 	} finally {
 		clearTimeout(timeout)

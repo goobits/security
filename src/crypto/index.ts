@@ -21,6 +21,12 @@ export {
 	sealJson
 } from './aead.js'
 export {
+	createFramedAeadDecryptStream,
+	createFramedAeadEncryptStream,
+	type FramedAeadDecryptOptions,
+	type FramedAeadEncryptOptions
+} from './framedAead.js'
+export {
 	base64UrlToBytes,
 	base64ToBytes,
 	bytesToBase64,
@@ -28,7 +34,10 @@ export {
 	bytesToHex,
 	bytesToText,
 	constantTimeEqual,
+	createIncrementalHasher,
 	hexToBytes,
+	type IncrementalHashAlgorithm,
+	type IncrementalHasher,
 	randomBytes,
 	randomHex,
 	sha256Bytes,
@@ -38,7 +47,6 @@ export {
 export {
 	type CreateSecurityProofOptions,
 	type SecurityProof,
-	type SecurityProofAlgorithm,
 	type SecurityProofVerification,
 	type VerifySecurityProofOptions,
 	attachSecurityProof,

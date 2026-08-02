@@ -9,7 +9,7 @@ import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 import { BodyTooLargeError, readJsonBody } from '../requestBody.js'
 import type { AuditEvent, AuditLogger, AuditOutcome } from '../audit.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
-import type { Logger } from '../logger.js'
+import { safeErrorContext, type Logger } from '../logger.js'
 import { DEFAULT_REDACT_KEYS, redactSensitive } from '../redaction.js'
 
 /** With Audit Options request or option shape for audit logging. */
@@ -23,10 +23,8 @@ export interface WithAuditOptions {
 	 */
 	includeRequestBody?: boolean
 	/**
-	 * When `includeRequestBody` is true, top-level keys to redact from the
-	 * captured body before logging. Default: `['password', 'token', 'secret',
-	 * 'apiKey', 'authorization', 'creditCard', 'cvv']`. Pass `[]` to disable
-	 * redaction (not recommended).
+	 * Additional keys to redact from captured bodies. Security's defaults are
+	 * always retained.
 	 */
 	redactKeys?: string[]
 	/** Maximum request body bytes to capture when `includeRequestBody` is true. Default: 64 KiB. */
@@ -67,7 +65,7 @@ export interface WithAuditOptions {
  */
 export function withAudit(options: WithAuditOptions, handler: RequestHandler): RequestHandler {
 	const log = resolveLogger(options.logger)
-	const redactKeys = options.redactKeys ?? DEFAULT_REDACT_KEYS
+	const redactKeys = Array.from(new Set([...DEFAULT_REDACT_KEYS, ...(options.redactKeys ?? [])]))
 
 	return async (event) => {
 		const startedAt = Date.now()
@@ -86,7 +84,9 @@ export function withAudit(options: WithAuditOptions, handler: RequestHandler): R
 				requestBody = redactSensitive(raw, { keys: redactKeys })
 			} catch (err) {
 				log.debug('audit: could not capture request body', {
-					error: err instanceof BodyTooLargeError ? 'body-too-large' : String(err)
+					...(err instanceof BodyTooLargeError
+						? { errorType: 'BodyTooLargeError' }
+						: safeErrorContext(err))
 				})
 			}
 		}
@@ -123,7 +123,7 @@ export function withAudit(options: WithAuditOptions, handler: RequestHandler): R
 			const actorId = options.actorId?.(event)
 			if (actorId) auditEvent.actorId = actorId
 			if (thrown instanceof Error) {
-				auditEvent.error = { message: thrown.message, name: thrown.name }
+				auditEvent.error = { name: thrown.name }
 			}
 
 			void options.auditor.log(auditEvent)

@@ -10,7 +10,7 @@
 
 import type { AuditEvent } from './audit.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
+import { safeErrorContext, type Logger } from './logger.js'
 import { MemoryRateLimitStore, type RateLimitStore } from './rate-limit/index.js'
 
 /** Alert Severity typed model for security alerting. */
@@ -179,7 +179,7 @@ export function createWebhookChannel(options: WebhookChannelOptions): AlertChann
 					log.error('Webhook alert failed', { status: response.status, title: alert.title })
 				}
 			} catch (err) {
-				log.error('Webhook alert threw', { error: String(err), title: alert.title })
+				log.error('Webhook alert threw', { ...safeErrorContext(err), title: alert.title })
 			} finally {
 				clearTimeout(timeout)
 			}
@@ -242,7 +242,7 @@ export function createSecurityAlerter(options: CreateSecurityAlerterOptions): Se
 				try {
 					candidate = rule(event)
 				} catch (err) {
-					log.error('Alert rule threw', { error: String(err) })
+					log.error('Alert rule threw', safeErrorContext(err))
 					continue
 				}
 				if (!candidate) continue
@@ -252,7 +252,10 @@ export function createSecurityAlerter(options: CreateSecurityAlerterOptions): Se
 				await Promise.all(
 					options.channels.map((channel) =>
 						channel.send(alert).catch((err) => {
-							log.error('Alert channel threw', { error: String(err), title: alert.title })
+							log.error('Alert channel threw', {
+								...safeErrorContext(err),
+								title: alert.title
+							})
 						})
 					)
 				)

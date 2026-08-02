@@ -3,12 +3,11 @@ import {
 	bytesToBase64Url,
 	bytesToHex,
 	bytesToText,
-	hexToBytes,
 	randomBytes,
 	textToBytes
 } from './encoding.js'
+import { importAesGcmKey, normalizeAesGcmKey } from './_aesGcm.js'
 
-type AesKeyUsage = 'encrypt' | 'decrypt'
 const AES_KEY_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
 /** Serialized AES-GCM encrypted payload. */
@@ -71,14 +70,6 @@ export interface AesGcmKeyringOpenOptions {
 
 const keyringEntries = new WeakMap<AesGcmKeyring, ReadonlyMap<string, Uint8Array>>()
 
-function normalizeKey(key: Uint8Array | string): Uint8Array {
-	const bytes = typeof key === 'string' ? hexToBytes(key) : key
-	if (![16, 24, 32].includes(bytes.length)) {
-		throw new Error('@goobits/security/crypto: AES-GCM key must be 16, 24, or 32 bytes')
-	}
-	return bytes
-}
-
 function assertKeyId(keyId: string): void {
 	if (!AES_KEY_ID_PATTERN.test(keyId)) {
 		throw new Error('@goobits/security/crypto: invalid AES-GCM key ID')
@@ -97,7 +88,7 @@ export function createAesGcmKeyring(config: AesGcmKeyringConfig): AesGcmKeyring 
 	const keyMaterials = new Set<string>()
 	for (const [keyId, keyValue] of entries) {
 		assertKeyId(keyId)
-		const key = normalizeKey(keyValue).slice()
+		const key = normalizeAesGcmKey(keyValue).slice()
 		const canonical = bytesToHex(key)
 		if (keyMaterials.has(canonical)) {
 			throw new Error('@goobits/security/crypto: AES-GCM keyring keys must be distinct')
@@ -193,14 +184,10 @@ function normalizeData(value: Uint8Array | string | undefined): Uint8Array | und
 	return typeof value === 'string' ? textToBytes(value) : value
 }
 
-async function importAesKey(key: Uint8Array | string, usage: AesKeyUsage): Promise<CryptoKey> {
-	return crypto.subtle.importKey('raw', normalizeKey(key) as never, 'AES-GCM', false, [usage])
-}
-
 /** Encrypts bytes or text with AES-GCM. */
 export async function sealAesGcm(options: AesGcmOptions): Promise<AesGcmSeal> {
 	const iv = randomBytes(12)
-	const key = await importAesKey(options.key, 'encrypt')
+	const key = await importAesGcmKey(options.key, 'encrypt')
 	const associatedData = normalizeData(options.associatedData)
 	const plaintext = normalizeData(options.plaintext) ?? new Uint8Array()
 	const ciphertext = await crypto.subtle.encrypt(
@@ -224,7 +211,7 @@ export async function openAesGcm(options: AesGcmOpenOptions): Promise<Uint8Array
 	if (options.seal.algorithm !== 'AES-GCM') {
 		throw new Error('@goobits/security/crypto: unsupported AEAD algorithm')
 	}
-	const key = await importAesKey(options.key, 'decrypt')
+	const key = await importAesGcmKey(options.key, 'decrypt')
 	const associatedData = normalizeData(options.associatedData)
 	const plaintext = await crypto.subtle.decrypt(
 		{

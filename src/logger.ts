@@ -21,6 +21,13 @@ export interface Logger {
 	error(message: string, context?: LogContext): void
 }
 
+/** Projects an arbitrary thrown value without retaining messages or stacks. */
+export function safeErrorContext(error: unknown): LogContext {
+	if (!(error instanceof Error)) return { errorType: typeof error }
+	const errorName = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(error.name) ? error.name : 'Error'
+	return { errorType: errorName }
+}
+
 /**
  * A logger that swallows every call. Default for all factories.
  *

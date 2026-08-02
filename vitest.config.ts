@@ -1,7 +1,10 @@
 import { defineConfig } from 'vitest/config'
+import { resolveViteCacheDirectory } from './scripts/testStorage.ts'
 
 export default defineConfig({
+	cacheDir: resolveViteCacheDirectory(import.meta.dirname),
 	test: {
+		...(process.env.CI ? {} : { maxWorkers: 2 }),
 		globals: false,
 		environment: 'node',
 		include: ['__tests__/**/*.test.ts', 'tests/**/*.test.ts'],

@@ -6,6 +6,61 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Added
+
+- **`rate-limit`**: Added one atomic PostgreSQL sliding-window store and its
+  idempotent schema helper so multi-process services share canonical counters.
+- **`request-body`**: Added a cross-runtime bounded async-iterable reader so
+  Node and other stream hosts share one body-size enforcement owner.
+- **`rate-limit`**: Added explicit right-counted trusted-proxy-hop resolution
+  for append-style `x-forwarded-for` deployments.
+- **`crypto`**: Added `createIncrementalHasher()` for bounded-memory SHA-256
+  and BLAKE3 hashing over caller-supplied chunks, backed by permissively
+  licensed `hash-wasm`.
+- **`crypto`**: Added versioned framed AES-GCM streams with authenticated
+  ordering, terminal-frame validation, caller-bound context, and bounded
+  plaintext buffering for large encrypted artifacts.
+- **`jwt`**: Added one framework-agnostic, purpose-bound HMAC JWT primitive
+  with algorithm, audience, issuer, type, lifetime, and required-claim
+  verification. Principal authentication now delegates to this shared owner.
+- **`redaction`**: Added `redactSecretText()` for credentials embedded in
+  environment assignments, authorization headers, and URLs.
+- A publish-only compiled ESM artifact with declarations and an isolated
+  tarball smoke test for every public entrypoint. Workspace consumers continue
+  to use the existing source exports.
+- `request-origin`: one framework-agnostic verifier for Fetch Metadata,
+  `Origin`, and `Referer` checks across browser mutation boundaries.
+- `audit`: explicit `failureMode: 'throw'` support for required durable audit
+  pipelines, and `safeErrorContext()` for bounded error logging.
+- `runtime`: public `readRuntimeEnv()` and `isProductionRuntime()` helpers so
+  packages and applications share one production-safe runtime decision.
+- A shared `PrincipalIdentity` base type for verified identity, principal-auth,
+  and admin-auth results.
+
+### Changed
+
+- `rate-limit`: added one generic resilient-store wrapper with an explicit
+  `closed | fallback` failure policy. Fallback mode requires a caller-owned
+  store, and observer failures cannot change the selected policy.
+- Unknown runtime modes now use production-safe defaults; development bypasses
+  require an explicit `NODE_ENV=development` or `NODE_ENV=test`.
+- Audit redaction defaults can only be extended, not disabled, and arbitrary
+  exception messages and stacks are excluded from default projections.
+- Trusted client-IP headers are bounded and validated before use.
+- D1 rate-limit storage now accepts only the canonical JSON timestamp format;
+  the expired numeric-counter migration bridge was removed.
+- Principal authentication validates and bounds principal IDs, roles, API-key
+  mappings, header names, algorithms, token lifetimes, and expected claims at
+  construction or signing time. API keys must be unique and contain 32-4096
+  bytes.
+- The successful API-key authentication method is consistently named
+  `api-key` instead of `apikey`.
+- D1 audit sinks now propagate write failures after bounded logging so the
+  owning `AuditLogger` can honor its configured `report` or `throw` policy.
+- Runtime checks distinguish an omitted argument from an explicitly absent
+  deployment binding; explicit unknown bindings always retain production-safe
+  behavior.
+
 ### Fixed
 
 - **`validation/sveltekit`**: Application handler errors now propagate to

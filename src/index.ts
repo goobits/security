@@ -10,13 +10,16 @@
  * @module @goobits/security
  */
 
+export { isProductionRuntime, readRuntimeEnv } from './runtime.js'
+
 /* Logger interface (pluggable). */
 export {
 	type ConsoleLoggerOptions,
 	type LogContext,
 	type Logger,
 	createConsoleLogger,
-	noopLogger
+	noopLogger,
+	safeErrorContext
 } from './logger.js'
 
 /* Secret-safe logging and audit payloads. */
@@ -26,6 +29,7 @@ export {
 	isSensitiveKey,
 	omitSensitive,
 	REDACTED_VALUE,
+	redactSecretText,
 	redactSensitive
 } from './redaction.js'
 
@@ -50,9 +54,9 @@ export {
 	type CsrfConfig,
 	type CsrfProtection,
 	type CsrfTokenStore,
-	type GenerateOptions as CsrfGenerateOptions,
+	type CsrfGenerateOptions,
 	type MemoryCsrfStoreOptions,
-	type ValidateOptions as CsrfValidateOptions,
+	type CsrfValidateOptions,
 	CSRF_COOKIE_NAME,
 	CSRF_HEADER_NAME,
 	CSRF_TOKEN_EXPIRY_MS,
@@ -62,9 +66,16 @@ export {
 export {
 	BodyTooLargeError,
 	type ReadBodyOptions,
+	readAsyncIterableBytes,
 	readJsonBody,
 	readRequestBodyBytes
 } from './requestBody.js'
+export {
+	type RequestOriginFailureReason,
+	type RequestOriginResult,
+	type VerifyRequestOriginOptions,
+	verifyRequestOrigin
+} from './requestOrigin.js'
 export { type RedisCsrfStoreOptions, type RedisLike, createRedisCsrfStore } from './csrfRedis.js'
 
 /* Content Security Policy. */
@@ -96,7 +107,6 @@ export {
 	type HmacAlgorithm,
 	type HmacSignature,
 	type SecurityProof,
-	type SecurityProofAlgorithm,
 	type SecurityProofVerification,
 	type VerifySecurityProofOptions,
 	attachSecurityProof,
@@ -144,6 +154,7 @@ export {
 	type HttpSignatureVerificationInput,
 	type HttpSignatureVerificationResult,
 	type IdentityMethod,
+	type PrincipalIdentity,
 	type VerifiedPrincipal,
 	type VerifyHttpSignatureOptions,
 	buildDidWba,
@@ -165,24 +176,29 @@ export {
 	type GetClientIpOptions,
 	type HmacRateLimitStoreOptions,
 	type MemoryRateLimitStoreOptions,
+	type PostgresRateLimitDatabase,
+	type PostgresRateLimitStoreOptions,
 	type RateLimitConfig,
 	type RateLimitEntry,
 	type RateLimitResult,
 	type RateLimitStore,
 	type RateLimitWindow,
 	type RateLimiter,
+	type ResilientRateLimitStoreOptions,
 	D1RateLimitStore,
 	MemoryRateLimitStore,
+	PostgresRateLimitStore,
 	createHmacRateLimitStore,
 	createRateLimiter,
-	getClientIP
+	createResilientRateLimitStore,
+	getClientIP,
+	postgresRateLimitSchemaSql
 } from './rate-limit/index.js'
 /* Admin authentication. */
 export {
 	type AuthPrincipal,
 	type PrincipalApiKey,
 	type PrincipalAuth,
-	type PrincipalAuthAlgorithm,
 	type PrincipalAuthConfig,
 	type PrincipalAuthFailureReason,
 	type PrincipalAuthMethod,
@@ -190,8 +206,14 @@ export {
 	createPrincipalAuth
 } from './principalAuth.js'
 export {
+	type JwtVerification,
+	type SignJwtOptions,
+	type VerifyJwtOptions,
+	signJwt,
+	verifyJwt
+} from './jwt.js'
+export {
 	type AdminAuth,
-	type AdminAuthAlgorithm,
 	type AdminAuthConfig,
 	type AdminAuthResult,
 	type AdminUser,

@@ -37,6 +37,15 @@ export const DEFAULT_REDACT_KEYS = [
 /** Stable replacement used for secret-bearing values. */
 export const REDACTED_VALUE = '[redacted]'
 
+const secretAssignmentPattern =
+	/\b([A-Z0-9_]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s]+)/gi
+const secretFlagPattern =
+	/(\s--?(?:api-key|apikey|token|secret|password|credential)(?:=|\s+))(?:"[^"]*"|'[^']*'|[^\s]+)/gi
+const bearerPattern = /\b(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi
+const urlCredentialPattern = /([a-z][a-z0-9+.-]*:\/\/)([^/@\s:]+):([^/@\s]+)@/gi
+const commonTokenPattern =
+	/\b(?:sk-[A-Za-z0-9_-]{12,}|gh[opsu]_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{12,})\b/g
+
 /** Controls recursive redaction without coupling the primitive to application PII policy. */
 export interface RedactionOptions {
 	keys?: ReadonlyArray<string>
@@ -45,6 +54,10 @@ export interface RedactionOptions {
 	redactString?: (value: string) => string
 	/** Remove matching object fields instead of retaining a replacement value. */
 	omit?: boolean
+	/** Include Error.message after applying redactString. Default: false. */
+	includeErrorMessage?: boolean
+	/** Include Error.stack after applying redactString. Default: false. */
+	includeErrorStack?: boolean
 }
 
 function patternMatches(pattern: RegExp | undefined, value: string): boolean {
@@ -68,6 +81,16 @@ export function isSensitiveKey(
 	return normalizedKeys.has(normalizeSensitiveKey(key)) || patternMatches(options.keyPattern, key)
 }
 
+/** Redacts common credential shapes embedded in otherwise unstructured text. */
+export function redactSecretText(value: string): string {
+	return value
+		.replace(secretAssignmentPattern, (_match, name: string) => `${name}=${REDACTED_VALUE}`)
+		.replace(secretFlagPattern, (_match, prefix: string) => `${prefix}${REDACTED_VALUE}`)
+		.replace(bearerPattern, `$1${REDACTED_VALUE}`)
+		.replace(urlCredentialPattern, `$1${REDACTED_VALUE}@`)
+		.replace(commonTokenPattern, REDACTED_VALUE)
+}
+
 /** Recursively copies a value while removing configured secret-bearing fields. */
 export function redactSensitive(input: unknown, options: RedactionOptions = {}): unknown {
 	const replacement = options.replacement ?? REDACTED_VALUE
@@ -85,8 +108,12 @@ export function redactSensitive(input: unknown, options: RedactionOptions = {}):
 		if (value instanceof Error) {
 			return {
 				name: value.name,
-				message: options.redactString?.(value.message) ?? value.message,
-				...(value.stack ? { stack: options.redactString?.(value.stack) ?? value.stack } : {})
+				...(options.includeErrorMessage
+					? { message: options.redactString?.(value.message) ?? value.message }
+					: {}),
+				...(options.includeErrorStack && value.stack
+					? { stack: options.redactString?.(value.stack) ?? value.stack }
+					: {})
 			}
 		}
 		if (Array.isArray(value)) return value.map(visit)

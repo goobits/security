@@ -4,7 +4,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 ## TL;DR
 
-- Add as a pnpm workspace git submodule; your bundler compiles the TypeScript source directly.
+- Add as a pnpm workspace git submodule for source consumption, or install the published compiled package.
 - Import only the subpaths you need: `csrf`, `rate-limit`, `recaptcha`, `csp`, `validation`, `principal-auth`, `admin-auth`, `http-credentials`, `redaction`, `audit`, `alerting`, `crypto`, `identity`.
 - Pass a `Logger` to any factory for structured log output; omit it for silent operation.
 - All crypto uses Web Crypto from `globalThis` and runs on Node 22+, Bun, Deno, and Cloudflare Workers.
@@ -19,25 +19,31 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **Validation:** Zod v4 middleware for request body / query / params
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
-- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings, SHA-256, and deterministic proof helpers
+- **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings,
+  bounded-memory incremental SHA-256 and BLAKE3 hashing, and deterministic
+  proof helpers
 - **HTTP credentials:** strict Basic, Bearer, and API-key parsing plus constant-work password and HMAC API-key verification helpers
-- **Redaction:** recursive, cycle-safe redaction or omission of normalized secret-bearing fields before structured values reach logs, audit sinks, or public projections
+- **Redaction:** recursive, cycle-safe structured redaction plus bounded
+  credential removal from unstructured diagnostic text before values reach
+  logs, audit sinks, or public projections
 - **Identity:** DID-WBA and HTTP Signature request identity adapters
 - **Audit logging:** structured events with pluggable sinks (database, cloud logger, anywhere)
 - **Alerting:** rule-based dispatch to webhooks (Slack, PagerDuty, etc.) on critical events
-- **Minimal forced dependencies:** uses Web Crypto from `globalThis`; `jose` is the only runtime dependency, with optional peer deps for SvelteKit and Zod. Redis clients remain host-owned.
+- **Minimal forced dependencies:** uses Web Crypto from `globalThis`,
+  `hash-wasm` for incremental SHA-256 and BLAKE3 hashing, and `jose` for JWTs.
+  SvelteKit and Zod remain optional peers, and Redis clients remain host-owned.
 - **Pluggable logger:** every module accepts a `Logger` interface; bring your own (Pino, Winston, console, or silent)
 - **ESM-only, full TypeScript:** subpath exports for treeshaking; runs on Node 22+, Bun, Deno, Cloudflare Workers
 
 ## Usage
 
-`@goobits/security` is distributed as a **git submodule with TypeScript source**: no build step, no `dist/`, no npm package. Consume it from a workspace whose bundler (Vite, esbuild, SvelteKit, Bun, Deno, etc.) handles `.ts` natively.
+`@goobits/security` supports two deliberate distribution modes. First-party workspaces consume TypeScript source directly from a pinned git submodule. Published packages contain compiled ESM and declarations so clean Node installations never execute TypeScript from `node_modules`.
 
-### Why source-only?
+### Why two modes?
 
-We share this package across several internal SvelteKit consumers. Every consumer's bundler already compiles `.ts` end-to-end, so shipping a pre-built `dist/` adds a build/version-dance step that buys nothing. Source-level distribution keeps fixes one diff away in either direction, and the consumer's existing typecheck/test pipeline sees real types through the boundary rather than `.d.ts` reconstructions.
+Internal SvelteKit consumers already compile `.ts` end-to-end, so source-level workspace exports keep their development loop immediate and typecheck the real source boundary. The publish pipeline rewrites only the packed manifest to compiled `dist/` exports. This preserves the workspace workflow while making the npm artifact safe for runtimes that do not strip dependency TypeScript.
 
-If you need a non-bundler runtime (raw Node, a third-party consumer, etc.), the trade-off matters; this package is intentionally not designed for those cases.
+The package verifier installs the generated tarball in an isolated consumer and imports every public entrypoint before release.
 
 ### pnpm workspace (recommended)
 
@@ -68,6 +74,14 @@ pnpm add @sveltejs/kit   # if using SvelteKit helper subpaths
 pnpm add zod             # if using validation
 ```
 
+### Published package
+
+```bash
+pnpm add @goobits/security
+```
+
+Published artifacts contain only compiled output, declarations, the package manifest, and release documentation. `src/`, tests, repository metadata, and release tooling are excluded.
+
 ### npm / yarn / Bun workspaces
 
 The same submodule layout works. Just declare the workspace in the format your package manager expects:
@@ -76,7 +90,9 @@ The same submodule layout works. Just declare the workspace in the format your p
 - **Bun**: same as npm.
 - **No workspace at all**: declare a `file:` reference, e.g. `"@goobits/security": "file:./packages/security"`.
 
-`@goobits/security` depends on [`jose`](https://github.com/panva/jose) for JWT operations in `admin-auth` (Web Crypto-based; cross-runtime). No other transitive runtime deps.
+`@goobits/security` depends on [`jose`](https://github.com/panva/jose) for
+cross-runtime JWT operations and `hash-wasm` for incremental SHA-256 and
+BLAKE3 hashing. It has no other direct runtime dependencies.
 
 ### Pinning a version
 
@@ -113,15 +129,49 @@ import { withValidation } from '@goobits/security/validation/sveltekit'
 import { createPrincipalAuth } from '@goobits/security/principal-auth'
 import { createAdminAuth } from '@goobits/security/admin-auth'
 import { parseBearerToken, verifyApiKey } from '@goobits/security/http-credentials'
-import { redactSensitive } from '@goobits/security/redaction'
+import { redactSecretText, redactSensitive } from '@goobits/security/redaction'
 import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
 import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/security/crypto'
 import { verifyDidWbaIdentity } from '@goobits/security/identity'
+import { signJwt, verifyJwt } from '@goobits/security/jwt'
 ```
 
 Each module is independently importable. Import only what you need.
+
+---
+
+## JWT
+
+Use the shared JWT primitive when a protocol needs a short-lived,
+purpose-bound HMAC token without adopting principal-auth policy:
+
+```ts
+import { signJwt, verifyJwt } from '@goobits/security/jwt'
+
+const token = await signJwt(
+	{ roomId: 'room-1' },
+	{
+		secret,
+		expiresIn: 60,
+		audience: 'goobits:room-transport',
+		issuer: 'goobits:access-broker',
+		type: 'goobits-room+jwt'
+	}
+)
+
+const verification = await verifyJwt(token, {
+	secret,
+	audience: 'goobits:room-transport',
+	issuer: 'goobits:access-broker',
+	type: 'goobits-room+jwt'
+})
+```
+
+Verification pins `HS256` unless the caller supplies another explicit
+HS-family allowlist. Secrets must contain at least 32 bytes. Failed
+verification returns `invalid` or `expired` without exposing JOSE errors.
 
 ---
 
@@ -178,6 +228,7 @@ the same underlying principal-auth implementation.
 
 ```ts
 import {
+	createIncrementalHasher,
 	createSecurityProof,
 	randomHex,
 	sealJson,
@@ -186,6 +237,11 @@ import {
 
 const key = randomHex(32)
 const sealed = await sealJson({ refreshToken: 'secret' }, { key })
+
+const hasher = await createIncrementalHasher('blake3')
+hasher.update(new TextEncoder().encode('first chunk'))
+hasher.update(new TextEncoder().encode('second chunk'))
+const contentDigest = hasher.digestHex()
 
 const proof = await createSecurityProof(
 	{ id: 'message-1' },
@@ -204,14 +260,30 @@ const result = await verifySecurityProof({ id: 'message-1' }, proof, {
 })
 ```
 
-The `crypto` subpath is framework-agnostic. It provides encoding helpers, random bytes/hex, SHA-256, HMAC signatures, AES-GCM sealing/opening, rotation-ready opaque keyrings, and deterministic `SecurityProof` envelopes. Product permissions, roles, key-distribution policy, and app-specific authorization remain outside this package.
+The `crypto` subpath is framework-agnostic. It provides encoding helpers,
+random bytes and hex, one-shot SHA-256, incremental SHA-256 and BLAKE3, HMAC
+signatures, AES-GCM sealing and opening, rotation-ready opaque keyrings,
+authenticated framed streams, and deterministic `SecurityProof` envelopes.
+`createIncrementalHasher()` accepts
+`'sha-256'` or `'blake3'`, retains only the hash state as callers supply chunks,
+and finalizes when `digestHex()` is called. Updating or finalizing it again
+throws. Product permissions, roles, key-distribution policy, and app-specific
+authorization remain outside this package.
+
+`createFramedAeadEncryptStream()` and `createFramedAeadDecryptStream()` process
+bounded AES-GCM frames and authenticate their version, order, terminal frame,
+and caller-supplied context. They are intended for large private artifacts
+that must remain encrypted at rest without buffering the full payload.
 
 For environment-backed rotation, `createAesGcmKeyringFromJson` accepts a strict
 JSON object with `activeKeyId` and a `keys` map of hex-encoded AES keys. The
 returned keyring exposes only the active key ID; applications retain ownership
 of the environment variable name and rotation policy.
 
-Narrow imports are also available: `@goobits/security/crypto/encoding`, `@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`, and `@goobits/security/crypto/proof`.
+Narrow imports are also available: `@goobits/security/crypto/encoding`,
+`@goobits/security/crypto/signatures`, `@goobits/security/crypto/aead`,
+`@goobits/security/crypto/framed-aead`, and
+`@goobits/security/crypto/proof`.
 
 ---
 
@@ -368,7 +440,32 @@ if (!verdict.allowed) {
 Window names must be non-empty, and `windowMs`/`maxEvents` must be positive
 safe integers. Invalid or non-finite policy values fail at construction time.
 
-⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use a Redis-backed `RateLimitStore` implementation for multi-pod prod environments. The package provides `RateLimitStore` as the interface; you implement (or wrap an `ioredis` client) yourself for now.
+⚠️ **Multi-instance deployment?** The default `MemoryRateLimitStore` keeps counters per-process. Each replica enforces an independent budget, so a 5-pod deployment effectively allows `5 × maxEvents`. Use `PostgresRateLimitStore` or another shared `RateLimitStore` implementation for multi-process production environments.
+
+When a durable store needs an explicit outage policy, wrap it once at the store
+boundary. Closed mode propagates the original failure; fallback mode requires a
+specific fallback store instead of silently constructing one:
+
+```ts
+import {
+	MemoryRateLimitStore,
+	PostgresRateLimitStore,
+	createResilientRateLimitStore,
+	postgresRateLimitSchemaSql
+} from '@goobits/security/rate-limit'
+
+await pool.query(postgresRateLimitSchemaSql())
+const durableStore = new PostgresRateLimitStore(pool)
+
+const store = createResilientRateLimitStore({
+	primary: durableStore,
+	failureMode: 'fallback',
+	fallback: new MemoryRateLimitStore()
+})
+```
+
+Authentication and other abuse-sensitive production routes should normally use
+`failureMode: 'closed'`. Applications still own that availability decision.
 
 ⚠️ **`getClientIP` trusts NO proxy headers by default.** This is intentional: blindly trusting `x-forwarded-for` lets attackers spoof the identifier. To enable header trust:
 
@@ -380,6 +477,12 @@ const ip = getClientIP(event.request, { trustHeaders: ['cf-connecting-ip'] })
 
 // AWS ALB / GCP LB (configured to strip client-supplied XFF):
 const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
+
+// Append-style XFF behind two trusted proxy hops:
+const ip = getClientIP(event.request, {
+  trustHeaders: ['x-forwarded-for'],
+  forwardedForTrustedProxyHops: 2
+})
 ```
 
 In SvelteKit, prefer `event.getClientAddress()`, which honors your platform adapter's trusted-proxy config.
@@ -499,7 +602,7 @@ export async function POST({ request }) {
 	if (!result.authenticated) {
 		return new Response('Unauthorized', { status: 401 })
 	}
-	// result.user.id, result.method ('jwt' | 'apikey')
+	// result.user.id, result.method ('jwt' | 'api-key')
 }
 
 // Issue a new token (NOTE: async since the v2.0.0 jose swap):
@@ -513,7 +616,7 @@ const shortToken = await adminAuth.createAdminToken({ id: 'u1', role: 'admin' },
 const key = generateAdminApiKey()
 ```
 
-⚠️ **`jwtSecret` must be ≥32 characters.** `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
+⚠️ **`jwtSecret` must be ≥32 bytes.** `createAdminAuth()` throws at construction time on shorter secrets. Use a cryptographically random secret.
 
 ⚠️ **`algorithms` defaults to `['HS256']`.** Pin tight. Adding `HS384`/`HS512` is fine; mixing in `none` is impossible (the type forbids it).
 
@@ -531,6 +634,7 @@ import { createAuditLogger } from '@goobits/security/audit'
 import { withAudit } from '@goobits/security/audit/sveltekit'
 
 const auditor = createAuditLogger({
+	failureMode: 'throw',
 	sink: {
 		async record(event) {
 			await db.insert('audit_log').values(event)
@@ -553,10 +657,8 @@ export const POST = withAudit(
 		action: 'contact.submit',
 		auditor,
 		includeRequestBody: true,
-		// Defaults: ['password', 'token', 'secret', 'apiKey', 'authorization',
-		// 'creditCard', 'cvv']. Override with your own set (case-insensitive,
-		// recurses into nested objects and arrays). Pass `redactKeys: []` to
-		// disable redaction entirely (NOT recommended for routes with credentials).
+		// Additional keys extend Security's mandatory defaults. Matching is
+		// case-insensitive and recurses into nested objects and arrays.
 		redactKeys: ['password', 'token', 'creditCard', 'ssn']
 	},
 	async (event) => {
@@ -587,8 +689,25 @@ const sink = createD1AuditSink({
 
 Custom redaction keys extend Security's default secret set. The D1 sink validates
 its table identifier, caps structured detail and scalar fields, serializes
-bigints safely, omits arbitrary error messages by default, and reports storage
+bigints safely, omits arbitrary error messages, and reports storage
 failures without logging database error messages or event values.
+
+## Request origin
+
+Use `verifyRequestOrigin()` as the shared browser-mutation boundary. Applications
+provide their exact trusted origins; Security owns bounded Fetch Metadata,
+`Origin`, and `Referer` parsing.
+
+```ts
+import { verifyRequestOrigin } from '@goobits/security/request-origin'
+
+const result = verifyRequestOrigin({
+	request: event.request,
+	requestUrl: event.url,
+	allowedOrigins: [env.PUBLIC_SITE_URL]
+})
+if (!result.ok) return new Response('Invalid origin', { status: 403 })
+```
 
 ## Alerting
 
@@ -657,6 +776,23 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 - **Node** ≥22 (for native Web Crypto on `globalThis.crypto`)
 - **Bun**, **Deno**, **Cloudflare Workers**: supported with caveats (see table below)
 - ESM only: `"type": "module"` consumers required
+- Unknown or absent `NODE_ENV` values use production-safe defaults. Development
+  bypasses activate only for explicit `development` or `test` modes.
+
+Apps that need the same decision for secure cookies or other security defaults
+should use the public runtime helper instead of interpreting `NODE_ENV`
+themselves:
+
+```ts
+import { isProductionRuntime } from '@goobits/security/runtime'
+
+const secure = isProductionRuntime(platform?.env?.NODE_ENV)
+```
+
+Pass an explicit deployment binding on runtimes that do not expose
+`process.env`. Calling the helper with no argument reads `process.env.NODE_ENV`;
+passing an explicitly absent binding (`undefined`) is deliberately fail-closed
+and returns `true`.
 
 ### Per-module runtime compatibility
 
@@ -683,7 +819,9 @@ Any object implementing `{ debug, info, warn, error }` works, including Pino, Wi
 
 ‡ `csrf-redis` imports no Redis library. Runtime support depends on the host-supplied client satisfying the exported `RedisLike` contract.
 
-All modules use the Web Crypto API on `globalThis.crypto` for randomness and signing. None import from `node:crypto`, `node:buffer`, or any other Node-only built-ins.
+Modules use the Web Crypto API on `globalThis.crypto` for randomness and
+signing. Incremental SHA-256 and BLAKE3 use cross-runtime `hash-wasm`. No module
+imports from `node:crypto`, `node:buffer`, or another Node-only built-in.
 
 > Continuous integration exercises Node 22. Bun, Deno, and Cloudflare Workers are validated manually; if you hit a runtime-specific issue, please open an issue with the runtime version and a minimal repro.
 

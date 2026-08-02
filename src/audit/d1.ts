@@ -18,8 +18,6 @@ export interface D1AuditSinkOptions {
 	maxFieldLength?: number
 	/** Additional keys; Security's default secret keys are always included. */
 	redactKeys?: ReadonlyArray<string>
-	/** Disabled by default because arbitrary exception messages can contain secrets. */
-	includeErrorMessage?: boolean
 	logger?: Logger
 }
 
@@ -49,7 +47,6 @@ export function createD1AuditSink({
 	maxDetailBytes = 16_384,
 	maxFieldLength = 2_048,
 	redactKeys,
-	includeErrorMessage = false,
 	logger
 }: D1AuditSinkOptions): AuditSink {
 	if (!SQL_IDENTIFIER.test(tableName)) {
@@ -88,7 +85,7 @@ export function createD1AuditSink({
 						event.durationMs ?? null,
 						serializeDetail(event.detail, maxDetailBytes, resolvedRedactKeys),
 						bounded(event.error?.name, maxFieldLength),
-						includeErrorMessage ? bounded(event.error?.message, maxFieldLength) : null,
+						null,
 						bounded(event.timestamp, maxFieldLength)
 					)
 					.run()
@@ -97,6 +94,7 @@ export function createD1AuditSink({
 					action: event.action,
 					error: error instanceof Error ? error.name : 'UnknownError'
 				})
+				throw error
 			}
 		}
 	}

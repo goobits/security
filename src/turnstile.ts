@@ -6,10 +6,9 @@
  * @module @goobits/security/turnstile
  */
 
-import { readEnv } from './_internal/env.js'
+import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { isProductionRuntime } from './runtime.js'
+import { safeErrorContext, type Logger } from './logger.js'
 
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
@@ -115,7 +114,7 @@ export async function verifyTurnstile(
 	options: TurnstileOptions = {}
 ): Promise<TurnstileResult> {
 	const {
-		secretKey = readEnv('TURNSTILE_SECRET_KEY'),
+		secretKey = readRuntimeEnv('TURNSTILE_SECRET_KEY'),
 		action,
 		hostname,
 		remoteIp,
@@ -212,7 +211,7 @@ export async function verifyTurnstile(
 		if (data.hostname !== undefined) result.hostname = data.hostname
 		return result
 	} catch (error) {
-		log.error('Turnstile API request failed', { error: String(error) })
+		log.error('Turnstile API request failed', safeErrorContext(error))
 		return { success: false, reason: 'api-error' }
 	} finally {
 		clearTimeout(timeout)
