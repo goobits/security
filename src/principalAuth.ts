@@ -9,16 +9,12 @@
 
 import type { JWTPayload } from 'jose'
 
-import { constantTimeEqual, textToBytes } from './crypto/index.js'
+import { constantTimeEqual, type HmacAlgorithm, textToBytes } from './crypto/index.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import { parseBearerToken } from './httpCredentials.js'
 import type { PrincipalIdentity } from './identity/principal.js'
 import { signJwt, verifyJwt as verifyJwtToken } from './jwt.js'
-import type { Logger } from './logger.js'
-import { safeErrorContext } from './logger.js'
-
-/** Principal Auth Algorithm shape used for signed principals, API keys, and request authentication. */
-export type PrincipalAuthAlgorithm = 'HS256' | 'HS384' | 'HS512'
+import { safeErrorContext, type Logger } from './logger.js'
 
 /** Auth Principal shape used for signed principals, API keys, and request authentication. */
 export interface AuthPrincipal extends PrincipalIdentity {
@@ -45,7 +41,7 @@ export interface PrincipalAuthConfig {
 	/** Default JWT TTL for `createPrincipalToken()`. Number values are relative seconds. */
 	tokenTtl?: string | number
 	/** Allowed signing algorithms. Default: `['HS256']`. */
-	algorithms?: PrincipalAuthAlgorithm[]
+	algorithms?: HmacAlgorithm[]
 	/** Expected JWT audience. */
 	audience?: string | string[]
 	/** Expected JWT issuer. */
@@ -245,9 +241,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 	}
 	if (
 		clockTolerance !== undefined &&
-		(typeof clockTolerance !== 'number' ||
-			!Number.isFinite(clockTolerance) ||
-			clockTolerance < 0)
+		(typeof clockTolerance !== 'number' || !Number.isFinite(clockTolerance) || clockTolerance < 0)
 	) {
 		throw new Error('@goobits/security/principal-auth: clockTolerance must be non-negative')
 	}

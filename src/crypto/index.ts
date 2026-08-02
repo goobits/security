@@ -47,7 +47,6 @@ export {
 export {
 	type CreateSecurityProofOptions,
 	type SecurityProof,
-	type SecurityProofAlgorithm,
 	type SecurityProofVerification,
 	type VerifySecurityProofOptions,
 	attachSecurityProof,

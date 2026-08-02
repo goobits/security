@@ -9,16 +9,13 @@
 
 import { getRandomBytes, toHex } from './_internal/crypto.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
+import type { HmacAlgorithm } from './crypto/signatures.js'
 import type { Logger } from './logger.js'
 import {
 	createPrincipalAuth,
 	type AuthPrincipal,
-	type PrincipalAuthAlgorithm,
 	type PrincipalAuthResult
 } from './principalAuth.js'
-
-/** Supported HS-family algorithms. RS/ES variants would require key material. */
-export type AdminAuthAlgorithm = PrincipalAuthAlgorithm
 
 /** Admin User request or option shape for security middleware. */
 export interface AdminUser extends AuthPrincipal {
@@ -45,7 +42,7 @@ export interface AdminAuthConfig {
 	 */
 	tokenTtl?: string | number
 	/** Allowed signing algorithms. Default: `['HS256']`. Pin tight. */
-	algorithms?: AdminAuthAlgorithm[]
+	algorithms?: HmacAlgorithm[]
 	/**
 	 * Expected `aud` claim. If set, `requireAdmin()` rejects tokens whose
 	 * `aud` doesn't match. Pass through to `jose.jwtVerify`.

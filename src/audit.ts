@@ -5,8 +5,7 @@
  */
 
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { safeErrorContext } from './logger.js'
+import { safeErrorContext, type Logger } from './logger.js'
 import { DEFAULT_REDACT_KEYS, redactSensitive } from './redaction.js'
 
 /** Audit Outcome typed model for audit logging. */
