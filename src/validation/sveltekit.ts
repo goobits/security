@@ -89,7 +89,15 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 			if (schemas.body && request.method !== 'GET' && request.method !== 'HEAD') {
 				const readOptions =
 					options.maxBodyBytes === undefined ? {} : { maxBytes: options.maxBodyBytes }
-				const raw = await readJsonBody(request, readOptions)
+				let raw: unknown
+				try {
+					raw = await readJsonBody(request, readOptions)
+				} catch (error) {
+					if (!(error instanceof SyntaxError)) throw error
+					const issues = [{ code: 'custom', path: [], message: 'Malformed JSON' }]
+					log.warn('Request body JSON parsing failed', { path: url.pathname })
+					return onError('body', issues, event)
+				}
 				const result = await schemas.body.safeParseAsync(raw)
 				if (!result.success) {
 					log.warn('Request body validation failed', {

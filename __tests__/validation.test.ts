@@ -40,11 +40,11 @@ describe('getInputValidator', () => {
 })
 
 describe('withValidation', () => {
-	function makeEvent(body: unknown, headers: HeadersInit = {}): { event: unknown } {
+	function makeEvent(body: unknown, headers: HeadersInit = {}, raw = false): { event: unknown } {
 		const request = new Request('https://example.test/api?source=test', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json', ...headers },
-			body: JSON.stringify(body)
+			body: raw ? String(body) : JSON.stringify(body)
 		})
 		return {
 			event: {
@@ -93,6 +93,22 @@ describe('withValidation', () => {
 		const response = await handler(event as any)
 
 		expect(response.status).toBe(413)
+	})
+
+	it('rejects malformed JSON as an invalid request body', async () => {
+		const handler = withValidation({ body: z.object({ email: z.email() }) }, async () => {
+			return new Response('should not run')
+		})
+		const { event } = makeEvent('not-json', { 'Content-Type': 'application/octet-stream' }, true)
+
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const response = await handler(event as any)
+
+		expect(response.status).toBe(400)
+		expect(await response.json()).toMatchObject({
+			success: false,
+			error: 'Invalid request body'
+		})
 	})
 
 	it('lets application handler errors propagate', async () => {
