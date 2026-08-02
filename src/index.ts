@@ -54,9 +54,9 @@ export {
 	type CsrfConfig,
 	type CsrfProtection,
 	type CsrfTokenStore,
-	type GenerateOptions as CsrfGenerateOptions,
+	type CsrfGenerateOptions,
 	type MemoryCsrfStoreOptions,
-	type ValidateOptions as CsrfValidateOptions,
+	type CsrfValidateOptions,
 	CSRF_COOKIE_NAME,
 	CSRF_HEADER_NAME,
 	CSRF_TOKEN_EXPIRY_MS,
@@ -107,7 +107,6 @@ export {
 	type HmacAlgorithm,
 	type HmacSignature,
 	type SecurityProof,
-	type SecurityProofAlgorithm,
 	type SecurityProofVerification,
 	type VerifySecurityProofOptions,
 	attachSecurityProof,
@@ -201,7 +200,6 @@ export {
 	type AuthPrincipal,
 	type PrincipalApiKey,
 	type PrincipalAuth,
-	type PrincipalAuthAlgorithm,
 	type PrincipalAuthConfig,
 	type PrincipalAuthFailureReason,
 	type PrincipalAuthMethod,
@@ -209,7 +207,6 @@ export {
 	createPrincipalAuth
 } from './principalAuth.js'
 export {
-	type JwtHmacAlgorithm,
 	type JwtVerification,
 	type SignJwtOptions,
 	type VerifyJwtOptions,
@@ -218,7 +215,6 @@ export {
 } from './jwt.js'
 export {
 	type AdminAuth,
-	type AdminAuthAlgorithm,
 	type AdminAuthConfig,
 	type AdminAuthResult,
 	type AdminUser,

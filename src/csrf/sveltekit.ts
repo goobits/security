@@ -7,7 +7,12 @@
 import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit'
 
 import { resolveLogger } from '../_internal/resolveLogger.js'
-import { createCsrf, type CsrfConfig, type CsrfProtection, type GenerateOptions } from '../csrf.js'
+import {
+	createCsrf,
+	type CsrfConfig,
+	type CsrfGenerateOptions,
+	type CsrfProtection
+} from '../csrf.js'
 import { safeErrorContext } from '../logger.js'
 import { BodyTooLargeError, readRequestBodyBytes } from '../requestBody.js'
 import { isProductionRuntime } from '../runtime.js'
@@ -42,9 +47,9 @@ export interface SvelteKitCsrf {
 	readonly headerName: string
 	readonly protection: CsrfProtection
 	/** Generate a token and set its cookie without requiring a full request event. */
-	issue(cookies: SvelteKitCsrfCookies, options?: GenerateOptions): Promise<string>
+	issue(cookies: SvelteKitCsrfCookies, options?: CsrfGenerateOptions): Promise<string>
 	/** Generate a token and set its HttpOnly cookie on the event. */
-	generate(event: RequestEvent, options?: GenerateOptions): Promise<string>
+	generate(event: RequestEvent, options?: CsrfGenerateOptions): Promise<string>
 	/** Return the current cookie token, creating one when absent. */
 	getOrCreate(event: RequestEvent): Promise<string>
 	/** Validate a request against a SvelteKit-compatible cookie reader. */
@@ -126,7 +131,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 
 	async function issue(
 		cookies: SvelteKitCsrfCookies,
-		options: GenerateOptions = {}
+		options: CsrfGenerateOptions = {}
 	): Promise<string> {
 		const token = await protection.generate({ trackExpiry, ...options })
 		cookies.set(protection.cookieName, token, {
@@ -136,7 +141,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 		return token
 	}
 
-	async function generate(event: RequestEvent, options: GenerateOptions = {}): Promise<string> {
+	async function generate(event: RequestEvent, options: CsrfGenerateOptions = {}): Promise<string> {
 		return issue(event.cookies, options)
 	}
 

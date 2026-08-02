@@ -19,8 +19,7 @@ import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_interna
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
 import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { safeErrorContext } from './logger.js'
+import { safeErrorContext, type Logger } from './logger.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
@@ -76,7 +75,7 @@ export interface CsrfConfig {
 }
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
-export interface GenerateOptions {
+export interface CsrfGenerateOptions {
 	/** Override the default TTL. */
 	expiryMs?: number
 	/** If false, the token is generated but not stored. Default: true. */
@@ -84,7 +83,7 @@ export interface GenerateOptions {
 }
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
-export interface ValidateOptions {
+export interface CsrfValidateOptions {
 	/** If true, validation also checks store-tracked expiration. Default: false. */
 	checkExpiry?: boolean
 }
@@ -198,7 +197,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		)
 	}
 
-	async function generate(options: GenerateOptions = {}): Promise<string> {
+	async function generate(options: CsrfGenerateOptions = {}): Promise<string> {
 		const { expiryMs = defaultExpiryMs, trackExpiry = true } = options
 		const token = toHex(getRandomBytes(32))
 
@@ -255,7 +254,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		return expired
 	}
 
-	async function validate(request: Request, options: ValidateOptions = {}): Promise<boolean> {
+	async function validate(request: Request, options: CsrfValidateOptions = {}): Promise<boolean> {
 		if (disabled && !isProductionRuntime()) {
 			log.warn('CSRF validation disabled (test/dev mode)')
 			return true
@@ -309,10 +308,10 @@ export interface CsrfProtection {
 	readonly cookieName: string
 	readonly headerName: string
 	readonly storeSize: number | undefined
-	generate(options?: GenerateOptions): Promise<string>
+	generate(options?: CsrfGenerateOptions): Promise<string>
 	setCookie(response: Response, token: string): void
 	getToken(request: Request): string | null
-	validate(request: Request, options?: ValidateOptions): Promise<boolean>
+	validate(request: Request, options?: CsrfValidateOptions): Promise<boolean>
 	cleanup(): Promise<number>
 	clear(): Promise<void>
 }

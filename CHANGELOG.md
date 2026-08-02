@@ -61,6 +61,13 @@ All notable changes to `@goobits/security` are documented here. The format adher
   deployment binding; explicit unknown bindings always retain production-safe
   behavior.
 
+### Fixed
+
+- **`validation/sveltekit`**: Application handler errors now propagate to
+  SvelteKit instead of being rewritten as generic validation `500` responses.
+- **`validation/sveltekit`**: Malformed JSON bodies now use the body-validation
+  response instead of being reported as internal middleware errors.
+
 ## [3.0.0] - 2026-07-16
 
 ### Breaking
