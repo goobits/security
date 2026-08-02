@@ -6,8 +6,7 @@
 
 import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { safeErrorContext } from './logger.js'
+import { safeErrorContext, type Logger } from './logger.js'
 
 const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify'
 

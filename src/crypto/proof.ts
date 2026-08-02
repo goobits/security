@@ -1,12 +1,9 @@
 import { signHmac, type HmacAlgorithm, verifyHmac } from './signatures.js'
 
-/** Supported algorithm for security proofs. */
-export type SecurityProofAlgorithm = HmacAlgorithm
-
 /** HMAC-backed proof bound to a JSON-compatible payload. */
 export interface SecurityProof {
 	type: 'SecurityProof'
-	algorithm: SecurityProofAlgorithm
+	algorithm: HmacAlgorithm
 	created: string
 	verificationMethod: string
 	proofPurpose: string
@@ -20,7 +17,7 @@ export interface CreateSecurityProofOptions {
 	secret: Uint8Array | string
 	verificationMethod: string
 	proofPurpose?: string
-	algorithm?: SecurityProofAlgorithm
+	algorithm?: HmacAlgorithm
 	created?: string
 	domain?: string
 	challenge?: string

@@ -8,8 +8,7 @@ import type { RequestEvent, RequestHandler } from '@sveltejs/kit'
 
 import { BodyTooLargeError, readJsonBody, readRequestBodyBytes } from '../requestBody.js'
 import { resolveLogger } from '../_internal/resolveLogger.js'
-import type { Logger } from '../logger.js'
-import { safeErrorContext } from '../logger.js'
+import { safeErrorContext, type Logger } from '../logger.js'
 import type { ValidatedData, ValidationSchemas } from '../validation.js'
 
 export { BodyTooLargeError, readJsonBody, readRequestBodyBytes }
@@ -90,7 +89,15 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 			if (schemas.body && request.method !== 'GET' && request.method !== 'HEAD') {
 				const readOptions =
 					options.maxBodyBytes === undefined ? {} : { maxBytes: options.maxBodyBytes }
-				const raw = await readJsonBody(request, readOptions)
+				let raw: unknown
+				try {
+					raw = await readJsonBody(request, readOptions)
+				} catch (error) {
+					if (!(error instanceof SyntaxError)) throw error
+					const issues = [{ code: 'custom', path: [], message: 'Malformed JSON' }]
+					log.warn('Request body JSON parsing failed', { path: url.pathname })
+					return onError('body', issues, event)
+				}
 				const result = await schemas.body.safeParseAsync(raw)
 				if (!result.success) {
 					log.warn('Request body validation failed', {
@@ -127,14 +134,6 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 				validatedData.params = result.data
 			}
 
-			const eventWithLocals = event as RequestEvent & {
-				locals: RequestEvent['locals'] & {
-					validatedData: ValidatedData<Body, Query, Params>
-				}
-			}
-			eventWithLocals.locals.validatedData = validatedData
-
-			return await handler(eventWithLocals)
 		} catch (error) {
 			if (error instanceof BodyTooLargeError) {
 				log.warn('Validation request body too large', {
@@ -150,5 +149,14 @@ export function withValidation<Body = unknown, Query = unknown, Params = unknown
 			})
 			return jsonResponse({ success: false, error: 'Validation error' }, 500)
 		}
+
+		const eventWithLocals = event as RequestEvent & {
+			locals: RequestEvent['locals'] & {
+				validatedData: ValidatedData<Body, Query, Params>
+			}
+		}
+		eventWithLocals.locals.validatedData = validatedData
+
+		return handler(eventWithLocals)
 	}
 }

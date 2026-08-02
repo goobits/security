@@ -10,8 +10,7 @@
 
 import type { AuditEvent } from './audit.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
-import type { Logger } from './logger.js'
-import { safeErrorContext } from './logger.js'
+import { safeErrorContext, type Logger } from './logger.js'
 import { MemoryRateLimitStore, type RateLimitStore } from './rate-limit/index.js'
 
 /** Alert Severity typed model for security alerting. */

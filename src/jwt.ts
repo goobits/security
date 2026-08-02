@@ -1,15 +1,13 @@
 import { errors, jwtVerify, SignJWT, type JWTPayload } from 'jose'
 
 import { textToBytes } from './crypto/encoding.js'
-
-/** HMAC algorithms supported by the shared JWT primitive. */
-export type JwtHmacAlgorithm = 'HS256' | 'HS384' | 'HS512'
+import type { HmacAlgorithm } from './crypto/signatures.js'
 
 /** Options for issuing a short-lived, purpose-bound JWT. */
 export type SignJwtOptions = {
 	secret: string | Uint8Array
 	expiresIn: string | number
-	algorithm?: JwtHmacAlgorithm
+	algorithm?: HmacAlgorithm
 	audience?: string | string[]
 	issuer?: string
 	subject?: string
@@ -21,7 +19,7 @@ export type SignJwtOptions = {
 /** Options for verifying a purpose-bound JWT with a pinned algorithm. */
 export type VerifyJwtOptions = {
 	secret: string | Uint8Array
-	algorithms?: readonly JwtHmacAlgorithm[]
+	algorithms?: readonly HmacAlgorithm[]
 	audience?: string | string[]
 	issuer?: string | string[]
 	type?: string
@@ -32,8 +30,7 @@ export type VerifyJwtOptions = {
 
 /** Result of JWT verification without leaking JOSE implementation errors. */
 export type JwtVerification =
-	| { ok: true; payload: JWTPayload }
-	| { ok: false; reason: 'expired' | 'invalid' }
+	{ ok: true; payload: JWTPayload } | { ok: false; reason: 'expired' | 'invalid' }
 
 const minimumJwtHmacSecretBytes = 32
 
@@ -72,13 +69,9 @@ export async function verifyJwt(
 				algorithms: [...(options.algorithms ?? ['HS256'])],
 				...(options.audience === undefined ? {} : { audience: options.audience }),
 				...(options.issuer === undefined ? {} : { issuer: options.issuer }),
-				...(options.clockTolerance === undefined
-					? {}
-					: { clockTolerance: options.clockTolerance }),
+				...(options.clockTolerance === undefined ? {} : { clockTolerance: options.clockTolerance }),
 				...(options.currentDate === undefined ? {} : { currentDate: options.currentDate }),
-				...(options.requiredClaims === undefined
-					? {}
-					: { requiredClaims: options.requiredClaims })
+				...(options.requiredClaims === undefined ? {} : { requiredClaims: options.requiredClaims })
 			}
 		)
 		if (options.type !== undefined && protectedHeader.typ !== options.type) {
