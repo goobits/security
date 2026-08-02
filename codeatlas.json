@@ -1,0 +1,10 @@
+{
+	"root": ".",
+	"projects": [
+		{
+			"id": "security",
+			"root": ".",
+			"require_complete": true
+		}
+	]
+}
