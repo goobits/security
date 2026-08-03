@@ -79,7 +79,7 @@ function isAdminClaim(principal: AuthPrincipal): boolean {
 }
 
 function toAdminResult(result: PrincipalAuthResult): AdminAuthResult {
-	if (result.authenticated) {
+	if (result.authenticated === true) {
 		return {
 			authenticated: true,
 			user: result.principal as AdminUser,
@@ -137,7 +137,7 @@ export function createAdminAuth(config: AdminAuthConfig): AdminAuth {
 
 	async function requireAdmin(request: Request): Promise<AdminAuthResult> {
 		const result = await authenticate(request)
-		if (!result.authenticated) {
+		if (result.authenticated === false) {
 			log.warn('Admin route access denied', { reason: result.reason })
 		}
 		return result

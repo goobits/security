@@ -24,6 +24,7 @@ export {
 } from './d1Store.js'
 export {
 	PostgresRateLimitStore,
+	createPostgresRateLimitSchemaSql,
 	type PostgresRateLimitDatabase,
 	type PostgresRateLimitStoreOptions,
 	postgresRateLimitSchemaSql

@@ -24,6 +24,9 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - **`jwt`**: Static-JWKS verification can now return `key-not-found`, allowing
   caller-owned caches to refresh only for an unknown key ID. Expiration remains
   `expired`; all other signature and claim failures remain opaque as `invalid`.
+- **`rate-limit`**: `postgresRateLimitSchemaSql` is now the canonical default
+  schema string. Use `createPostgresRateLimitSchemaSql({ table })` when a
+  consumer owns a custom PostgreSQL table name.
 
 ### Security
 

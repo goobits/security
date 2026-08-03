@@ -194,7 +194,7 @@ export function validateArray<T>(
 	const validatedItems: T[] = []
 	for (let index = 0; index < value.length; index++) {
 		const itemResult = itemValidator(value[index], index)
-		if (!itemResult.isValid) {
+		if (itemResult.isValid === false) {
 			return invalidFormat(fieldName, `item at index ${index}: ${itemResult.issue.message}`)
 		}
 		validatedItems.push(itemResult.value as T)
@@ -225,7 +225,7 @@ export function validateObject<T extends Record<string, unknown>>(
 
 	for (const [key, validator] of Object.entries(schema)) {
 		const fieldResult = validator(objectValue[key], `${fieldName}.${key}`)
-		if (!fieldResult.isValid) {
+		if (fieldResult.isValid === false) {
 			return fieldResult
 		}
 		if (fieldResult.value !== undefined) {
@@ -260,7 +260,7 @@ export async function validateRequestBody<T extends Record<string, unknown>>(
 	const result = validateObject<T>(data, 'request body', schema, {
 		required: true
 	})
-	if (!result.isValid) {
+	if (result.isValid === false) {
 		throw new RequestValidationError(result.issue)
 	}
 

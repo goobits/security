@@ -505,7 +505,7 @@ import {
 	postgresRateLimitSchemaSql
 } from '@goobits/security/rate-limit'
 
-await pool.query(postgresRateLimitSchemaSql())
+await pool.query(postgresRateLimitSchemaSql)
 const durableStore = new PostgresRateLimitStore(pool)
 
 const store = createResilientRateLimitStore({
