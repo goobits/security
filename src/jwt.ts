@@ -1,13 +1,5 @@
-import {
-	createLocalJWKSet,
-	errors,
-	jwtVerify,
-	SignJWT,
-	type JSONWebKeySet,
-	type JWTPayload,
-	type JWTVerifyGetKey,
-	type JWTVerifyOptions
-} from 'jose'
+import * as jose from 'jose'
+import type { JSONWebKeySet, JWTPayload, JWTVerifyGetKey, JWTVerifyOptions } from 'jose'
 
 import { textToBytes } from './crypto/encoding.js'
 import type { HmacAlgorithm } from './crypto/signatures.js'
@@ -103,7 +95,7 @@ export async function signJwt(payload: JWTPayload, options: SignJwtOptions): Pro
 		typeof options.expiresIn === 'number'
 			? issuedAt + positiveLifetime(options.expiresIn)
 			: requiredText(options.expiresIn, 'JWT expiration')
-	let token = new SignJWT(payload)
+	let token = new jose.SignJWT(payload)
 		.setProtectedHeader({
 			alg: options.algorithm ?? 'HS256',
 			...(options.type ? { typ: options.type } : {})
@@ -145,7 +137,7 @@ export async function verifyJwtWithJwks(
 	validateRequiredClaims(options.requiredClaims)
 
 	try {
-		const keySet = createLocalJWKSet(snapshotPublicJwks(options.jwks))
+		const keySet = jose.createLocalJWKSet(snapshotPublicJwks(options.jwks))
 		return await verifyJwtWithKey(token, keySet, {
 			...options,
 			algorithms
@@ -175,7 +167,7 @@ async function verifyJwtWithKey(
 				: { requiredClaims: [...options.requiredClaims] }),
 			...(options.maxTokenAge === undefined ? {} : { maxTokenAge: options.maxTokenAge })
 		}
-		const { payload, protectedHeader } = await jwtVerify(
+		const { payload, protectedHeader } = await jose.jwtVerify(
 			requiredText(token, 'JWT'),
 			getKey,
 			verificationOptions
@@ -193,9 +185,9 @@ function failedVerification(error: unknown): JwtVerification {
 	return {
 		ok: false,
 		reason:
-			error instanceof errors.JWTExpired
+			error instanceof jose.errors.JWTExpired
 				? 'expired'
-				: error instanceof errors.JWKSNoMatchingKey
+				: error instanceof jose.errors.JWKSNoMatchingKey
 					? 'key-not-found'
 					: 'invalid'
 	}
