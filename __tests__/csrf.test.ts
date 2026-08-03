@@ -2,8 +2,18 @@ import { describe, expect, it } from 'vitest'
 
 import { createCsrf, MemoryCsrfStore } from '../src/csrf.js'
 
+const SECRET = 'csrf-test-secret-that-is-at-least-32-bytes'
+const SESSION_BINDING = 'session-123'
+
 function makeRequest(headers: Record<string, string>): Request {
 	return new Request('https://example.test/api', { headers })
+}
+
+function protectedRequest(token: string): Request {
+	return makeRequest({
+		cookie: `csrf-token=${token}`,
+		'X-CSRF-Token': token
+	})
 }
 
 function makeResponse(): Response {
@@ -11,56 +21,80 @@ function makeResponse(): Response {
 }
 
 describe('createCsrf', () => {
-	it('generates a 64-char hex token', async () => {
-		const csrf = createCsrf()
-		const token = await csrf.generate()
-		expect(token).toMatch(/^[0-9a-f]{64}$/)
+	it('requires a strong shared signing secret', () => {
+		expect(() => createCsrf({ secret: 'weak' })).toThrowError(/at least 32 bytes/)
 	})
 
-	it('sets the cookie + header in setCookie', async () => {
-		const csrf = createCsrf()
+	it('generates a signed token bound to the current session', async () => {
+		const csrf = createCsrf({ secret: SECRET })
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING })
+
+		expect(token).toMatch(/^v1\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/u)
+		expect(await csrf.validate(protectedRequest(token), { sessionBinding: SESSION_BINDING })).toBe(
+			true
+		)
+	})
+
+	it('rejects replay under another session binding', async () => {
+		const csrf = createCsrf({ secret: SECRET })
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
+
+		expect(await csrf.validate(protectedRequest(token), { sessionBinding: 'session-456' })).toBe(
+			false
+		)
+	})
+
+	it('rejects attacker-selected and tampered matching tokens', async () => {
+		const csrf = createCsrf({ secret: SECRET })
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
+		const tampered = `${token.slice(0, -1)}${token.endsWith('a') ? 'b' : 'a'}`
+
+		expect(
+			await csrf.validate(protectedRequest('attacker-known-token'), {
+				sessionBinding: SESSION_BINDING
+			})
+		).toBe(false)
+		expect(
+			await csrf.validate(protectedRequest(tampered), { sessionBinding: SESSION_BINDING })
+		).toBe(false)
+	})
+
+	it('sets the cookie and header in setCookie', async () => {
+		const csrf = createCsrf({ secret: SECRET })
 		const response = makeResponse()
-		const token = await csrf.generate({ trackExpiry: false })
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
 		csrf.setCookie(response, token)
 		expect(response.headers.get('Set-Cookie')).toContain(`csrf-token=${token}`)
 		expect(response.headers.get('X-CSRF-Token')).toBe(token)
 	})
 
-	it('validates matching cookie + header', async () => {
-		const csrf = createCsrf()
-		const token = await csrf.generate({ trackExpiry: false })
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
-		expect(await csrf.validate(request)).toBe(true)
+	it('rejects missing and mismatched double-submit values', async () => {
+		const csrf = createCsrf({ secret: SECRET })
+		const options = { sessionBinding: SESSION_BINDING }
+
+		expect(await csrf.validate(makeRequest({ 'X-CSRF-Token': 'abc' }), options)).toBe(false)
+		expect(await csrf.validate(makeRequest({ cookie: 'csrf-token=abc' }), options)).toBe(false)
+		expect(
+			await csrf.validate(
+				makeRequest({ cookie: 'csrf-token=aaaa', 'X-CSRF-Token': 'bbbb' }),
+				options
+			)
+		).toBe(false)
 	})
 
-	it('rejects when cookie missing', async () => {
-		const csrf = createCsrf()
-		const request = makeRequest({ 'X-CSRF-Token': 'abc' })
-		expect(await csrf.validate(request)).toBe(false)
-	})
+	it('rejects empty and oversized session bindings', async () => {
+		const csrf = createCsrf({ secret: SECRET })
 
-	it('rejects when header missing', async () => {
-		const csrf = createCsrf()
-		const request = makeRequest({ cookie: 'csrf-token=abc' })
-		expect(await csrf.validate(request)).toBe(false)
-	})
-
-	it('rejects mismatched cookie/header (constant-time comparison)', async () => {
-		const csrf = createCsrf()
-		const request = makeRequest({
-			cookie: 'csrf-token=aaaa',
-			'X-CSRF-Token': 'bbbb'
-		})
-		expect(await csrf.validate(request)).toBe(false)
+		await expect(csrf.generate({ sessionBinding: '' })).rejects.toThrowError(/non-empty/)
+		await expect(csrf.generate({ sessionBinding: 'a'.repeat(1_025) })).rejects.toThrowError(
+			/not exceed 1024 bytes/
+		)
 	})
 
 	it('tracks store size when trackExpiry is on', async () => {
-		const csrf = createCsrf()
-		await csrf.generate()
-		await csrf.generate()
+		const csrf = createCsrf({ secret: SECRET })
+		await csrf.generate({ sessionBinding: SESSION_BINDING })
+		await csrf.generate({ sessionBinding: SESSION_BINDING })
 		expect(csrf.storeSize).toBe(2)
 	})
 
@@ -95,78 +129,88 @@ describe('createCsrf', () => {
 		}
 	)
 
-	it('rejects expired tokens when checkExpiry is true', async () => {
-		const csrf = createCsrf({
+	it('rejects expired or untracked tokens when expiry checks are enabled', async () => {
+		const expired = createCsrf({
+			secret: SECRET,
 			tokenStore: {
-				get() {
-					return Date.now() - 1
-				},
+				get: () => Date.now() - 1,
 				set() {},
 				delete() {},
 				clear() {}
 			}
 		})
-		const token = await csrf.generate({ trackExpiry: false })
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
+		const expiredToken = await expired.generate({
+			sessionBinding: SESSION_BINDING,
+			trackExpiry: false
 		})
-		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
+		expect(
+			await expired.validate(protectedRequest(expiredToken), {
+				sessionBinding: SESSION_BINDING,
+				checkExpiry: true
+			})
+		).toBe(false)
+
+		const untracked = createCsrf({ secret: SECRET })
+		const untrackedToken = await untracked.generate({
+			sessionBinding: SESSION_BINDING,
+			trackExpiry: false
+		})
+		expect(
+			await untracked.validate(protectedRequest(untrackedToken), {
+				sessionBinding: SESSION_BINDING,
+				checkExpiry: true
+			})
+		).toBe(false)
 	})
 
-	it('rejects tokens missing from the store when checkExpiry is true', async () => {
-		const csrf = createCsrf()
-		const token = await csrf.generate({ trackExpiry: false })
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
-
-		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
-	})
-
-	it('allows expired tokens when checkExpiry is false (default)', async () => {
+	it('uses cookie lifetime when expiry checks are disabled', async () => {
 		const csrf = createCsrf({
+			secret: SECRET,
 			tokenStore: {
-				get() {
-					return Date.now() - 1
-				},
+				get: () => Date.now() - 1,
 				set() {},
 				delete() {},
 				clear() {}
 			}
 		})
-		const token = await csrf.generate({ trackExpiry: false })
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
-		expect(await csrf.validate(request)).toBe(true)
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
+
+		expect(
+			await csrf.validate(protectedRequest(token), {
+				sessionBinding: SESSION_BINDING,
+				checkExpiry: false
+			})
+		).toBe(true)
 	})
 
 	it('clear empties the store', async () => {
-		const csrf = createCsrf()
-		await csrf.generate()
-		await csrf.generate()
+		const csrf = createCsrf({ secret: SECRET })
+		await csrf.generate({ sessionBinding: SESSION_BINDING })
+		await csrf.generate({ sessionBinding: SESSION_BINDING })
 		expect(csrf.storeSize).toBe(2)
 		await csrf.clear()
 		expect(csrf.storeSize).toBe(0)
 	})
 
-	it('respects custom cookie + header names', async () => {
-		const csrf = createCsrf({ cookieName: 'my_csrf', headerName: 'My-CSRF' })
-		expect(csrf.cookieName).toBe('my_csrf')
-		expect(csrf.headerName).toBe('My-CSRF')
-		const token = await csrf.generate()
+	it('respects custom cookie and header names', async () => {
+		const csrf = createCsrf({
+			secret: SECRET,
+			cookieName: 'my_csrf',
+			headerName: 'My-CSRF'
+		})
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING })
 		const response = makeResponse()
 		csrf.setCookie(response, token)
+
+		expect(csrf.cookieName).toBe('my_csrf')
+		expect(csrf.headerName).toBe('My-CSRF')
 		expect(response.headers.get('Set-Cookie')).toContain(`my_csrf=${token}`)
 		expect(response.headers.get('My-CSRF')).toBe(token)
 	})
 
 	it('fails closed on store read errors by default', async () => {
-		const token = 'a'.repeat(64)
 		const csrf = createCsrf({
+			secret: SECRET,
 			tokenStore: {
 				get() {
 					throw new Error('store down')
@@ -176,17 +220,19 @@ describe('createCsrf', () => {
 				clear() {}
 			}
 		})
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
 
-		expect(await csrf.validate(request, { checkExpiry: true })).toBe(false)
+		expect(
+			await csrf.validate(protectedRequest(token), {
+				sessionBinding: SESSION_BINDING,
+				checkExpiry: true
+			})
+		).toBe(false)
 	})
 
 	it('allows an explicit fail-open policy for store read errors', async () => {
-		const token = 'a'.repeat(64)
 		const csrf = createCsrf({
+			secret: SECRET,
 			failClosed: false,
 			tokenStore: {
 				get() {
@@ -197,20 +243,21 @@ describe('createCsrf', () => {
 				clear() {}
 			}
 		})
-		const request = makeRequest({
-			cookie: `csrf-token=${token}`,
-			'X-CSRF-Token': token
-		})
+		const token = await csrf.generate({ sessionBinding: SESSION_BINDING, trackExpiry: false })
 
-		expect(await csrf.validate(request, { checkExpiry: true })).toBe(true)
+		expect(
+			await csrf.validate(protectedRequest(token), {
+				sessionBinding: SESSION_BINDING,
+				checkExpiry: true
+			})
+		).toBe(true)
 	})
 
 	it('surfaces store write errors during token generation', async () => {
 		const csrf = createCsrf({
+			secret: SECRET,
 			tokenStore: {
-				get() {
-					return undefined
-				},
+				get: () => undefined,
 				set() {
 					throw new Error('store down')
 				},
@@ -219,6 +266,6 @@ describe('createCsrf', () => {
 			}
 		})
 
-		await expect(csrf.generate()).rejects.toThrow('store down')
+		await expect(csrf.generate({ sessionBinding: SESSION_BINDING })).rejects.toThrow('store down')
 	})
 })

@@ -1,12 +1,13 @@
 /**
- * CSRF protection  -  double-submit cookie pattern with optional expiration.
+ * Session-bound, signed double-submit CSRF protection with optional expiration.
  *
  * Strategy:
- *   1. Server generates a random 256-bit token and sets it as an HttpOnly cookie.
- *   2. Server also exposes the token via response header so the client can echo
- *      it back in a request header on subsequent POST/PUT/DELETE requests.
- *   3. On those requests, server compares cookie token with header token using
- *      a constant-time comparison.
+ *   1. Server generates a random nonce and signs it together with an opaque
+ *      session binding using HMAC-SHA-256.
+ *   2. Server sets the signed token as a cookie and exposes it to trusted page
+ *      code so the client can echo it in a request header or form field.
+ *   3. On unsafe requests, server compares the cookie and submitted token in
+ *      constant time, then verifies the signature against the current binding.
  *
  * Token store is pluggable: a `Map` for in-memory (default; single-instance) or
  * any object implementing `CsrfTokenStore` (multi-instance, e.g. Redis  -  see
@@ -15,11 +16,13 @@
  * @module @goobits/security/csrf
  */
 
-import { getRandomBytes, timingSafeEqualBytes, toBytes, toHex } from './_internal/crypto.js'
+import { getRandomBytes, timingSafeEqualBytes, toBytes } from './_internal/crypto.js'
 import { type CookieOptions, parseCookies, serializeCookie } from './_internal/cookies.js'
 import { isProductionRuntime, readRuntimeEnv } from './runtime.js'
 import { resolveLogger } from './_internal/resolveLogger.js'
 import { safeErrorContext, type Logger } from './logger.js'
+import { bytesToBase64Url } from './crypto/encoding.js'
+import { signHmac, verifyHmac } from './crypto/signatures.js'
 
 /** Names the CSRF cookie name used by browser and server guards. */
 export const CSRF_COOKIE_NAME = 'csrf-token'
@@ -27,6 +30,11 @@ export const CSRF_COOKIE_NAME = 'csrf-token'
 export const CSRF_HEADER_NAME = 'X-CSRF-Token'
 /** Names the CSRF token expiry ms used by browser and server guards. */
 export const CSRF_TOKEN_EXPIRY_MS = 60 * 60 * 1000 // 1 hour
+
+const CSRF_TOKEN_CONTEXT = '@goobits/security/csrf/v1'
+const CSRF_TOKEN_PATTERN = /^v1\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})$/u
+const MIN_SECRET_BYTES = 32
+const MAX_SESSION_BINDING_BYTES = 1_024
 
 /**
  * Pluggable CSRF token store. Defaults to an in-memory `Map`. To use Redis
@@ -42,6 +50,11 @@ export interface CsrfTokenStore {
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
 export interface CsrfConfig {
+	/**
+	 * HMAC secret used to authenticate tokens. Must contain at least 32 UTF-8
+	 * bytes and must be identical across every instance serving the application.
+	 */
+	secret: string | Uint8Array
 	/** Cookie name. Default: `'csrf-token'`. */
 	cookieName?: string
 	/** Request header name carrying the token. Default: `'X-CSRF-Token'`. */
@@ -76,6 +89,11 @@ export interface CsrfConfig {
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
 export interface CsrfGenerateOptions {
+	/**
+	 * Opaque authenticated-session identifier or server-issued anonymous binding.
+	 * Tokens cannot be replayed under another binding.
+	 */
+	sessionBinding: string
 	/** Override the default TTL. */
 	expiryMs?: number
 	/** If false, the token is generated but not stored. Default: true. */
@@ -84,15 +102,11 @@ export interface CsrfGenerateOptions {
 
 /** Describes the CSRF store or request options used by the in-memory guard. */
 export interface CsrfValidateOptions {
+	/** Current binding that the submitted token must authenticate. */
+	sessionBinding: string
 	/** If true, validation also checks store-tracked expiration. Default: false. */
 	checkExpiry?: boolean
 }
-
-/** @deprecated Use `CsrfGenerateOptions`. */
-export type GenerateOptions = CsrfGenerateOptions
-
-/** @deprecated Use `CsrfValidateOptions`. */
-export type ValidateOptions = CsrfValidateOptions
 
 /** Configures the bounded in-memory CSRF token store. */
 export interface MemoryCsrfStoreOptions {
@@ -164,6 +178,33 @@ function defaultCookieOptions(): CookieOptions {
 	}
 }
 
+function validateSecret(secret: string | Uint8Array): Uint8Array {
+	const bytes = typeof secret === 'string' ? toBytes(secret) : secret
+	if (!(bytes instanceof Uint8Array) || bytes.byteLength < MIN_SECRET_BYTES) {
+		throw new Error(
+			`@goobits/security/csrf: secret must contain at least ${MIN_SECRET_BYTES} bytes`
+		)
+	}
+	return Uint8Array.from(bytes)
+}
+
+function validateSessionBinding(sessionBinding: string): string {
+	if (typeof sessionBinding !== 'string' || sessionBinding.length === 0) {
+		throw new Error('@goobits/security/csrf: sessionBinding must be a non-empty string')
+	}
+	if (toBytes(sessionBinding).byteLength > MAX_SESSION_BINDING_BYTES) {
+		throw new Error(
+			`@goobits/security/csrf: sessionBinding must not exceed ${MAX_SESSION_BINDING_BYTES} bytes`
+		)
+	}
+	return sessionBinding
+}
+
+function tokenPayload(sessionBinding: string, nonce: string): string {
+	const binding = validateSessionBinding(sessionBinding)
+	return `${CSRF_TOKEN_CONTEXT}\0${toBytes(binding).byteLength}\0${binding}\0${nonce}`
+}
+
 /**
  * Create a CSRF protection instance.
  *
@@ -171,20 +212,21 @@ function defaultCookieOptions(): CookieOptions {
  * ```ts
  * import { createCsrf } from '@goobits/security/csrf'
  *
- * const csrf = createCsrf({ logger: myLogger })
+ * const csrf = createCsrf({ secret: process.env.CSRF_SECRET! })
  *
  * // In a load function / page server hook:
- * const token = csrf.generate()
+ * const token = await csrf.generate({ sessionBinding: session.id })
  * csrf.setCookie(response, token)
  *
  * // In an action / form handler:
- * if (!(await csrf.validate(request))) {
+ * if (!(await csrf.validate(request, { sessionBinding: session.id }))) {
  *   return new Response('Invalid CSRF token', { status: 403 })
  * }
  * ```
  */
-export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
+export function createCsrf(config: CsrfConfig): CsrfProtection {
 	const log = resolveLogger(config.logger)
+	const secret = validateSecret(config.secret)
 	const store = config.tokenStore ?? new MemoryCsrfStore()
 	const cookieName = config.cookieName ?? CSRF_COOKIE_NAME
 	const headerName = config.headerName ?? CSRF_HEADER_NAME
@@ -203,9 +245,11 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		)
 	}
 
-	async function generate(options: CsrfGenerateOptions = {}): Promise<string> {
+	async function generate(options: CsrfGenerateOptions): Promise<string> {
 		const { expiryMs = defaultExpiryMs, trackExpiry = true } = options
-		const token = toHex(getRandomBytes(32))
+		const nonce = bytesToBase64Url(getRandomBytes(32))
+		const signature = await signHmac(tokenPayload(options.sessionBinding, nonce), secret)
+		const token = `v1.${nonce}.${signature.value}`
 
 		if (trackExpiry) {
 			const expires = Date.now() + expiryMs
@@ -260,7 +304,7 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 		return expired
 	}
 
-	async function validate(request: Request, options: CsrfValidateOptions = {}): Promise<boolean> {
+	async function validate(request: Request, options: CsrfValidateOptions): Promise<boolean> {
 		if (disabled && !isProductionRuntime()) {
 			log.warn('CSRF validation disabled (test/dev mode)')
 			return true
@@ -271,12 +315,26 @@ export function createCsrf(config: CsrfConfig = {}): CsrfProtection {
 
 		const headerToken = request.headers.get(headerName)
 		if (!headerToken) return false
+		if (!timingSafeEqualBytes(toBytes(cookieToken), toBytes(headerToken))) return false
+
+		const match = CSRF_TOKEN_PATTERN.exec(cookieToken)
+		if (!match) return false
+		const [, nonce, signature] = match
+		if (
+			!(await verifyHmac(
+				tokenPayload(options.sessionBinding, nonce!),
+				{ algorithm: 'HS256', value: signature! },
+				secret
+			))
+		) {
+			return false
+		}
 
 		if (options.checkExpiry && (await isTokenExpired(cookieToken))) {
 			return false
 		}
 
-		return timingSafeEqualBytes(toBytes(cookieToken), toBytes(headerToken))
+		return true
 	}
 
 	async function cleanup(): Promise<number> {
@@ -314,10 +372,10 @@ export interface CsrfProtection {
 	readonly cookieName: string
 	readonly headerName: string
 	readonly storeSize: number | undefined
-	generate(options?: CsrfGenerateOptions): Promise<string>
+	generate(options: CsrfGenerateOptions): Promise<string>
 	setCookie(response: Response, token: string): void
 	getToken(request: Request): string | null
-	validate(request: Request, options?: CsrfValidateOptions): Promise<boolean>
+	validate(request: Request, options: CsrfValidateOptions): Promise<boolean>
 	cleanup(): Promise<number>
 	clear(): Promise<void>
 }

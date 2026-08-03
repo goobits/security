@@ -77,7 +77,7 @@ export type VerifyJwtWithJwksOptions = Omit<
 /** Result of JWT verification without leaking JOSE implementation errors. */
 export type JwtVerification =
 	| { ok: true; payload: JWTPayload }
-	| { ok: false; reason: 'expired' | 'invalid' }
+	| { ok: false; reason: 'expired' | 'key-not-found' | 'invalid' }
 
 const minimumJwtHmacSecretBytes = 32
 const maximumJwksKeys = 100
@@ -192,7 +192,12 @@ async function verifyJwtWithKey(
 function failedVerification(error: unknown): JwtVerification {
 	return {
 		ok: false,
-		reason: error instanceof errors.JWTExpired ? 'expired' : 'invalid'
+		reason:
+			error instanceof errors.JWTExpired
+				? 'expired'
+				: error instanceof errors.JWKSNoMatchingKey
+					? 'key-not-found'
+					: 'invalid'
 	}
 }
 

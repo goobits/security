@@ -11,7 +11,7 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 
 ## Highlights
 
-- **CSRF:** double-submit cookie pattern with timing-safe comparison, pluggable token store (in-memory or Redis)
+- **CSRF:** signed, session-bound double-submit tokens with timing-safe comparison and an optional shared expiry store
 - **Rate limiting:** sliding-window counter with multi-window support, pluggable store
 - **Private rate-limit keys:** optional HMAC store wrapper keeps raw identifiers out of backing stores
 - **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
@@ -312,19 +312,24 @@ Narrow imports are also available: `@goobits/security/crypto/encoding`,
 ```ts
 import { createCsrf } from '@goobits/security/csrf'
 
-const csrf = createCsrf()
+const csrf = createCsrf({ secret: process.env.SECURITY_HMAC_SECRET! })
 
 // In a page load or hook:
 const response = await resolve(event)
-const token = await csrf.generate()
+const token = await csrf.generate({ sessionBinding: session.id })
 csrf.setCookie(response, token)
 return response
 
 // In a form action:
-if (!(await csrf.validate(event.request))) {
+if (!(await csrf.validate(event.request, { sessionBinding: session.id }))) {
 	return new Response('Invalid CSRF token', { status: 403 })
 }
 ```
+
+The secret must contain at least 32 UTF-8 bytes and be identical across all
+instances. The binding is an opaque, server-trusted session identifier. A token
+copied into a different session fails authentication even when its cookie and
+submitted value match.
 
 **Multi-instance deployment?** Swap the in-memory store for a Redis one. The
 package accepts a structural `RedisLike` client; this example uses host-owned
@@ -337,6 +342,7 @@ import { createRedisCsrfStore } from '@goobits/security/csrf-redis'
 
 const client = new Redis(process.env.REDIS_URL!)
 const csrf = createCsrf({
+	secret: process.env.SECURITY_HMAC_SECRET!,
 	tokenStore: createRedisCsrfStore({ client })
 })
 ```
@@ -357,10 +363,16 @@ Store errors (Redis down, etc.) make expiry-checked validation fail by default.
 Only an explicit availability-over-correctness policy should opt out:
 
 ```ts
-const csrf = createCsrf({ failClosed: false })
+const csrf = createCsrf({
+	secret: process.env.SECURITY_HMAC_SECRET!,
+	failClosed: false
+})
 
 // On a route that explicitly checks expiration:
-if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
+if (!(await csrf.validate(event.request, {
+	sessionBinding: session.id,
+	checkExpiry: true
+}))) {
 	return new Response('CSRF validation failed', { status: 403 })
 }
 ```
@@ -373,8 +385,10 @@ if (!(await csrf.validate(event.request, { checkExpiry: true }))) {
 import { createSvelteKitCsrf } from '@goobits/security/csrf/sveltekit'
 
 export const csrf = createSvelteKitCsrf({
+	secret: process.env.SECURITY_HMAC_SECRET!,
 	cookieName: 'csrf_token',
 	tokenFieldName: 'csrf_token',
+	getSessionBinding: (event) => event.cookies.get('app_session'),
 	cookieOptions: {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === 'production',
@@ -392,13 +406,30 @@ const token = await csrf.getOrCreate(event)
 ```
 
 The adapter checks headers, URL-encoded forms, multipart forms, and JSON bodies.
-Body inspection is bounded to 64 KiB by default. It uses stateless double-submit
-cookies by default, so cookie expiry owns the token lifecycle without requiring
-replica-local memory. Set `trackExpiry: true` only with a shared token store.
+Body inspection is bounded to 64 KiB by default. Authenticated requests bind to
+the value returned by `getSessionBinding`; anonymous requests receive a random,
+HttpOnly host binding cookie (`__Host-...` when secure cookies are enabled).
+Cookie expiry owns the default token lifecycle without replica-local memory.
+Set `trackExpiry: true` only with a shared token store.
+
+### Migrating from 3.x
+
+- Pass a 32-byte-or-longer `secret` to `createCsrf()` and
+  `createSvelteKitCsrf()`.
+- Pass `sessionBinding` to the framework-neutral `generate()` and `validate()`
+  methods. In SvelteKit, provide `getSessionBinding` when a login session exists;
+  the adapter securely supplies an anonymous fallback.
+- Replace the removed `GenerateOptions` and `ValidateOptions` aliases with
+  `CsrfGenerateOptions` and `CsrfValidateOptions`.
+- Handle `key-not-found` from static-JWKS verification when the caller owns key
+  refresh. Other signature and claim failures remain opaque as `invalid`.
 
 ### `disabled`: tests only
 
-Set via `DISABLE_CSRF=true` env var or `createCsrf({ disabled: true })`. `createCsrf()` **throws synchronously** if either is set when `NODE_ENV === 'production'`, failing loud and never silently disabled in prod.
+Set via `DISABLE_CSRF=true` or the factory's `disabled: true` option (the signing
+secret is still required). `createCsrf()` **throws synchronously** if either is
+set when `NODE_ENV === 'production'`, failing loud and never silently disabled
+in production.
 
 ### `serializeCookie` rejects illegal characters
 
@@ -784,7 +815,10 @@ import { createConsoleLogger } from '@goobits/security/logger'
 
 const log = createConsoleLogger({ prefix: '[my-app]', level: 'debug' })
 
-const csrf = createCsrf({ logger: log })
+const csrf = createCsrf({
+	secret: process.env.SECURITY_HMAC_SECRET!,
+	logger: log
+})
 ```
 
 Any object implementing `{ debug, info, warn, error }` works, including Pino, Winston, or `console`.

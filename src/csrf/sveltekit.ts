@@ -7,12 +7,15 @@
 import type { Cookies, Handle, RequestEvent } from '@sveltejs/kit'
 
 import { resolveLogger } from '../_internal/resolveLogger.js'
+import { getRandomBytes } from '../_internal/crypto.js'
 import {
 	createCsrf,
 	type CsrfConfig,
 	type CsrfGenerateOptions,
-	type CsrfProtection
+	type CsrfProtection,
+	type CsrfValidateOptions
 } from '../csrf.js'
+import { bytesToBase64Url } from '../crypto/encoding.js'
 import { safeErrorContext } from '../logger.js'
 import { BodyTooLargeError, readRequestBodyBytes } from '../requestBody.js'
 import { isProductionRuntime } from '../runtime.js'
@@ -22,6 +25,11 @@ const DEFAULT_SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS'] as const
 
 /** Configures CSRF protection for SvelteKit requests and cookies. */
 export interface SvelteKitCsrfConfig extends CsrfConfig {
+	/**
+	 * Resolve the current authenticated-session binding. Returning null uses a
+	 * server-issued HttpOnly host cookie for anonymous requests.
+	 */
+	getSessionBinding?(event: RequestEvent): string | null | undefined | Promise<string | null | undefined>
 	/** Form or JSON field containing the submitted token. Default: `csrf_token`. */
 	tokenFieldName?: string
 	/** Maximum request body bytes inspected for a token. Default: 64 KiB. */
@@ -41,19 +49,27 @@ export interface SvelteKitCsrfConfig extends CsrfConfig {
 /** Minimal SvelteKit cookie surface needed by the CSRF adapter. */
 export type SvelteKitCsrfCookies = Pick<Cookies, 'get' | 'set'>
 
+/** Generation options when a SvelteKit event resolves the binding. */
+export type SvelteKitCsrfGenerateOptions = Omit<CsrfGenerateOptions, 'sessionBinding'>
+
 /** CSRF operations bound to SvelteKit's request and cookie APIs. */
 export interface SvelteKitCsrf {
 	readonly cookieName: string
+	readonly bindingCookieName: string
 	readonly headerName: string
 	readonly protection: CsrfProtection
-	/** Generate a token and set its cookie without requiring a full request event. */
-	issue(cookies: SvelteKitCsrfCookies, options?: CsrfGenerateOptions): Promise<string>
-	/** Generate a token and set its HttpOnly cookie on the event. */
-	generate(event: RequestEvent, options?: CsrfGenerateOptions): Promise<string>
-	/** Return the current cookie token, creating one when absent. */
+	/** Generate a token for an explicit binding without requiring a request event. */
+	issue(cookies: SvelteKitCsrfCookies, options: CsrfGenerateOptions): Promise<string>
+	/** Generate a token bound to the current session or anonymous host cookie. */
+	generate(event: RequestEvent, options?: SvelteKitCsrfGenerateOptions): Promise<string>
+	/** Return a valid token for the current binding, replacing stale tokens. */
 	getOrCreate(event: RequestEvent): Promise<string>
-	/** Validate a request against a SvelteKit-compatible cookie reader. */
-	validateRequest(request: Request, cookies: Pick<Cookies, 'get'>): Promise<boolean>
+	/** Validate a request against an explicit binding and compatible cookie reader. */
+	validateRequest(
+		request: Request,
+		cookies: Pick<Cookies, 'get'>,
+		options: CsrfValidateOptions
+	): Promise<boolean>
 	/** Validate the request's header or bounded body token against its cookie. */
 	validate(event: RequestEvent): Promise<boolean>
 	/** SvelteKit handle that enforces validation for unsafe methods. */
@@ -61,12 +77,14 @@ export interface SvelteKitCsrf {
 }
 
 /**
- * Create stateless double-submit CSRF protection for SvelteKit.
+ * Create signed, session-bound double-submit CSRF protection for SvelteKit.
  *
  * Set `trackExpiry: true` only when the configured token store is shared by
- * every service instance. Cookie expiration is the default lifecycle owner.
+ * every service instance. Cookie expiration is the default lifecycle owner. If
+ * `getSessionBinding` returns null, anonymous requests are bound to a protected
+ * `__Host-` cookie in secure deployments.
  */
-export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKitCsrf {
+export function createSvelteKitCsrf(config: SvelteKitCsrfConfig): SvelteKitCsrf {
 	const log = resolveLogger(config.logger)
 	const tokenFieldName = config.tokenFieldName ?? 'csrf_token'
 	const maxBodyBytes = config.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES
@@ -83,6 +101,20 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 		maxAge: 60 * 60 * 24
 	}
 	const protection = createCsrf({ ...config, cookieOptions })
+	const secureCookies = cookieOptions.secure === true
+	const bareCookieName = protection.cookieName.startsWith('__Host-')
+		? protection.cookieName.slice('__Host-'.length)
+		: protection.cookieName
+	const bindingCookieName = secureCookies
+		? `__Host-${bareCookieName}-binding`
+		: `${bareCookieName}-binding`
+	const bindingCookieOptions = {
+		httpOnly: true,
+		secure: secureCookies,
+		sameSite: 'lax' as const,
+		path: '/',
+		...(cookieOptions.maxAge === undefined ? {} : { maxAge: cookieOptions.maxAge })
+	}
 
 	if (!Number.isSafeInteger(maxBodyBytes) || maxBodyBytes <= 0) {
 		throw new Error('createSvelteKitCsrf: maxBodyBytes must be a positive safe integer')
@@ -131,7 +163,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 
 	async function issue(
 		cookies: SvelteKitCsrfCookies,
-		options: CsrfGenerateOptions = {}
+		options: CsrfGenerateOptions
 	): Promise<string> {
 		const token = await protection.generate({ trackExpiry, ...options })
 		cookies.set(protection.cookieName, token, {
@@ -141,17 +173,58 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 		return token
 	}
 
-	async function generate(event: RequestEvent, options: CsrfGenerateOptions = {}): Promise<string> {
-		return issue(event.cookies, options)
+	function readFallbackBinding(cookies: Pick<Cookies, 'get'>): string | null {
+		const value = cookies.get(bindingCookieName)
+		return value && /^[A-Za-z0-9_-]{43}$/u.test(value) ? value : null
+	}
+
+	async function resolveBinding(event: RequestEvent, createFallback: boolean): Promise<string | null> {
+		const sessionBinding = await config.getSessionBinding?.(event)
+		if (sessionBinding !== null && sessionBinding !== undefined && sessionBinding !== '') {
+			return sessionBinding
+		}
+
+		const existing = readFallbackBinding(event.cookies)
+		if (existing || !createFallback) return existing
+
+		const binding = bytesToBase64Url(getRandomBytes(32))
+		event.cookies.set(bindingCookieName, binding, bindingCookieOptions)
+		return binding
+	}
+
+	async function generate(
+		event: RequestEvent,
+		options: SvelteKitCsrfGenerateOptions = {}
+	): Promise<string> {
+		const sessionBinding = await resolveBinding(event, true)
+		return issue(event.cookies, { ...options, sessionBinding: sessionBinding! })
 	}
 
 	async function getOrCreate(event: RequestEvent): Promise<string> {
-		return event.cookies.get(protection.cookieName) ?? generate(event)
+		const sessionBinding = await resolveBinding(event, true)
+		const token = event.cookies.get(protection.cookieName)
+		if (token && (await validatePair(token, token, { sessionBinding: sessionBinding!, checkExpiry }))) {
+			return token
+		}
+		return issue(event.cookies, { sessionBinding: sessionBinding!, trackExpiry })
+	}
+
+	async function validatePair(
+		cookieToken: string,
+		requestToken: string,
+		options: CsrfValidateOptions
+	): Promise<boolean> {
+		const headers = new Headers({
+			cookie: `${protection.cookieName}=${cookieToken}`,
+			[protection.headerName]: requestToken
+		})
+		return protection.validate(new Request('https://csrf.internal/', { headers }), options)
 	}
 
 	async function validateRequest(
 		request: Request,
-		cookies: Pick<Cookies, 'get'>
+		cookies: Pick<Cookies, 'get'>,
+		options: CsrfValidateOptions
 	): Promise<boolean> {
 		const cookieToken = cookies.get(protection.cookieName)
 		if (!cookieToken) return false
@@ -160,15 +233,13 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 			request.headers.get(protection.headerName) ?? (await readBodyToken(request))
 		if (!requestToken) return false
 
-		const headers = new Headers({
-			cookie: `${protection.cookieName}=${cookieToken}`,
-			[protection.headerName]: requestToken
-		})
-		return protection.validate(new Request(request.url, { headers }), { checkExpiry })
+		return validatePair(cookieToken, requestToken, options)
 	}
 
 	async function validate(event: RequestEvent): Promise<boolean> {
-		return validateRequest(event.request, event.cookies)
+		const sessionBinding = await resolveBinding(event, false)
+		if (!sessionBinding) return false
+		return validateRequest(event.request, event.cookies, { sessionBinding, checkExpiry })
 	}
 
 	const handle: Handle = async ({ event, resolve }) => {
@@ -189,6 +260,7 @@ export function createSvelteKitCsrf(config: SvelteKitCsrfConfig = {}): SvelteKit
 
 	return {
 		cookieName: protection.cookieName,
+		bindingCookieName,
 		headerName: protection.headerName,
 		protection,
 		issue,

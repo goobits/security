@@ -1,7 +1,13 @@
 import type { Cookies, RequestEvent } from '@sveltejs/kit'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createSvelteKitCsrf } from '../src/csrf/sveltekit.js'
+import {
+	createSvelteKitCsrf,
+	type SvelteKitCsrfConfig
+} from '../src/csrf/sveltekit.js'
+
+const SECRET = 'csrf-test-secret-that-is-at-least-32-bytes'
+const SESSION_BINDING = 'session-123'
 
 function event(request: Request, initialCookies: Record<string, string> = {}): RequestEvent {
 	const values = new Map(Object.entries(initialCookies))
@@ -28,9 +34,19 @@ function request(body?: BodyInit, headers: Record<string, string> = {}): Request
 	})
 }
 
+function sessionCsrf(overrides: Partial<SvelteKitCsrfConfig> = {}) {
+	return createSvelteKitCsrf({
+		secret: SECRET,
+		cookieName: 'csrf_token',
+		getSessionBinding: () => SESSION_BINDING,
+		...overrides
+	})
+}
+
 describe('createSvelteKitCsrf', () => {
-	it('generates a stateless token and sets the configured SvelteKit cookie', async () => {
+	it('binds anonymous tokens to an HttpOnly __Host- cookie in secure deployments', async () => {
 		const csrf = createSvelteKitCsrf({
+			secret: SECRET,
 			cookieName: 'csrf_token',
 			cookieOptions: { httpOnly: true, sameSite: 'strict', secure: true, path: '/', maxAge: 60 }
 		})
@@ -38,9 +54,16 @@ describe('createSvelteKitCsrf', () => {
 
 		const token = await csrf.generate(requestEvent)
 
-		expect(token).toMatch(/^[0-9a-f]{64}$/)
+		expect(token).toMatch(/^v1\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/u)
+		expect(csrf.bindingCookieName).toBe('__Host-csrf_token-binding')
 		expect(csrf.protection.storeSize).toBe(0)
-		expect(requestEvent.cookies.set).toHaveBeenCalledWith('csrf_token', token, {
+		expect(requestEvent.cookies.set).toHaveBeenNthCalledWith(
+			1,
+			'__Host-csrf_token-binding',
+			expect.stringMatching(/^[A-Za-z0-9_-]{43}$/u),
+			{ httpOnly: true, sameSite: 'lax', secure: true, path: '/', maxAge: 60 }
+		)
+		expect(requestEvent.cookies.set).toHaveBeenNthCalledWith(2, 'csrf_token', token, {
 			httpOnly: true,
 			sameSite: 'strict',
 			secure: true,
@@ -49,27 +72,47 @@ describe('createSvelteKitCsrf', () => {
 		})
 	})
 
-	it('reuses an existing cookie token', async () => {
-		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
-		const requestEvent = event(request(), { csrf_token: 'existing' })
+	it('reuses a token only while its session binding remains valid', async () => {
+		const csrf = createSvelteKitCsrf({
+			secret: SECRET,
+			cookieName: 'csrf_token',
+			getSessionBinding: (requestEvent) =>
+				(requestEvent.locals as { sessionId?: string }).sessionId ?? null
+		})
+		const requestEvent = event(request())
+		;(requestEvent.locals as { sessionId?: string }).sessionId = 'session-1'
+		const first = await csrf.generate(requestEvent)
+		vi.mocked(requestEvent.cookies.set).mockClear()
 
-		await expect(csrf.getOrCreate(requestEvent)).resolves.toBe('existing')
+		await expect(csrf.getOrCreate(requestEvent)).resolves.toBe(first)
 		expect(requestEvent.cookies.set).not.toHaveBeenCalled()
+
+		;(requestEvent.locals as { sessionId?: string }).sessionId = 'session-2'
+		const second = await csrf.getOrCreate(requestEvent)
+		expect(second).not.toBe(first)
+		expect(requestEvent.cookies.set).toHaveBeenCalledTimes(1)
 	})
 
-	it('supports thin package bridges without reconstructing request events', async () => {
-		const token = 'a'.repeat(64)
-		const requestEvent = event(request(), { csrf_token: token })
-		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
+	it('supports thin package bridges with an explicit binding', async () => {
+		const csrf = sessionCsrf()
+		const requestEvent = event(request())
+		const token = await csrf.issue(requestEvent.cookies, {
+			sessionBinding: SESSION_BINDING,
+			trackExpiry: false
+		})
 		const candidate = request(undefined, { 'X-CSRF-Token': token })
 
-		await expect(csrf.validateRequest(candidate, requestEvent.cookies)).resolves.toBe(true)
-		await expect(csrf.issue(requestEvent.cookies)).resolves.toMatch(/^[0-9a-f]{64}$/)
+		await expect(
+			csrf.validateRequest(candidate, requestEvent.cookies, {
+				sessionBinding: SESSION_BINDING
+			})
+		).resolves.toBe(true)
 	})
 
 	it('validates header, URL-encoded, JSON, and multipart tokens', async () => {
-		const token = 'a'.repeat(64)
-		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
+		const csrf = sessionCsrf()
+		const seed = event(request())
+		const token = await csrf.generate(seed)
 		const cases = [
 			request(undefined, { 'X-CSRF-Token': token }),
 			request(`csrf_token=${token}`, { 'Content-Type': 'application/x-www-form-urlencoded' }),
@@ -88,28 +131,32 @@ describe('createSvelteKitCsrf', () => {
 		}
 	})
 
-	it('rejects missing, mismatched, malformed, and oversized tokens', async () => {
-		const token = 'a'.repeat(64)
-		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token', maxBodyBytes: 32 })
+	it('rejects missing, mismatched, malformed, oversized, and unbound tokens', async () => {
+		const csrf = sessionCsrf({ maxBodyBytes: 32 })
+		const seed = event(request())
+		const token = await csrf.generate(seed)
 		const cases = [
 			event(request(''), { csrf_token: token }),
 			event(request(undefined, { 'X-CSRF-Token': 'wrong' }), { csrf_token: token }),
 			event(request('{', { 'Content-Type': 'application/json' }), { csrf_token: token }),
 			event(
 				request(`csrf_token=${token}`, { 'Content-Type': 'application/x-www-form-urlencoded' }),
-				{
-					csrf_token: token
-				}
+				{ csrf_token: token }
 			)
 		]
 
 		for (const candidate of cases) {
 			await expect(csrf.validate(candidate)).resolves.toBe(false)
 		}
+
+		const anonymous = createSvelteKitCsrf({ secret: SECRET, cookieName: 'csrf_token' })
+		await expect(
+			anonymous.validate(event(request(undefined, { 'X-CSRF-Token': token }), { csrf_token: token }))
+		).resolves.toBe(false)
 	})
 
 	it('allows safe methods and rejects unsafe requests through its handle', async () => {
-		const csrf = createSvelteKitCsrf({ cookieName: 'csrf_token' })
+		const csrf = createSvelteKitCsrf({ secret: SECRET, cookieName: 'csrf_token' })
 		const resolve = vi.fn().mockResolvedValue(new Response('OK'))
 
 		const allowed = await csrf.handle({ event: event(request()), resolve })
@@ -123,7 +170,9 @@ describe('createSvelteKitCsrf', () => {
 	it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
 		'rejects invalid maxBodyBytes %s',
 		(maxBodyBytes) => {
-			expect(() => createSvelteKitCsrf({ maxBodyBytes })).toThrowError(/positive safe integer/)
+			expect(() => createSvelteKitCsrf({ secret: SECRET, maxBodyBytes })).toThrowError(
+				/positive safe integer/
+			)
 		}
 	)
 })

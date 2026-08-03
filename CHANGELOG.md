@@ -6,6 +6,30 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-08-03
+
+### Breaking
+
+- **`csrf`**: CSRF tokens are now HMAC-signed and bound to an opaque current
+  session identifier. Factories require a secret of at least 32 bytes, and the
+  framework-neutral `generate()` and `validate()` calls require
+  `sessionBinding`. Matching attacker-selected cookie/header values no longer
+  pass validation.
+- **`csrf/sveltekit`**: The adapter requires the signing secret and rotates a
+  token when its authenticated session binding changes. Anonymous requests use
+  a server-issued HttpOnly host binding cookie, with the `__Host-` prefix in
+  secure deployments.
+- Removed the deprecated `GenerateOptions` and `ValidateOptions` aliases. Use
+  `CsrfGenerateOptions` and `CsrfValidateOptions`.
+- **`jwt`**: Static-JWKS verification can now return `key-not-found`, allowing
+  caller-owned caches to refresh only for an unknown key ID. Expiration remains
+  `expired`; all other signature and claim failures remain opaque as `invalid`.
+
+### Security
+
+- Prevented naive double-submit CSRF bypasses caused by sibling-domain cookie
+  planting or any other attacker-selected matching cookie and request token.
+
 ## [3.1.0] - 2026-08-03
 
 ### Added

@@ -46,6 +46,7 @@ export interface RedisCsrfStoreOptions {
  *
  * const client = new Redis(process.env.REDIS_URL!)
  * const csrf = createCsrf({
+ *   secret: process.env.SECURITY_HMAC_SECRET!,
  *   tokenStore: createRedisCsrfStore({ client })
  * })
  * ```

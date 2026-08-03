@@ -44,7 +44,7 @@ src/
 │   ├── sveltekit.ts      # createRateLimitHandle (SvelteKit Handle adapter)
 │   └── types.ts          # shared rate-limit contracts
 ├── csrf/
-│   └── sveltekit.ts  # bounded stateless double-submit adapter for SvelteKit
+│   └── sveltekit.ts  # bounded session-bound CSRF adapter for SvelteKit
 ├── audit/
 │   ├── d1.ts         # durable D1 audit sink
 │   └── sveltekit.ts  # request audit adapter
@@ -55,7 +55,7 @@ src/
 ├── alerting.ts       # channels, rules, shared threshold observer
 ├── audit.ts          # framework-agnostic audit logger
 ├── csp.ts            # parameterized CSP builder
-├── csrf.ts           # double-submit CSRF + pluggable store
+├── csrf.ts           # signed session-bound CSRF + pluggable expiry store
 ├── csrfClient.ts     # browser request integration
 ├── csrfRedis.ts      # structural Redis CSRF store adapter
 ├── httpCredentials.ts # bounded Basic/Bearer/API-key parsing and verification

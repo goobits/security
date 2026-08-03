@@ -165,6 +165,21 @@ describe('static JWKS JWT verification', () => {
 		).resolves.toEqual({ ok: false, reason: 'invalid' })
 	})
 
+	it('distinguishes an unknown key ID without exposing other verifier failures', async () => {
+		const { publicJwk, token } = await signedToken()
+
+		await expect(
+			verifyJwtWithJwks(token, {
+				jwks: { keys: [{ ...publicJwk, kid: 'another-provider-key' }] },
+				algorithms: ['RS256'],
+				issuer: 'https://issuer.example.test',
+				audience: 'client-123',
+				requiredClaims: ['iss', 'aud', 'sub', 'iat', 'exp'],
+				currentDate: new Date(1_700_000_030_000)
+			})
+		).resolves.toEqual({ ok: false, reason: 'key-not-found' })
+	})
+
 	it('distinguishes expiry and rejects private, symmetric, duplicate, and oversized key sets', async () => {
 		const { publicJwk, token } = await signedToken()
 		const base = {
