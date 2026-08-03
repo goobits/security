@@ -18,7 +18,8 @@ We aim to acknowledge new reports within 5 business days and to ship a fix or mi
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.x     | :white_check_mark: |
+| 3.x     | :white_check_mark: |
+| 2.x     | Critical fixes     |
 | < 2.0   | :x: (unsupported)  |
 
 ## Scope

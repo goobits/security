@@ -108,6 +108,7 @@ export {
 	type HmacAlgorithm,
 	type HmacSignature,
 	type SecurityProof,
+	type SecurityProofAlgorithm,
 	type SecurityProofVerification,
 	type VerifySecurityProofOptions,
 	attachSecurityProof,
@@ -200,6 +201,7 @@ export {
 	type AuthPrincipal,
 	type PrincipalApiKey,
 	type PrincipalAuth,
+	type PrincipalAuthAlgorithm,
 	type PrincipalAuthConfig,
 	type PrincipalAuthFailureReason,
 	type PrincipalAuthMethod,
@@ -208,6 +210,7 @@ export {
 } from './principalAuth.js'
 export {
 	type JwksSignatureAlgorithm,
+	type JwtHmacAlgorithm,
 	type JwtVerification,
 	type SignJwtOptions,
 	type VerifyJwtOptions,
@@ -218,6 +221,7 @@ export {
 } from './jwt.js'
 export {
 	type AdminAuth,
+	type AdminAuthAlgorithm,
 	type AdminAuthConfig,
 	type AdminAuthResult,
 	type AdminUser,

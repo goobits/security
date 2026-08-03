@@ -88,6 +88,12 @@ export interface CsrfValidateOptions {
 	checkExpiry?: boolean
 }
 
+/** @deprecated Use `CsrfGenerateOptions`. */
+export type GenerateOptions = CsrfGenerateOptions
+
+/** @deprecated Use `CsrfValidateOptions`. */
+export type ValidateOptions = CsrfValidateOptions
+
 /** Configures the bounded in-memory CSRF token store. */
 export interface MemoryCsrfStoreOptions {
 	/** Maximum number of tracked tokens. Default: 10,000. */

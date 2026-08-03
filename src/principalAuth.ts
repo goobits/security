@@ -16,6 +16,9 @@ import type { PrincipalIdentity } from './identity/principal.js'
 import { signJwt, verifyJwt as verifyJwtToken } from './jwt.js'
 import { safeErrorContext, type Logger } from './logger.js'
 
+/** @deprecated Import `HmacAlgorithm` from `@goobits/security/crypto` instead. */
+export type PrincipalAuthAlgorithm = HmacAlgorithm
+
 /** Auth Principal shape used for signed principals, API keys, and request authentication. */
 export interface AuthPrincipal extends PrincipalIdentity {
 	roles?: string[]

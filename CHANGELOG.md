@@ -6,6 +6,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-08-03
+
 ### Added
 
 - **`rate-limit`**: Added one atomic PostgreSQL sliding-window store and its
@@ -44,6 +46,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Changed
 
+- Public algorithm and CSRF option aliases from 3.0 remain available as
+  deprecated wrappers around the canonical `HmacAlgorithm`,
+  `CsrfGenerateOptions`, and `CsrfValidateOptions` contracts. This keeps the
+  additive 3.1 release source-compatible while giving new consumers one type
+  owner.
 - `rate-limit`: added one generic resilient-store wrapper with an explicit
   `closed | fallback` failure policy. Fallback mode requires a caller-owned
   store, and observer failures cannot change the selected policy.

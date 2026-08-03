@@ -12,6 +12,9 @@ import {
 import { textToBytes } from './crypto/encoding.js'
 import type { HmacAlgorithm } from './crypto/signatures.js'
 
+/** @deprecated Import `HmacAlgorithm` from `@goobits/security/crypto` instead. */
+export type JwtHmacAlgorithm = HmacAlgorithm
+
 /** Options for issuing a short-lived, purpose-bound JWT. */
 export type SignJwtOptions = {
 	secret: string | Uint8Array

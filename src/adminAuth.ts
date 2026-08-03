@@ -17,6 +17,9 @@ import {
 	type PrincipalAuthResult
 } from './principalAuth.js'
 
+/** @deprecated Import `HmacAlgorithm` from `@goobits/security/crypto` instead. */
+export type AdminAuthAlgorithm = HmacAlgorithm
+
 /** Admin User request or option shape for security middleware. */
 export interface AdminUser extends AuthPrincipal {
 	role?: string

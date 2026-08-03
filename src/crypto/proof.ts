@@ -1,5 +1,8 @@
 import { signHmac, type HmacAlgorithm, verifyHmac } from './signatures.js'
 
+/** @deprecated Import `HmacAlgorithm` from `@goobits/security/crypto` instead. */
+export type SecurityProofAlgorithm = HmacAlgorithm
+
 /** HMAC-backed proof bound to a JSON-compatible payload. */
 export interface SecurityProof {
 	type: 'SecurityProof'
