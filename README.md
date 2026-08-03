@@ -17,6 +17,8 @@ Server-side security primitives for modern JavaScript runtimes, with SvelteKit a
 - **reCAPTCHA:** Google v2 + v3 verification with score thresholds, returns a discriminated-union result
 - **Content Security Policy:** generic builder; pass your vendor allowlist as config, no hardcoded knowledge of Stripe/Cloudflare/etc.
 - **Validation:** Zod v4 middleware for request body / query / params
+- **Request bodies:** bounded cross-runtime readers for bytes, JSON, form data,
+  and async byte streams
 - **Principal authentication:** generic JWT bearer + API key principal authentication
 - **Admin authentication:** JWT bearer + API key fallback with constant-time comparison
 - **Crypto:** Web Crypto encoding, HMAC, rotation-ready AES-GCM keyrings,

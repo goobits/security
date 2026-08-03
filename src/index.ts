@@ -67,6 +67,7 @@ export {
 	BodyTooLargeError,
 	type ReadBodyOptions,
 	readAsyncIterableBytes,
+	readFormDataBody,
 	readJsonBody,
 	readRequestBodyBytes
 } from './requestBody.js'

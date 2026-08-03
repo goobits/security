@@ -11,7 +11,7 @@ export class BodyTooLargeError extends Error {
 	readonly maxBytes: number
 
 	constructor(maxBytes: number) {
-		super(`Request body exceeds ${ maxBytes } bytes`)
+		super(`Request body exceeds ${maxBytes} bytes`)
 		this.name = 'BodyTooLargeError'
 		this.maxBytes = maxBytes
 	}
@@ -19,7 +19,6 @@ export class BodyTooLargeError extends Error {
 
 /** Shared byte-limit options for bounded request-body readers. */
 export interface ReadBodyOptions {
-
 	/** Maximum bytes to read before failing. Default: 1 MiB. */
 	maxBytes?: number
 }
@@ -119,4 +118,18 @@ export async function readJsonBody(
 	const bytes = await readRequestBodyBytes(request, options)
 	if (bytes === undefined) return undefined
 	return JSON.parse(new TextDecoder().decode(bytes))
+}
+
+/** Parses a bounded Fetch request body with the runtime's FormData implementation. */
+export async function readFormDataBody(
+	request: Request,
+	options: ReadBodyOptions = {}
+): Promise<FormData> {
+	const bytes = await readRequestBodyBytes(request, options)
+	const boundedRequest = new Request(request.url, {
+		method: request.method,
+		headers: request.headers,
+		body: bytes ?? new ArrayBuffer(0)
+	})
+	return boundedRequest.formData()
 }

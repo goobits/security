@@ -12,6 +12,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
   idempotent schema helper so multi-process services share canonical counters.
 - **`request-body`**: Added a cross-runtime bounded async-iterable reader so
   Node and other stream hosts share one body-size enforcement owner.
+- **`request-body`**: Added bounded Fetch `FormData` parsing so authentication
+  and other form consumers never need to parse an unrestricted body first.
 - **`rate-limit`**: Added explicit right-counted trusted-proxy-hop resolution
   for append-style `x-forwarded-for` deployments.
 - **`crypto`**: Added `createIncrementalHasher()` for bounded-memory SHA-256
