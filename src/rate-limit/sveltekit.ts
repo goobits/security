@@ -58,7 +58,7 @@ export function createRateLimitHandle(options: RateLimitHandleOptions): Handle {
 		const identifier = await options.identifier(event)
 		const verdict = await options.limiter.check(identifier)
 
-		if (!verdict.allowed) {
+		if (verdict.allowed === false) {
 			log.warn('Rate-limited request', {
 				path: event.url.pathname,
 				identifier,

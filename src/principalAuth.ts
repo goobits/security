@@ -267,7 +267,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 				...(issuer === undefined ? {} : { issuer }),
 				...(clockTolerance === undefined ? {} : { clockTolerance })
 			})
-			if (!verification.ok) {
+			if (verification.ok === false) {
 				log.warn(
 					verification.reason === 'expired'
 						? 'Principal JWT expired'
@@ -313,7 +313,7 @@ export function createPrincipalAuth(config: PrincipalAuthConfig): PrincipalAuth 
 
 	async function requirePrincipal(request: Request): Promise<PrincipalAuthResult> {
 		const result = await authenticate(request)
-		if (!result.authenticated) {
+		if (result.authenticated === false) {
 			log.warn('Principal access denied', { reason: result.reason })
 		}
 		return result
