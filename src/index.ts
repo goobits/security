@@ -207,11 +207,14 @@ export {
 	createPrincipalAuth
 } from './principalAuth.js'
 export {
+	type JwksSignatureAlgorithm,
 	type JwtVerification,
 	type SignJwtOptions,
 	type VerifyJwtOptions,
+	type VerifyJwtWithJwksOptions,
 	signJwt,
-	verifyJwt
+	verifyJwt,
+	verifyJwtWithJwks
 } from './jwt.js'
 export {
 	type AdminAuth,

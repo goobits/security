@@ -135,7 +135,7 @@ import { withAudit } from '@goobits/security/audit/sveltekit'
 import { createSecurityAlerter, createWebhookChannel } from '@goobits/security/alerting'
 import { createSecurityProof, sealJson, verifySecurityProof } from '@goobits/security/crypto'
 import { verifyDidWbaIdentity } from '@goobits/security/identity'
-import { signJwt, verifyJwt } from '@goobits/security/jwt'
+import { signJwt, verifyJwt, verifyJwtWithJwks } from '@goobits/security/jwt'
 ```
 
 Each module is independently importable. Import only what you need.
@@ -172,6 +172,24 @@ const verification = await verifyJwt(token, {
 Verification pins `HS256` unless the caller supplies another explicit
 HS-family allowlist. Secrets must contain at least 32 bytes. Failed
 verification returns `invalid` or `expired` without exposing JOSE errors.
+
+For externally issued JWTs, fetch and cache the provider's trusted JWKS in the
+owning protocol package, then pass the static value into the same primitive:
+
+```ts
+const verification = await verifyJwtWithJwks(idToken, {
+	jwks: cachedProviderJwks,
+	algorithms: ['RS256'],
+	issuer: 'https://issuer.example',
+	audience: clientId,
+	requiredClaims: ['iss', 'aud', 'sub', 'iat', 'exp']
+})
+```
+
+Security performs no network I/O. It snapshots and bounds the key set, accepts
+only asymmetric public signing keys, and requires callers to pin algorithms,
+issuer, audience, and claims. Provider discovery, cache policy, nonce handling,
+and account semantics belong to the consuming authentication protocol.
 
 ---
 
@@ -480,8 +498,8 @@ const ip = getClientIP(event.request, { trustHeaders: ['x-forwarded-for'] })
 
 // Append-style XFF behind two trusted proxy hops:
 const ip = getClientIP(event.request, {
-  trustHeaders: ['x-forwarded-for'],
-  forwardedForTrustedProxyHops: 2
+	trustHeaders: ['x-forwarded-for'],
+	forwardedForTrustedProxyHops: 2
 })
 ```
 

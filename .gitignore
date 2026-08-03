@@ -55,3 +55,6 @@ pnpm-debug.log*
 .cache/
 .turbo/
 /.llm
+.codeatlas/*
+!.codeatlas/baselines/
+!.codeatlas/baselines/public-api.json
