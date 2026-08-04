@@ -1,3 +1,5 @@
+import { runInNewContext } from 'node:vm'
+
 import { describe, expect, it } from 'vitest'
 
 import { createCsrf, MemoryCsrfStore } from '../src/csrf.js'
@@ -21,8 +23,10 @@ function makeResponse(): Response {
 }
 
 describe('createCsrf', () => {
-	it('requires a strong shared signing secret', () => {
+	it('validates shared signing secret strength across realms', () => {
 		expect(() => createCsrf({ secret: 'weak' })).toThrowError(/at least 32 bytes/)
+		const crossRealmSecret = runInNewContext('new Uint8Array(32)') as Uint8Array
+		expect(() => createCsrf({ secret: crossRealmSecret })).not.toThrow()
 	})
 
 	it('generates a signed token bound to the current session', async () => {

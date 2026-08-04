@@ -180,12 +180,16 @@ function defaultCookieOptions(): CookieOptions {
 
 function validateSecret(secret: string | Uint8Array): Uint8Array {
 	const bytes = typeof secret === 'string' ? toBytes(secret) : secret
-	if (!(bytes instanceof Uint8Array) || bytes.byteLength < MIN_SECRET_BYTES) {
+	if (!isUint8Array(bytes) || bytes.byteLength < MIN_SECRET_BYTES) {
 		throw new Error(
 			`@goobits/security/csrf: secret must contain at least ${MIN_SECRET_BYTES} bytes`
 		)
 	}
 	return Uint8Array.from(bytes)
+}
+
+function isUint8Array(value: unknown): value is Uint8Array {
+	return ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === '[object Uint8Array]'
 }
 
 function validateSessionBinding(sessionBinding: string): string {
