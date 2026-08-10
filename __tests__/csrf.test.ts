@@ -27,6 +27,12 @@ describe('createCsrf', () => {
 		expect(() => createCsrf({ secret: 'weak' })).toThrowError(/at least 32 bytes/)
 		const crossRealmSecret = runInNewContext('new Uint8Array(32)') as Uint8Array
 		expect(() => createCsrf({ secret: crossRealmSecret })).not.toThrow()
+
+		const spoofedView = new DataView(new ArrayBuffer(32))
+		Object.defineProperty(spoofedView, Symbol.toStringTag, { value: 'Uint8Array' })
+		expect(() => createCsrf({ secret: spoofedView as unknown as Uint8Array })).toThrowError(
+			/at least 32 bytes/
+		)
 	})
 
 	it('generates a signed token bound to the current session', async () => {

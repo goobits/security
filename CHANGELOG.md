@@ -6,6 +6,11 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ## [Unreleased]
 
+### Security
+
+- CSRF secret validation now uses the intrinsic typed-array brand across realms,
+  rejecting spoofed views before their bytes are copied into the signing key.
+
 ## [4.0.0] - 2026-08-03
 
 ### Breaking

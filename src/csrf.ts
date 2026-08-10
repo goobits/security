@@ -35,6 +35,10 @@ const CSRF_TOKEN_CONTEXT = '@goobits/security/csrf/v1'
 const CSRF_TOKEN_PATTERN = /^v1\.([A-Za-z0-9_-]{43})\.([A-Za-z0-9_-]{43})$/u
 const MIN_SECRET_BYTES = 32
 const MAX_SESSION_BINDING_BYTES = 1_024
+const typedArrayTag = Object.getOwnPropertyDescriptor(
+	Object.getPrototypeOf(Uint8Array.prototype),
+	Symbol.toStringTag
+)?.get
 
 /**
  * Pluggable CSRF token store. Defaults to an in-memory `Map`. To use Redis
@@ -189,7 +193,7 @@ function validateSecret(secret: string | Uint8Array): Uint8Array {
 }
 
 function isUint8Array(value: unknown): value is Uint8Array {
-	return ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === '[object Uint8Array]'
+	return ArrayBuffer.isView(value) && typedArrayTag?.call(value) === 'Uint8Array'
 }
 
 function validateSessionBinding(sessionBinding: string): string {
