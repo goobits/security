@@ -223,9 +223,7 @@ const auth = createPrincipalAuth({
 	jwtSecret: process.env.JWT_SECRET!,
 	audience: 'my-app',
 	issuer: 'my-auth-service',
-	apiKeys: [
-		{ key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }
-	]
+	apiKeys: [{ key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }]
 })
 
 const result = await auth.requirePrincipal(request)
@@ -369,10 +367,12 @@ const csrf = createCsrf({
 })
 
 // On a route that explicitly checks expiration:
-if (!(await csrf.validate(event.request, {
-	sessionBinding: session.id,
-	checkExpiry: true
-}))) {
+if (
+	!(await csrf.validate(event.request, {
+		sessionBinding: session.id,
+		checkExpiry: true
+	}))
+) {
 	return new Response('CSRF validation failed', { status: 403 })
 }
 ```
@@ -742,6 +742,25 @@ Custom redaction keys extend Security's default secret set. The D1 sink validate
 its table identifier, caps structured detail and scalar fields, serializes
 bigints safely, omits arbitrary error messages, and reports storage
 failures without logging database error messages or event values.
+
+PostgreSQL consumers get the same bounds and redaction guarantees while adding
+a stable application source to every row:
+
+```ts
+import { createPostgresAuditSink } from '@goobits/security/audit/postgres'
+
+const sink = createPostgresAuditSink({
+	application: 'dashboard',
+	db: pool,
+	tableName: 'security_audit_events',
+	redactKeys: ['email']
+})
+const auditor = createAuditLogger({ sink, failureMode: 'throw' })
+```
+
+The host owns the table migration and database privileges. Runtime roles should
+receive `INSERT` only; audit readers and retention jobs should use separate
+operator roles.
 
 ## Request origin
 

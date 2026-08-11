@@ -46,8 +46,10 @@ src/
 ├── csrf/
 │   └── sveltekit.ts  # bounded session-bound CSRF adapter for SvelteKit
 ├── audit/
-│   ├── d1.ts         # durable D1 audit sink
-│   └── sveltekit.ts  # request audit adapter
+│   ├── _serialization.ts # shared bounds and secret-safe detail encoding
+│   ├── d1.ts             # durable D1 audit sink
+│   ├── postgres.ts       # durable PostgreSQL audit sink
+│   └── sveltekit.ts      # request audit adapter
 ├── validation/
 │   ├── simple.ts     # dependency-free boundary validators
 │   └── sveltekit.ts  # Zod-backed SvelteKit adapter

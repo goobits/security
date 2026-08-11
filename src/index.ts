@@ -241,6 +241,7 @@ export {
 	createLoggerSink
 } from './audit.js'
 export { type D1AuditDatabase, type D1AuditSinkOptions, createD1AuditSink } from './audit/d1.js'
+export { type PostgresAuditDatabase, type PostgresAuditSinkOptions, createPostgresAuditSink } from './audit/postgres.js'
 
 /* Security alerting. */
 export {

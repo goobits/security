@@ -10,6 +10,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 - CSRF secret validation now uses the intrinsic typed-array brand across realms,
   rejecting spoofed views before their bytes are copied into the signing key.
+- Added a bounded, secret-redacting PostgreSQL audit sink so applications can
+  await durable security events instead of relying only on process logs.
 
 ## [4.0.0] - 2026-08-03
 

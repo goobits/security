@@ -129,6 +129,10 @@
 				"types": "./dist/audit/d1.d.ts",
 				"default": "./dist/audit/d1.js"
 			},
+			"./audit/postgres": {
+				"types": "./dist/audit/postgres.d.ts",
+				"default": "./dist/audit/postgres.js"
+			},
 			"./audit/sveltekit": {
 				"types": "./dist/audit/sveltekit.d.ts",
 				"default": "./dist/audit/sveltekit.js"
@@ -193,6 +197,7 @@
 		"./admin-auth": "./src/adminAuth.ts",
 		"./audit": "./src/audit.ts",
 		"./audit/d1": "./src/audit/d1.ts",
+		"./audit/postgres": "./src/audit/postgres.ts",
 		"./audit/sveltekit": "./src/audit/sveltekit.ts",
 		"./alerting": "./src/alerting.ts",
 		"./logger": "./src/logger.ts",
