@@ -13,6 +13,12 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - Added a bounded, secret-redacting PostgreSQL audit sink so applications can
   await durable security events instead of relying only on process logs.
 
+### Changed
+
+- Build output, coverage, and Vite caches now live beneath
+  `/temp/frontdesk/goobits`; package verification continues to consume `dist`
+  through a managed external symlink.
+
 ## [4.0.0] - 2026-08-03
 
 ### Breaking

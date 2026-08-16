@@ -260,7 +260,7 @@
 		"zod": "^4.4.3"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc -p tsconfig.build.json",
+		"build": "node scripts/cleanDist.mjs && tsc -p tsconfig.build.json",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
 		"test": "vitest run",
 		"test:watch": "vitest",
