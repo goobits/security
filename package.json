@@ -224,7 +224,7 @@
 		"zod"
 	],
 	"author": "Goobits",
-	"license": "MIT",
+	"license": "FSL-1.1-ALv2",
 	"homepage": "https://github.com/goobits/security#readme",
 	"bugs": "https://github.com/goobits/security/issues",
 	"repository": {
