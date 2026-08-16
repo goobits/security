@@ -266,7 +266,8 @@
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
 		"verify:package": "node scripts/verifyPackage.mjs",
-		"prepack": "pnpm run build",
+		"prepack": "node scripts/packDist.mjs restore && pnpm run build && node scripts/packDist.mjs materialize",
+		"postpack": "node scripts/packDist.mjs restore",
 		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run verify:package",
 		"clean": "rm -rf dist node_modules .turbo"
 	}

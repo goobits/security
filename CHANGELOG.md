@@ -18,6 +18,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 - Build output, coverage, and Vite caches now live beneath
   `/temp/frontdesk/goobits`; package verification continues to consume `dist`
   through a managed external symlink.
+- Package archives materialize `dist` only while packing, then restore the
+  managed symlink so published JavaScript and declarations are included.
 
 ## [4.0.0] - 2026-08-03
 
