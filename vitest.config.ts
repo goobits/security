@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config'
-import { resolveViteCacheDirectory } from './scripts/testStorage.ts'
+import { resolveTestArtifactDirectory, resolveViteCacheDirectory } from './scripts/testStorage.ts'
 
 export default defineConfig({
 	cacheDir: resolveViteCacheDirectory(import.meta.dirname),
@@ -10,6 +10,7 @@ export default defineConfig({
 		include: ['__tests__/**/*.test.ts', 'tests/**/*.test.ts'],
 		coverage: {
 			provider: 'v8',
+			reportsDirectory: resolveTestArtifactDirectory(import.meta.dirname, 'coverage'),
 			reporter: ['text', 'lcov'],
 			include: ['src/**/*.ts'],
 			exclude: ['src/_internal/**', '**/*.d.ts', 'src/index.ts'],
