@@ -157,6 +157,10 @@
 				"types": "./dist/requestOrigin.d.ts",
 				"default": "./dist/requestOrigin.js"
 			},
+			"./markup-sanitizer": {
+				"types": "./dist/markupSanitizer.d.ts",
+				"default": "./dist/markupSanitizer.js"
+			},
 			"./runtime": {
 				"types": "./dist/runtime.d.ts",
 				"default": "./dist/runtime.js"
@@ -204,6 +208,7 @@
 		"./redaction": "./src/redaction.ts",
 		"./request-body": "./src/requestBody.ts",
 		"./request-origin": "./src/requestOrigin.ts",
+		"./markup-sanitizer": "./src/markupSanitizer.ts",
 		"./runtime": "./src/runtime.ts",
 		"./http-credentials": "./src/httpCredentials.ts"
 	},
