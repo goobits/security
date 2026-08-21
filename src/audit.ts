@@ -117,3 +117,9 @@ export function createAuditLogger(options: CreateAuditLoggerOptions = {}): Audit
 		}
 	}
 }
+
+export {
+	type PostgresAuditDatabase,
+	type PostgresAuditSinkOptions,
+	createPostgresAuditSink
+} from './audit/postgres.js'

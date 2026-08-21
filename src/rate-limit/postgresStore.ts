@@ -2,7 +2,7 @@ import type { RateLimitEntry, RateLimitStore } from './types.js'
 
 /** Minimal PostgreSQL query contract used by `PostgresRateLimitStore`. */
 export interface PostgresRateLimitDatabase {
-	query<T = Record<string, unknown>>(
+	query<T extends Record<string, unknown> = Record<string, unknown>>(
 		sql: string,
 		params?: readonly unknown[]
 	): Promise<{ rows: T[] }>
@@ -66,8 +66,8 @@ export function createPostgresRateLimitSchemaSql(
 	return tableName === 'rate_limits'
 		? postgresRateLimitSchemaSql
 		: postgresRateLimitSchemaSql
-			.replaceAll('"rate_limits_expires_at_idx"', expiresAtIndex)
-			.replaceAll('"rate_limits"', table)
+				.replaceAll('"rate_limits_expires_at_idx"', expiresAtIndex)
+				.replaceAll('"rate_limits"', table)
 }
 
 /**
