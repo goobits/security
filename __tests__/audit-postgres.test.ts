@@ -26,7 +26,9 @@ describe('PostgreSQL audit sink', () => {
 		expect(values?.[0]).toBe('mail')
 		expect(values?.[1]).toBe('organization.invitation.create')
 		expect(values?.[3]).toBe('user-1')
-		expect(values?.[12]).toBe(JSON.stringify({ email: '[redacted]', token: '[redacted]', rowId: '42' }))
+		expect(values?.[12]).toBe(
+			JSON.stringify({ email: '[redacted]', token: '[redacted]', rowId: '42' })
+		)
 		expect(values?.[14]).toBe('23505')
 		expect(values?.join(' ')).not.toContain('never-store-me')
 	})
@@ -39,9 +41,9 @@ describe('PostgreSQL audit sink', () => {
 				tableName: 'audit; DROP TABLE users'
 			})
 		).toThrow(/invalid PostgreSQL audit table/)
-		expect(() => createPostgresAuditSink({ application: '', db: { query: async () => undefined } })).toThrow(
-			/application/
-		)
+		expect(() =>
+			createPostgresAuditSink({ application: '', db: { query: async () => undefined } })
+		).toThrow(/application/)
 
 		const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
 		const sink = createPostgresAuditSink({
@@ -52,6 +54,10 @@ describe('PostgreSQL audit sink', () => {
 		await expect(
 			sink.record({ action: 'test', outcome: 'error', timestamp: new Date().toISOString() })
 		).rejects.toThrow('private database error')
+		expect(logger.error).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({ error_type: 'Error' })
+		)
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.any(String),
 			expect.not.objectContaining({ error: 'private database error' })

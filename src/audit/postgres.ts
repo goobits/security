@@ -82,7 +82,7 @@ export function createPostgresAuditSink({
 			} catch (error) {
 				log.error('@goobits/security/audit: PostgreSQL audit write failed', {
 					action: event.action,
-					error: error instanceof Error ? error.name : 'UnknownError'
+					error_type: error instanceof Error ? error.name : 'UnknownError'
 				})
 				throw error
 			}

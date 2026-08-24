@@ -9,6 +9,7 @@ function event(path = '/api'): RequestEvent {
 	return {
 		request,
 		url: new URL(request.url),
+		route: { id: path },
 		locals: {},
 		cookies: {},
 		platform: undefined,
@@ -92,15 +93,14 @@ describe('createRateLimitHandle', () => {
 			retryAfter: 45,
 			window: 'burst'
 		})
-		expect(warn).toHaveBeenCalledWith(
-			'Rate-limited request',
-			expect.objectContaining({
-				path: '/limited',
-				identifier: 'visitor-1',
-				window: 'burst',
-				retryAfterSec: 45
-			})
-		)
+		expect(warn).toHaveBeenCalledWith('Rate-limited request', {
+			method: 'GET',
+			route_id: '/limited',
+			window: 'burst',
+			retry_after_seconds: 45,
+			status_code: 429
+		})
+		expect(JSON.stringify(warn.mock.calls)).not.toContain('visitor-1')
 	})
 
 	it('uses a custom response builder for denied requests', async () => {

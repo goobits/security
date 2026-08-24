@@ -85,7 +85,7 @@ export function withAudit(options: WithAuditOptions, handler: RequestHandler): R
 			} catch (err) {
 				log.debug('audit: could not capture request body', {
 					...(err instanceof BodyTooLargeError
-						? { errorType: 'BodyTooLargeError' }
+						? { error_type: 'BodyTooLargeError' }
 						: safeErrorContext(err))
 				})
 			}

@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createConsoleLogger, noopLogger } from '../src/logger.js'
+import { createConsoleLogger, noopLogger, safeErrorContext } from '../src/logger.js'
+
+describe('safeErrorContext', () => {
+	it('uses the canonical error field without exposing the message', () => {
+		const context = safeErrorContext(new Error('private detail'))
+		expect(context).toEqual({ error_type: 'Error' })
+		expect(JSON.stringify(context)).not.toContain('private detail')
+	})
+})
 
 describe('noopLogger', () => {
 	it('exposes all four methods and swallows calls', () => {

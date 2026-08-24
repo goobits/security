@@ -60,10 +60,11 @@ export function createRateLimitHandle(options: RateLimitHandleOptions): Handle {
 
 		if (verdict.allowed === false) {
 			log.warn('Rate-limited request', {
-				path: event.url.pathname,
-				identifier,
+				method: event.request.method,
+				...(event.route.id ? { route_id: event.route.id } : {}),
 				window: verdict.window,
-				retryAfterSec: verdict.retryAfterSec
+				retry_after_seconds: verdict.retryAfterSec,
+				status_code: 429
 			})
 			return build(verdict)
 		}

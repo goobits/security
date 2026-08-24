@@ -215,8 +215,10 @@ describe('createRateLimiter', () => {
 	})
 
 	it('blocks the request that exceeds the limit', async () => {
+		const warn = vi.fn()
 		const limiter = createRateLimiter({
-			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }]
+			windows: [{ name: 'burst', windowMs: 60_000, maxEvents: 2 }],
+			logger: { debug() {}, info() {}, warn, error() {} }
 		})
 
 		await limiter.check('alice')
@@ -228,6 +230,12 @@ describe('createRateLimiter', () => {
 			expect(verdict.window).toBe('burst')
 			expect(verdict.retryAfterSec).toBeGreaterThan(0)
 		}
+		expect(warn).toHaveBeenCalledWith('Rate limit exceeded', {
+			window: 'burst',
+			event_count: 3,
+			max_events: 2
+		})
+		expect(JSON.stringify(warn.mock.calls)).not.toContain('alice')
 	})
 
 	it('isolates identifiers', async () => {
@@ -386,8 +394,8 @@ describe('createRateLimiter', () => {
 	it('rejects unsafe PostgreSQL rate-limit table identifiers', () => {
 		const db = new FakePostgresRateLimitDatabase()
 
-		expect(() =>
-			new PostgresRateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })
+		expect(
+			() => new PostgresRateLimitStore(db, { table: 'rate-limits; DROP TABLE users' })
 		).toThrowError(/invalid SQL identifier/)
 		expect(() =>
 			createPostgresRateLimitSchemaSql({ table: 'rate-limits; DROP TABLE users' })

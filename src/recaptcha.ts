@@ -129,14 +129,14 @@ export async function verifyRecaptcha(
 		})
 
 		if (!response.ok) {
-			log.error('reCAPTCHA API returned non-OK status', { statusCode: response.status })
+			log.error('reCAPTCHA API returned non-OK status', { status_code: response.status })
 			return { success: false, reason: 'api-error', statusCode: response.status }
 		}
 
 		const data = (await response.json()) as RecaptchaApiResponse
 
 		if (!data.success) {
-			log.warn('reCAPTCHA verification failed', { errorCodes: data['error-codes'] })
+			log.warn('reCAPTCHA verification failed', { error_codes: data['error-codes'] })
 			const result: RecaptchaResult = {
 				success: false,
 				reason: 'verification-failed',
@@ -151,7 +151,7 @@ export async function verifyRecaptcha(
 			if (data.score < minScore) {
 				log.warn('reCAPTCHA score too low', {
 					score: data.score,
-					minimum: minScore,
+					minimum_score: minScore,
 					action: data.action
 				})
 				const result: RecaptchaResult = {
@@ -166,8 +166,8 @@ export async function verifyRecaptcha(
 
 			if (action && data.action !== action) {
 				log.warn('reCAPTCHA action mismatch', {
-					expected: action,
-					actual: data.action,
+					expected_action: action,
+					actual_action: data.action,
 					score: data.score
 				})
 				const result: RecaptchaResult = {

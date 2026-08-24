@@ -48,6 +48,10 @@ describe('D1 audit sink', () => {
 		).rejects.toThrow('private database error')
 		expect(logger.error).toHaveBeenCalledWith(
 			expect.any(String),
+			expect.objectContaining({ error_type: 'Error' })
+		)
+		expect(logger.error).toHaveBeenCalledWith(
+			expect.any(String),
 			expect.not.objectContaining({ error: 'private database error' })
 		)
 	})

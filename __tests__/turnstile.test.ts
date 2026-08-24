@@ -110,14 +110,21 @@ describe('verifyTurnstile', () => {
 	})
 
 	it('returns api-error when the fetch responds non-2xx', async () => {
+		const error = vi.fn()
 		mockFetch({ ok: false, status: 502, body: {} })
 
-		const result = await verifyTurnstile('token', { secretKey: 'sk' })
+		const result = await verifyTurnstile('token', {
+			secretKey: 'sk',
+			logger: { debug() {}, info() {}, warn() {}, error }
+		})
 		expect(result.success).toBe(false)
 		if (!result.success) {
 			expect(result.reason).toBe('api-error')
 			expect(result.statusCode).toBe(502)
 		}
+		expect(error).toHaveBeenCalledWith('Turnstile API returned non-OK status', {
+			status_code: 502
+		})
 	})
 
 	it('returns api-error when fetch rejects', async () => {
@@ -156,17 +163,21 @@ describe('verifyTurnstile', () => {
 
 	it('skips siteverify entirely when bypassLocalhost matches remoteIp in development', async () => {
 		const fetchSpy = vi.fn()
+		const info = vi.fn()
 		vi.stubEnv('NODE_ENV', 'development')
 		vi.stubGlobal('fetch', fetchSpy)
 
 		const result = await verifyTurnstile('token', {
 			secretKey: 'sk',
 			remoteIp: '127.0.0.1',
-			bypassLocalhost: true
+			bypassLocalhost: true,
+			logger: { debug() {}, info, warn() {}, error() {} }
 		})
 
 		expect(result.success).toBe(true)
 		expect(fetchSpy).not.toHaveBeenCalled()
+		expect(info).toHaveBeenCalledWith('Turnstile verification bypassed for a local request')
+		expect(JSON.stringify(info.mock.calls)).not.toContain('127.0.0.1')
 	})
 
 	it('still calls siteverify when bypassLocalhost is set but remoteIp is NOT loopback', async () => {

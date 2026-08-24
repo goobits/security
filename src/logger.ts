@@ -23,9 +23,9 @@ export interface Logger {
 
 /** Projects an arbitrary thrown value without retaining messages or stacks. */
 export function safeErrorContext(error: unknown): LogContext {
-	if (!(error instanceof Error)) return { errorType: typeof error }
+	if (!(error instanceof Error)) return { error_type: typeof error }
 	const errorName = /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/u.test(error.name) ? error.name : 'Error'
-	return { errorType: errorName }
+	return { error_type: errorName }
 }
 
 /**

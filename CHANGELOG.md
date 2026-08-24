@@ -15,6 +15,8 @@ All notable changes to `@goobits/security` are documented here. The format adher
 
 ### Changed
 
+- Standardized diagnostic error and verification fields on snake_case names.
+- Removed raw rate-limit identifiers and loopback addresses from diagnostic logs.
 - Build output, coverage, and Vite caches now live beneath
   `/temp/frontdesk/goobits`; package verification continues to consume `dist`
   through a managed external symlink.

@@ -134,7 +134,7 @@ export async function verifyTurnstile(
 
 	// Loopback bypass  -  only outside production, only when explicitly opted in.
 	if (bypassLocalhost && !isProductionRuntime() && remoteIp && bypassHosts.includes(remoteIp)) {
-		log.info('Turnstile bypassed for loopback remoteIp', { remoteIp })
+		log.info('Turnstile verification bypassed for a local request')
 		return {
 			success: true,
 			...(hostname !== undefined ? { hostname } : {}),
@@ -171,14 +171,14 @@ export async function verifyTurnstile(
 		})
 
 		if (!response.ok) {
-			log.error('Turnstile API returned non-OK status', { statusCode: response.status })
+			log.error('Turnstile API returned non-OK status', { status_code: response.status })
 			return { success: false, reason: 'api-error', statusCode: response.status }
 		}
 
 		const data = (await response.json()) as TurnstileApiResponse
 
 		if (!data.success) {
-			log.warn('Turnstile verification failed', { errorCodes: data['error-codes'] })
+			log.warn('Turnstile verification failed', { error_codes: data['error-codes'] })
 			const result: TurnstileResult = {
 				success: false,
 				reason: 'verification-failed',
@@ -189,7 +189,10 @@ export async function verifyTurnstile(
 		}
 
 		if (action && data.action !== action) {
-			log.warn('Turnstile action mismatch', { expected: action, actual: data.action })
+			log.warn('Turnstile action mismatch', {
+				expected_action: action,
+				actual_action: data.action
+			})
 			return {
 				success: false,
 				reason: 'action-mismatch',
@@ -198,7 +201,10 @@ export async function verifyTurnstile(
 		}
 
 		if (hostname && data.hostname !== hostname) {
-			log.warn('Turnstile hostname mismatch', { expected: hostname, actual: data.hostname })
+			log.warn('Turnstile hostname mismatch', {
+				expected_hostname: hostname,
+				actual_hostname: data.hostname
+			})
 			return {
 				success: false,
 				reason: 'hostname-mismatch',

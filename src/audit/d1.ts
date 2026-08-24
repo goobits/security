@@ -75,7 +75,7 @@ export function createD1AuditSink({
 			} catch (error) {
 				log.error('@goobits/security/audit: D1 audit write failed', {
 					action: event.action,
-					error: error instanceof Error ? error.name : 'UnknownError'
+					error_type: error instanceof Error ? error.name : 'UnknownError'
 				})
 				throw error
 			}

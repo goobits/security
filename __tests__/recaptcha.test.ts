@@ -70,13 +70,20 @@ describe('verifyRecaptcha', () => {
 	})
 
 	it('returns api-error on non-OK status', async () => {
+		const error = vi.fn()
 		mockFetch({ ok: false, status: 500, body: {} })
-		const result = await verifyRecaptcha('token', { secretKey: 'sk' })
+		const result = await verifyRecaptcha('token', {
+			secretKey: 'sk',
+			logger: { debug() {}, info() {}, warn() {}, error }
+		})
 		expect(result.success).toBe(false)
 		if (!result.success) {
 			expect(result.reason).toBe('api-error')
 			expect(result.statusCode).toBe(500)
 		}
+		expect(error).toHaveBeenCalledWith('reCAPTCHA API returned non-OK status', {
+			status_code: 500
+		})
 	})
 
 	it('returns api-error when the API response is not valid JSON', async () => {

@@ -223,7 +223,9 @@ const auth = createPrincipalAuth({
 	jwtSecret: process.env.JWT_SECRET!,
 	audience: 'my-app',
 	issuer: 'my-auth-service',
-	apiKeys: [{ key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }]
+	apiKeys: [
+		{ key: process.env.SERVICE_API_KEY!, principal: { id: 'service-a', roles: ['service'] } }
+	]
 })
 
 const result = await auth.requirePrincipal(request)
@@ -841,6 +843,8 @@ const csrf = createCsrf({
 ```
 
 Any object implementing `{ debug, info, warn, error }` works, including Pino, Winston, or `console`.
+Diagnostic error context uses the canonical `error_type` field and omits exception messages and
+stacks. Rate-limit logs omit raw identifiers such as IP addresses and email-derived keys.
 
 ---
 
