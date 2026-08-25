@@ -265,14 +265,14 @@
 		"zod": "^4.4.3"
 	},
 	"scripts": {
-		"build": "node scripts/cleanDist.mjs && tsc -p tsconfig.build.json",
-		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+		"build": "node scripts/cleanDist.ts && tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:coverage": "vitest run --coverage",
-		"verify:package": "node scripts/verifyPackage.mjs",
-		"prepack": "node scripts/packDist.mjs restore && pnpm run build && node scripts/packDist.mjs materialize",
-		"postpack": "node scripts/packDist.mjs restore",
+		"verify:package": "node scripts/verifyPackage.ts",
+		"prepack": "node scripts/packDist.ts restore && pnpm run build && node scripts/packDist.ts materialize",
+		"postpack": "node scripts/packDist.ts restore",
 		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run verify:package",
 		"clean": "rm -rf dist node_modules .turbo"
 	}

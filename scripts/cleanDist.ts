@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { ensureManagedBuildOutput } from './managedBuildOutput.mjs'
+import { ensureManagedBuildOutput } from './managedBuildOutput.ts'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const distDirectory = ensureManagedBuildOutput(packageRoot, 'dist')

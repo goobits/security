@@ -6,7 +6,21 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
-const packageJson = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
+interface PackageManifest {
+	name: string
+	exports: Record<string, unknown>
+	publishConfig: { exports: Record<string, Record<string, string>> }
+}
+
+interface InstalledManifest {
+	main: string
+	types: string
+	exports: Record<string, Record<string, string>>
+}
+
+const packageJson = JSON.parse(
+	await readFile(join(root, 'package.json'), 'utf8')
+) as PackageManifest
 const tempDir = await mkdtemp(join(tmpdir(), 'goobits-security-package-'))
 
 assert.deepEqual(
@@ -15,8 +29,8 @@ assert.deepEqual(
 	'workspace and published export subpaths must stay aligned'
 )
 
-function run(command, args, cwd = root) {
-	return new Promise((resolve, reject) => {
+function run(command: string, args: string[], cwd: string = root): Promise<string> {
+	return new Promise<string>((resolve, reject) => {
 		const child = spawn(command, args, {
 			cwd,
 			env: { ...process.env, npm_config_update_notifier: 'false' },
@@ -43,9 +57,9 @@ function run(command, args, cwd = root) {
 	})
 }
 
-async function listFiles(directory, prefix = '') {
+async function listFiles(directory: string, prefix = ''): Promise<string[]> {
 	const entries = await readdir(directory, { withFileTypes: true })
-	const files = []
+	const files: string[] = []
 	for (const entry of entries) {
 		const path = join(directory, entry.name)
 		const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name
@@ -58,7 +72,7 @@ async function listFiles(directory, prefix = '') {
 	return files
 }
 
-function packageSpecifier(subpath) {
+function packageSpecifier(subpath: string): string {
 	return subpath === '.' ? packageJson.name : `${packageJson.name}${subpath.slice(1)}`
 }
 
@@ -66,9 +80,11 @@ try {
 	await run('pnpm', ['pack', '--pack-destination', tempDir])
 	const tarballs = (await readdir(tempDir)).filter((file) => file.endsWith('.tgz'))
 	assert.equal(tarballs.length, 1, 'package verification must produce exactly one tarball')
+	const tarball = tarballs[0]
+	assert(tarball)
 
 	const consumerDir = join(tempDir, 'consumer')
-	const tarballPath = join(tempDir, tarballs[0])
+	const tarballPath = join(tempDir, tarball)
 	const tarballReference = relative(consumerDir, tarballPath).split(sep).join('/')
 	await mkdir(consumerDir)
 	await writeFile(
@@ -91,7 +107,9 @@ try {
 	)
 
 	const installedRoot = join(consumerDir, 'node_modules', '@goobits', 'security')
-	const installedManifest = JSON.parse(await readFile(join(installedRoot, 'package.json'), 'utf8'))
+	const installedManifest = JSON.parse(
+		await readFile(join(installedRoot, 'package.json'), 'utf8')
+	) as InstalledManifest
 	assert.equal(installedManifest.main, './dist/index.js')
 	assert.equal(installedManifest.types, './dist/index.d.ts')
 	assert.deepEqual(installedManifest.exports, packageJson.publishConfig.exports)
@@ -125,7 +143,7 @@ try {
 	)
 	assert(!packedFiles.some((file) => file.endsWith('.ts') && !file.endsWith('.d.ts')))
 
-	const smokePath = join(consumerDir, 'smoke.mjs')
+	const smokePath = join(consumerDir, 'smoke.ts')
 	await writeFile(
 		smokePath,
 		`for (const specifier of ${JSON.stringify(Object.keys(installedManifest.exports).map(packageSpecifier))}) {\n\tawait import(specifier)\n}\n`

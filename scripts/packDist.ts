@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import {
 	materializeManagedBuildOutput,
 	restoreManagedBuildOutput
-} from './managedBuildOutput.mjs'
+} from './managedBuildOutput.ts'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const action = process.argv[2]
