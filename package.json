@@ -273,7 +273,6 @@
 		"verify:package": "node scripts/verifyPackage.ts",
 		"prepack": "node scripts/packDist.ts restore && pnpm run build && node scripts/packDist.ts materialize",
 		"postpack": "node scripts/packDist.ts restore",
-		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run verify:package",
-		"clean": "rm -rf dist node_modules .turbo"
+		"prepublishOnly": "pnpm run typecheck && pnpm test && pnpm run verify:package"
 	}
 }
