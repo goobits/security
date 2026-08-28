@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto'
 import {
 	cpSync,
 	existsSync,
@@ -13,6 +12,8 @@ import {
 } from 'node:fs'
 import path from 'node:path'
 
+import { resolveManagedStorageRoot } from './managedStorageRoot.ts'
+
 const outputNamePattern = /^[a-z0-9][a-z0-9._-]*$/
 
 interface ManagedBuildOutput {
@@ -21,28 +22,9 @@ interface ManagedBuildOutput {
 	target: string
 }
 
-function pathContains(parent: string, candidate: string): boolean {
-	const relativePath = path.relative(parent, candidate)
-	return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
-}
-
 function resolveManagedBuildOutput(projectRoot: string, name: string): ManagedBuildOutput {
 	if (!outputNamePattern.test(name)) throw new Error(`Managed output name is invalid: ${name}`)
-	const project = realpathSync.native(path.resolve(projectRoot))
-	const configured = process.env.GOOBITS_CACHE_ROOT?.trim() || '/temp/frontdesk/goobits'
-	if (!path.isAbsolute(configured)) throw new Error(`GOOBITS_CACHE_ROOT must be absolute: ${configured}`)
-
-	mkdirSync(configured, { recursive: true })
-	const cacheRoot = realpathSync.native(configured)
-	const tempRoot = realpathSync.native('/temp')
-	if (cacheRoot === tempRoot || !pathContains(tempRoot, cacheRoot)) {
-		throw new Error(`GOOBITS_CACHE_ROOT must resolve beneath /temp: ${cacheRoot}`)
-	}
-	if (pathContains(project, cacheRoot) || pathContains(cacheRoot, project)) {
-		throw new Error(`Build storage must be disjoint from the project: ${cacheRoot}`)
-	}
-
-	const fingerprint = createHash('sha256').update(project).digest('hex').slice(0, 12)
+	const { cacheRoot, fingerprint, project } = resolveManagedStorageRoot(projectRoot)
 	const target = path.join(cacheRoot, 'build-storage', fingerprint, 'build', 'outputs', name)
 	const output = path.join(project, name)
 	const packState = path.join(path.dirname(target), `.${name}.pack-state`)
