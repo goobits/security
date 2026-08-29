@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { getInputValidator } from '../src/validation.js'
@@ -161,6 +161,35 @@ describe('readRequestBodyBytes', () => {
 		await expect(readRequestBodyBytes(request, { maxBytes: 8 })).rejects.toBeInstanceOf(
 			BodyTooLargeError
 		)
+	})
+
+	it('reports cancellation failures without hiding the body-size error', async() => {
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+		const cancellationError = new Error('cancel failed')
+		const request = new Request('https://example.test/upload', {
+			method: 'POST',
+			body: new ReadableStream({
+				cancel() {
+					throw cancellationError
+				},
+				start(controller) {
+					controller.enqueue(new Uint8Array(9))
+				}
+			}),
+			duplex: 'half'
+		} as RequestInit)
+
+		await expect(readRequestBodyBytes(request, { maxBytes: 8 })).rejects.toBeInstanceOf(
+			BodyTooLargeError
+		)
+		await vi.waitFor(() => {
+			expect(consoleError).toHaveBeenCalledWith(
+				expect.objectContaining({
+					cause: cancellationError,
+					message: 'Bounded request-body cancellation failed.'
+				})
+			)
+		})
 	})
 
 	it('rejects invalid body limits at the configuration boundary', async () => {

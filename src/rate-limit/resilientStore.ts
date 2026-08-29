@@ -1,3 +1,5 @@
+import { reportDetachedError } from '../_reportDetachedError.js'
+
 import type { RateLimitStore } from './types.js'
 
 interface ResilientRateLimitStoreBaseOptions {
@@ -28,9 +30,13 @@ export function createResilientRateLimitStore(
 	const reportPrimaryError = (operation: keyof RateLimitStore, error: unknown): void => {
 		try {
 			const observation = options.onPrimaryError?.(operation, error)
-			if (observation) void Promise.resolve(observation).catch(() => undefined)
-		} catch {
-			// Observability must not change the configured availability policy.
+			if (observation) {
+				void Promise.resolve(observation).catch(observerError => {
+					reportDetachedError('Rate-limit primary-error observer failed.', observerError)
+				})
+			}
+		} catch(observerError) {
+			reportDetachedError('Rate-limit primary-error observer failed.', observerError)
 		}
 	}
 

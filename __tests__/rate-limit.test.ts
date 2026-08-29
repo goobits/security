@@ -138,6 +138,7 @@ describe('createResilientRateLimitStore', () => {
 	})
 
 	it('does not let a failing observer disable the fallback', async () => {
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
 		const fallback = new MemoryRateLimitStore({ cleanupProbability: 0 })
 		const store = createResilientRateLimitStore({
 			primary: unavailableStore(new Error('primary unavailable')),
@@ -150,6 +151,11 @@ describe('createResilientRateLimitStore', () => {
 
 		await expect(store.incrementEntry('alice', 1_000, 60_000)).resolves.toEqual({
 			timestamps: [1_000]
+		})
+		await vi.waitFor(() => {
+			expect(consoleError).toHaveBeenCalledWith(
+				expect.objectContaining({ message: 'Rate-limit primary-error observer failed.' })
+			)
 		})
 	})
 

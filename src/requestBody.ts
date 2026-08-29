@@ -4,6 +4,8 @@
  * @module @goobits/security/request-body
  */
 
+import { reportDetachedError } from './_reportDetachedError.js'
+
 const DEFAULT_MAX_BODY_BYTES = 1_048_576
 
 /** Error raised when a bounded request-body reader exceeds its configured limit. */
@@ -98,7 +100,9 @@ export async function readRequestBodyBytes(
 				// A cloned Fetch body is a tee'd stream. Awaiting cancellation can
 				// deadlock until the untouched original branch is consumed, so start
 				// cancellation without delaying the bounded-body rejection.
-				void reader.cancel().catch(() => undefined)
+				void reader.cancel().catch(error => {
+					reportDetachedError('Bounded request-body cancellation failed.', error)
+				})
 				throw new BodyTooLargeError(maxBytes)
 			}
 			chunks.push(value)
