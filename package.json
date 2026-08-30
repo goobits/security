@@ -242,11 +242,11 @@
 	"packageManager": "pnpm@11.22.0",
 	"dependencies": {
 		"hash-wasm": "^4.12.0",
-		"jose": "^6.2.8"
+		"jose": "^6.2.10"
 	},
 	"peerDependencies": {
-		"@sveltejs/kit": "^2.0.0",
-		"zod": "^4.0.0"
+		"@sveltejs/kit": "^2.70.3",
+		"zod": "^4.4.3"
 	},
 	"peerDependenciesMeta": {
 		"@sveltejs/kit": {
@@ -257,11 +257,11 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "2.70.2",
+		"@sveltejs/kit": "2.70.3",
 		"@types/node": "^26.2.0",
-		"@vitest/coverage-v8": "^4.1.10",
+		"@vitest/coverage-v8": "^4.1.11",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.10",
+		"vitest": "^4.1.11",
 		"zod": "^4.4.3"
 	},
 	"scripts": {
