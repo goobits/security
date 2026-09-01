@@ -267,9 +267,9 @@
 	"scripts": {
 		"build": "node scripts/cleanDist.ts && tsc -p tsconfig.build.json",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
-		"test": "vitest run",
-		"test:watch": "vitest",
-		"test:coverage": "vitest run --coverage",
+		"test": "vitest --configLoader runner run",
+		"test:watch": "vitest --configLoader runner",
+		"test:coverage": "vitest --configLoader runner run --coverage",
 		"verify:package": "node scripts/verifyPackage.ts",
 		"prepack": "node scripts/packDist.ts restore && pnpm run build && node scripts/packDist.ts materialize",
 		"postpack": "node scripts/packDist.ts restore",
