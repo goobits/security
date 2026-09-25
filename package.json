@@ -242,7 +242,7 @@
 	"packageManager": "pnpm@11.22.0",
 	"dependencies": {
 		"hash-wasm": "^4.12.0",
-		"jose": "^6.2.10"
+		"jose": "^6.2.12"
 	},
 	"peerDependencies": {
 		"@sveltejs/kit": "^2.70.3",
@@ -257,12 +257,12 @@
 		}
 	},
 	"devDependencies": {
-		"@sveltejs/kit": "2.70.3",
-		"@types/node": "^26.2.0",
-		"@vitest/coverage-v8": "^4.1.11",
+		"@sveltejs/kit": "^2.70.3",
+		"@types/node": "26.6.1",
+		"@vitest/coverage-v8": "^5.0.1",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.11",
-		"zod": "^4.4.3"
+		"vitest": "^5.0.1",
+		"zod": "^4.6.5"
 	},
 	"scripts": {
 		"build": "node scripts/cleanDist.ts && tsc -p tsconfig.build.json",
